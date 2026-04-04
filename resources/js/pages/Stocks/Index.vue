@@ -204,10 +204,10 @@ const submitUpdateStock = () => {
                 </div>
                 <div class="flex space-x-2" v-if="stocks.last_page > 1">
                     <Button 
-                        v-if="stocks.links[0].url" variant="outline" size="sm"
+                        v-if="stocks.links?.[0]?.url" variant="outline" size="sm"
                         @click="router.get(stocks.links[0].url)" :disabled="!stocks.links[0].url">Prev</Button>
                     <Button 
-                        v-if="stocks.links[stocks.links.length - 1].url" variant="outline" size="sm"
+                        v-if="stocks.links?.[stocks.links.length - 1]?.url" variant="outline" size="sm"
                         @click="router.get(stocks.links[stocks.links.length - 1].url)" :disabled="!stocks.links[stocks.links.length - 1].url">Next</Button>
                 </div>
             </div>
@@ -224,7 +224,7 @@ const submitUpdateStock = () => {
                         <Label for="name">Nama Barang</Label>
                         <Input id="name" v-model="formCreate.name" required placeholder="Cth: Kertas A4 HVS 80gsm SIDU" />
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <Label for="category">Kategori</Label>
                             <select id="category" v-model="formCreate.category" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus:ring-1 focus:ring-blue-600">
@@ -239,7 +239,7 @@ const submitUpdateStock = () => {
                             <Input id="unit" v-model="formCreate.unit" required placeholder="Cth: Rim, Botol, Pcs" />
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <Label for="current_qty">Stok Awal</Label>
                             <Input id="current_qty" type="number" step="0.01" v-model="formCreate.current_qty" required min="0" />
@@ -274,7 +274,7 @@ const submitUpdateStock = () => {
                     </div>
                 </div>
                 <form @submit.prevent="submitUpdateStock" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div class="grid grid-cols-1 gap-4 mt-2 sm:grid-cols-2">
                         <div 
                             @click="formUpdate.type = 'masuk'"
                             class="border rounded-md p-3 text-center cursor-pointer transition-all"

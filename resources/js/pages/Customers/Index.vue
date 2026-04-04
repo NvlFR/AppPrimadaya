@@ -174,7 +174,7 @@ const deleteCustomer = (id: number) => {
                 </div>
                 <div class="flex space-x-2" v-if="customers.last_page > 1">
                     <Button 
-                        v-if="customers.links[0].url" 
+                        v-if="customers.links?.[0]?.url" 
                         variant="outline" 
                         size="sm"
                         @click="router.get(customers.links[0].url)" 
@@ -183,7 +183,7 @@ const deleteCustomer = (id: number) => {
                         Prev
                     </Button>
                     <Button 
-                        v-if="customers.links[customers.links.length - 1].url" 
+                        v-if="customers.links?.[customers.links.length - 1]?.url" 
                         variant="outline" 
                         size="sm"
                         @click="router.get(customers.links[customers.links.length - 1].url)"

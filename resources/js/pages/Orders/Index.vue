@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, Eye, Clock, CheckCircle2, Package, ArrowRight } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Order {
     id: number;
@@ -24,6 +25,8 @@ const props = defineProps<{
         links: any[];
         current_page: number;
         last_page: number;
+        // Field tambahan dari array_merge di controller — jumlah order per status
+        status_counts?: Record<string, number>;
     };
     filters: { search?: string; status?: string };
     status_options: Record<string, string>;
@@ -61,9 +64,7 @@ const getStatusColor = (status: string) => {
     }
 };
 
-const formatRupiah = (value: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
-};
+const { formatRupiah } = useFormatRupiah();
 </script>
 
 <template>

@@ -24,7 +24,21 @@ class TransactionController extends Controller
      */
     public function index(Request $request): Response
     {
-        $transactions = Transaction::with(['customer', 'user'])
+        // Hanya muat kolom yang dibutuhkan untuk menghindari over-fetching
+        $transactions = Transaction::select(
+                'transactions.id',
+                'transactions.transaction_number',
+                'transactions.customer_id',
+                'transactions.user_id',
+                'transactions.total',
+                'transactions.payment_method',
+                'transactions.status',
+                'transactions.created_at'
+            )
+            ->with([
+                'customer:id,name',
+                'user:id,name',
+            ])
             ->when($request->search, fn ($q) => $q->where('transaction_number', 'like', "%{$request->search}%"))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->date_from, fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
@@ -133,10 +147,16 @@ class TransactionController extends Controller
                 'notes'              => $request->notes,
             ]);
 
+            // Pre-load semua service & paper_size yang dibutuhkan agar tidak terjadi N+1 query dalam loop
+            $serviceIds   = collect($request->items)->pluck('service_id')->filter()->unique();
+            $paperSizeIds = collect($request->items)->pluck('paper_size_id')->filter()->unique();
+            $services     = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+            $paperSizes   = PaperSize::whereIn('id', $paperSizeIds)->get()->keyBy('id');
+
             // Buat semua item transaksi
             foreach ($request->items as $itemData) {
-                $service   = Service::find($itemData['service_id']);
-                $paperSize = $itemData['paper_size_id'] ? PaperSize::find($itemData['paper_size_id']) : null;
+                $service   = $services->get($itemData['service_id']);
+                $paperSize = isset($itemData['paper_size_id']) ? $paperSizes->get($itemData['paper_size_id']) : null;
 
                 // Handle upload file custom order
                 $filePath         = null;
@@ -148,18 +168,18 @@ class TransactionController extends Controller
                 }
 
                 TransactionItem::create([
-                    'transaction_id'   => $transaction->id,
-                    'service_id'       => $service->id,
-                    'service_name'     => $service->name,
-                    'paper_size_id'    => $paperSize?->id,
-                    'paper_size_name'  => $paperSize?->name,
-                    'print_type'       => $itemData['print_type'],
-                    'qty'              => $itemData['qty'],
-                    'unit_price'       => $itemData['unit_price'],
-                    'subtotal'         => $itemData['unit_price'] * $itemData['qty'],
-                    'file_path'        => $filePath,
+                    'transaction_id'    => $transaction->id,
+                    'service_id'        => $service?->id,
+                    'service_name'      => $service?->name,
+                    'paper_size_id'     => $paperSize?->id,
+                    'paper_size_name'   => $paperSize?->name,
+                    'print_type'        => $itemData['print_type'],
+                    'qty'               => $itemData['qty'],
+                    'unit_price'        => $itemData['unit_price'],
+                    'subtotal'          => $itemData['unit_price'] * $itemData['qty'],
+                    'file_path'         => $filePath,
                     'original_filename' => $originalFilename,
-                    'item_notes'       => $itemData['item_notes'] ?? null,
+                    'item_notes'        => $itemData['item_notes'] ?? null,
                 ]);
             }
 
@@ -237,7 +257,16 @@ class TransactionController extends Controller
      */
     public function orders(Request $request): Response
     {
-        $orders = Transaction::with(['customer', 'user'])
+        // Hanya muat kolom yang dibutuhkan untuk daftar pesanan
+        $orders = Transaction::select(
+                'transactions.id',
+                'transactions.transaction_number',
+                'transactions.customer_id',
+                'transactions.total',
+                'transactions.status',
+                'transactions.created_at'
+            )
+            ->with(['customer:id,name'])
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->search, fn ($q) => $q->where('transaction_number', 'like', "%{$request->search}%"))
             ->latest()

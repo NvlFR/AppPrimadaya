@@ -67,9 +67,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Stok Bahan
         Route::get('/stocks', [StockController::class, 'index'])->name('stocks.index');
+        Route::get('/stocks/logs', [StockController::class, 'logs'])->name('stocks.logs');
         Route::post('/stocks', [StockController::class, 'store'])->name('stocks.store');
         Route::patch('/stocks/{stock}', [StockController::class, 'update'])->name('stocks.update');
-        Route::get('/stocks/logs', [StockController::class, 'logs'])->name('stocks.logs');
 
         // Laporan
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

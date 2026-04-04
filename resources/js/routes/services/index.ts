@@ -142,7 +142,7 @@ store.form = storeForm
 * @see app/Http/Controllers/ServiceController.php:74
 * @route '/services/{service}'
 */
-export const update = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+export const update = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: update.url(args, options),
     method: 'put',
 })
@@ -157,7 +157,7 @@ update.definition = {
 * @see app/Http/Controllers/ServiceController.php:74
 * @route '/services/{service}'
 */
-update.url = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+update.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { service: args }
     }
@@ -190,7 +190,7 @@ update.url = (args: { service: string | number | { id: string | number } } | [se
 * @see app/Http/Controllers/ServiceController.php:74
 * @route '/services/{service}'
 */
-update.put = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+update.put = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: update.url(args, options),
     method: 'put',
 })
@@ -200,7 +200,7 @@ update.put = (args: { service: string | number | { id: string | number } } | [se
 * @see app/Http/Controllers/ServiceController.php:74
 * @route '/services/{service}'
 */
-const updateForm = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -215,7 +215,7 @@ const updateForm = (args: { service: string | number | { id: string | number } }
 * @see app/Http/Controllers/ServiceController.php:74
 * @route '/services/{service}'
 */
-updateForm.put = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateForm.put = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -232,7 +232,7 @@ update.form = updateForm
 * @see app/Http/Controllers/ServiceController.php:94
 * @route '/services/{service}'
 */
-export const destroy = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+export const destroy = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
 })
@@ -247,7 +247,7 @@ destroy.definition = {
 * @see app/Http/Controllers/ServiceController.php:94
 * @route '/services/{service}'
 */
-destroy.url = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+destroy.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { service: args }
     }
@@ -280,7 +280,7 @@ destroy.url = (args: { service: string | number | { id: string | number } } | [s
 * @see app/Http/Controllers/ServiceController.php:94
 * @route '/services/{service}'
 */
-destroy.delete = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+destroy.delete = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
 })
@@ -290,7 +290,7 @@ destroy.delete = (args: { service: string | number | { id: string | number } } |
 * @see app/Http/Controllers/ServiceController.php:94
 * @route '/services/{service}'
 */
-const destroyForm = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const destroyForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: destroy.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'DELETE',
@@ -305,7 +305,7 @@ const destroyForm = (args: { service: string | number | { id: string | number } 
 * @see app/Http/Controllers/ServiceController.php:94
 * @route '/services/{service}'
 */
-destroyForm.delete = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+destroyForm.delete = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: destroy.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'DELETE',
@@ -322,7 +322,7 @@ destroy.form = destroyForm
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-export const prices = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+export const prices = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: prices.url(args, options),
     method: 'get',
 })
@@ -337,7 +337,7 @@ prices.definition = {
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-prices.url = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+prices.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { service: args }
     }
@@ -370,7 +370,7 @@ prices.url = (args: { service: string | number | { id: string | number } } | [se
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-prices.get = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+prices.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: prices.url(args, options),
     method: 'get',
 })
@@ -380,7 +380,7 @@ prices.get = (args: { service: string | number | { id: string | number } } | [se
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-prices.head = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+prices.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: prices.url(args, options),
     method: 'head',
 })
@@ -390,7 +390,7 @@ prices.head = (args: { service: string | number | { id: string | number } } | [s
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-const pricesForm = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+const pricesForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: prices.url(args, options),
     method: 'get',
 })
@@ -400,7 +400,7 @@ const pricesForm = (args: { service: string | number | { id: string | number } }
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-pricesForm.get = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+pricesForm.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: prices.url(args, options),
     method: 'get',
 })
@@ -410,7 +410,7 @@ pricesForm.get = (args: { service: string | number | { id: string | number } } |
 * @see app/Http/Controllers/ServiceController.php:104
 * @route '/services/{service}/prices'
 */
-pricesForm.head = (args: { service: string | number | { id: string | number } } | [service: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+pricesForm.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: prices.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'HEAD',

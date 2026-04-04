@@ -8,6 +8,7 @@ import { PlusIcon, PencilIcon, TrashIcon, TagIcon } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Service {
     id: number;
@@ -112,7 +113,7 @@ const openMatrixModal = async (service: Service) => {
     
     // Fetch current prices
     try {
-        const response = await fetch(route('services.get-prices', service.id));
+        const response = await fetch(route('services.prices', service.id));
         const data = await response.json();
         
         if (data.length > 0) {
@@ -140,7 +141,7 @@ const removeMatrixRow = (index: number) => {
 const saveMatrixPrices = () => {
     if (!editingId.value) return;
     
-    matrixForm.post(route('services.store-prices', editingId.value), {
+    matrixForm.post(route('services.prices.store', editingId.value), {
         onSuccess: () => {
             isMatrixModalOpen.value = false;
         },
@@ -153,9 +154,12 @@ const deleteService = (id: number) => {
     }
 };
 
-const formatRupiah = (value: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(value));
+// Fungsi untuk menutup matrix modal dengan benar
+const closeMatrixModal = () => {
+    isMatrixModalOpen.value = false;
 };
+
+const { formatRupiah } = useFormatRupiah();
 </script>
 
 <template>
@@ -234,25 +238,18 @@ const formatRupiah = (value: number | string) => {
             </div>
 
             <!-- Pagination -->
-            <!-- Note: Sederhana menggunakan previous/next links dari Inertia -->
-            <div class="flex justify-between items-center bg-white px-4 py-3 rounded-xl border shadow-sm" v-if="services.last_page > 1">
-                <Button 
-                    v-if="services.links[0].url" 
-                    variant="outline" 
-                    @click="router.get(services.links[0].url)" 
-                    :disabled="!services.links[0].url"
-                >
-                    Prev
-                </Button>
+            <div class="flex justify-between items-center" v-if="services.last_page > 1">
+                <Button
+                    variant="outline" size="sm"
+                    :disabled="!services.links?.[0]?.url"
+                    @click="services.links?.[0]?.url && router.get(services.links[0].url)"
+                >&larr; Sebelumnya</Button>
                 <div class="text-sm text-gray-500">Halaman {{ services.current_page }} dari {{ services.last_page }}</div>
-                <Button 
-                    v-if="services.links[services.links.length - 1].url" 
-                    variant="outline" 
-                    @click="router.get(services.links[services.links.length - 1].url)"
-                    :disabled="!services.links[services.links.length - 1].url"
-                >
-                    Next
-                </Button>
+                <Button
+                    variant="outline" size="sm"
+                    :disabled="!services.links?.[services.links.length - 1]?.url"
+                    @click="services.links?.[services.links.length - 1]?.url && router.get(services.links[services.links.length - 1].url)"
+                >Berikutnya &rarr;</Button>
             </div>
         </div>
 
@@ -270,7 +267,7 @@ const formatRupiah = (value: number | string) => {
                         <span class="text-xs text-red-500" v-if="form.errors.name">{{ form.errors.name }}</span>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <Label for="category">Kategori <span class="text-red-500">*</span></Label>
                             <select id="category" v-model="form.category" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm block focus:outline-none focus:ring-1 focus:ring-blue-600">
@@ -318,7 +315,7 @@ const formatRupiah = (value: number | string) => {
         </Dialog>
 
         <!-- Matrix Pricing Modal -->
-        <Dialog :open="isMatrixModalOpen" @update:open="val => { if (!val) isMatrixModalOpen = false; }">
+        <Dialog :open="isMatrixModalOpen" @update:open="val => { if (!val) closeMatrixModal(); }">
             <DialogContent class="sm:max-w-[700px]">
                 <DialogHeader>
                     <DialogTitle>Pricing Matrix: {{ services.data.find(s => s.id === editingId)?.name }}</DialogTitle>
@@ -328,15 +325,15 @@ const formatRupiah = (value: number | string) => {
                     <p class="text-sm text-gray-500">Atur harga spesifik berdasarkan kombinasi ukuran kertas dan tipe cetak.</p>
                     
                     <div class="space-y-3">
-                        <div v-for="(row, index) in matrixForm.prices" :key="index" class="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border">
-                            <div class="flex-1">
+                        <div v-for="(row, index) in matrixForm.prices" :key="index" class="flex flex-col sm:flex-row items-end sm:items-center gap-3 bg-gray-50 p-3 rounded-lg border">
+                            <div class="flex-1 w-full">
                                 <Label class="text-[10px] uppercase font-bold text-gray-400 mb-1">Ukuran Kertas</Label>
                                 <select v-model="row.paper_size_id" class="flex h-8 w-full rounded-md border border-input bg-white px-3 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
                                     <option :value="null">Ukuran Standar / NA</option>
                                     <option v-for="ps in paper_sizes" :key="ps.id" :value="ps.id.toString()">{{ ps.name }}</option>
                                 </select>
                             </div>
-                            <div class="flex-1">
+                            <div class="flex-1 w-full">
                                 <Label class="text-[10px] uppercase font-bold text-gray-400 mb-1">Tipe Cetak</Label>
                                 <select v-model="row.print_type" class="flex h-8 w-full rounded-md border border-input bg-white px-3 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
                                     <option value="bw">Hitam Putih</option>
@@ -344,11 +341,11 @@ const formatRupiah = (value: number | string) => {
                                     <option value="na">N/A (Lainnya)</option>
                                 </select>
                             </div>
-                            <div class="w-32">
+                            <div class="w-full sm:w-32">
                                 <Label class="text-[10px] uppercase font-bold text-gray-400 mb-1">Harga (Rp)</Label>
                                 <Input type="number" v-model="row.price" class="h-8 text-xs font-bold" />
                             </div>
-                            <div class="pt-5">
+                            <div class="pt-0 sm:pt-5 w-full sm:w-auto text-right">
                                 <Button variant="ghost" size="icon" @click="removeMatrixRow(index)" class="h-8 w-8 text-red-500 hover:bg-red-50">
                                     <TrashIcon class="h-4 w-4" />
                                 </Button>
@@ -362,7 +359,7 @@ const formatRupiah = (value: number | string) => {
                 </div>
 
                 <DialogFooter class="pt-4 border-t">
-                    <Button type="button" variant="outline" @click="isMatrixModalOpen = false">Batal</Button>
+                    <Button type="button" variant="outline" @click="closeMatrixModal">Batal</Button>
                     <Button type="button" @click="saveMatrixPrices" :disabled="matrixForm.processing" class="bg-amber-600 hover:bg-amber-700 text-white">
                         Simpan Matriks Harga
                     </Button>

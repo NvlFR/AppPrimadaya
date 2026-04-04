@@ -81,6 +81,87 @@ indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 index.form = indexForm
 
 /**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+export const logs = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: logs.url(options),
+    method: 'get',
+})
+
+logs.definition = {
+    methods: ["get","head"],
+    url: '/stocks/logs',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+logs.url = (options?: RouteQueryOptions) => {
+    return logs.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+logs.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: logs.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+logs.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: logs.url(options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+const logsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: logs.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+logsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: logs.url(options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\StockController::logs
+* @see app/Http/Controllers/StockController.php:127
+* @route '/stocks/logs'
+*/
+logsForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: logs.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+logs.form = logsForm
+
+/**
 * @see \App\Http\Controllers\StockController::store
 * @see app/Http/Controllers/StockController.php:49
 * @route '/stocks'
@@ -141,7 +222,7 @@ store.form = storeForm
 * @see app/Http/Controllers/StockController.php:81
 * @route '/stocks/{stock}'
 */
-export const update = (args: { stock: string | number | { id: string | number } } | [stock: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+export const update = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(args, options),
     method: 'patch',
 })
@@ -156,7 +237,7 @@ update.definition = {
 * @see app/Http/Controllers/StockController.php:81
 * @route '/stocks/{stock}'
 */
-update.url = (args: { stock: string | number | { id: string | number } } | [stock: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+update.url = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { stock: args }
     }
@@ -189,7 +270,7 @@ update.url = (args: { stock: string | number | { id: string | number } } | [stoc
 * @see app/Http/Controllers/StockController.php:81
 * @route '/stocks/{stock}'
 */
-update.patch = (args: { stock: string | number | { id: string | number } } | [stock: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+update.patch = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(args, options),
     method: 'patch',
 })
@@ -199,7 +280,7 @@ update.patch = (args: { stock: string | number | { id: string | number } } | [st
 * @see app/Http/Controllers/StockController.php:81
 * @route '/stocks/{stock}'
 */
-const updateForm = (args: { stock: string | number | { id: string | number } } | [stock: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateForm = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PATCH',
@@ -214,7 +295,7 @@ const updateForm = (args: { stock: string | number | { id: string | number } } |
 * @see app/Http/Controllers/StockController.php:81
 * @route '/stocks/{stock}'
 */
-updateForm.patch = (args: { stock: string | number | { id: string | number } } | [stock: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateForm.patch = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PATCH',
@@ -226,92 +307,11 @@ updateForm.patch = (args: { stock: string | number | { id: string | number } } |
 
 update.form = updateForm
 
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-export const logs = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: logs.url(options),
-    method: 'get',
-})
-
-logs.definition = {
-    methods: ["get","head"],
-    url: '/stocks/logs',
-} satisfies RouteDefinition<["get","head"]>
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-logs.url = (options?: RouteQueryOptions) => {
-    return logs.definition.url + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-logs.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: logs.url(options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-logs.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: logs.url(options),
-    method: 'head',
-})
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-const logsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: logs.url(options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-logsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: logs.url(options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:128
-* @route '/stocks/logs'
-*/
-logsForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: logs.url({
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'HEAD',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        }
-    }),
-    method: 'get',
-})
-
-logs.form = logsForm
-
 const stocks = {
     index: Object.assign(index, index),
+    logs: Object.assign(logs, logs),
     store: Object.assign(store, store),
     update: Object.assign(update, update),
-    logs: Object.assign(logs, logs),
 }
 
 export default stocks

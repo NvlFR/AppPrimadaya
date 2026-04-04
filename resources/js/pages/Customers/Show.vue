@@ -13,6 +13,7 @@ import {
     FileTextIcon,
     ArrowLeftIcon
 } from 'lucide-vue-next';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Transaction {
     id: number;
@@ -43,9 +44,8 @@ const props = defineProps<{
     };
 }>();
 
-const formatRupiah = (value: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(value));
-};
+const { formatRupiah } = useFormatRupiah();
+
 
 const getStatusColor = (status: string) => {
     switch(status) {
@@ -208,19 +208,17 @@ const getStatusColor = (status: string) => {
                         
                         <!-- Mini Pagination -->
                         <div class="px-6 py-3 border-t border-gray-100 flex justify-between items-center" v-if="transactions.last_page > 1">
-                            <Button 
-                                v-if="transactions.links[0].url" 
-                                variant="outline" size="sm" 
-                                @click="router.get(transactions.links[0].url)" 
-                                :disabled="!transactions.links[0].url"
-                            >Prev</Button>
+                            <Button
+                                variant="outline" size="sm"
+                                :disabled="!transactions.links?.[0]?.url"
+                                @click="transactions.links?.[0]?.url && router.get(transactions.links[0].url)"
+                            >&larr; Prev</Button>
                             <span class="text-xs text-gray-500">Halaman {{ transactions.current_page }} / {{ transactions.last_page }}</span>
-                            <Button 
-                                v-if="transactions.links[transactions.links.length - 1].url" 
-                                variant="outline" size="sm" 
-                                @click="router.get(transactions.links[transactions.links.length - 1].url)"
-                                :disabled="!transactions.links[transactions.links.length - 1].url"
-                            >Next</Button>
+                            <Button
+                                variant="outline" size="sm"
+                                :disabled="!transactions.links?.[transactions.links.length - 1]?.url"
+                                @click="transactions.links?.[transactions.links.length - 1]?.url && router.get(transactions.links[transactions.links.length - 1].url)"
+                            >Next &rarr;</Button>
                         </div>
                     </div>
                 </div>

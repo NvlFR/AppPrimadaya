@@ -25,14 +25,23 @@ createInertiaApp({
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             default:
-                return AppLayout;
+                return undefined;
         }
     },
     setup({ el, App, props, plugin }) {
         const isSSR = typeof window === 'undefined';
+        
+        if (isSSR && props.initialPage.props.ziggy) {
+            const ziggy = props.initialPage.props.ziggy as any;
+            (globalThis as any).Ziggy = {
+                ...ziggy,
+                location: new URL(ziggy.location)
+            };
+        }
+
         const app = (isSSR ? createSSRApp : createApp)({ render: () => h(App, props) })
             .use(plugin)
-            .use(ZiggyVue);
+            .use(ZiggyVue, typeof window !== 'undefined' ? undefined : (props.initialPage.props.ziggy as any));
 
         if (el) {
             app.mount(el);

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Wallet, CreditCard, Clock, Activity, TrendingUp, ShoppingCart } from 'lucide-vue-next';
 import VueApexCharts from 'vue3-apexcharts';
 import { computed } from 'vue';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 const props = defineProps<{
     stats: {
@@ -31,13 +33,8 @@ const props = defineProps<{
     }>;
 }>();
 
-const formatRupiah = (number: number) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(number);
-};
+const { formatRupiah } = useFormatRupiah();
+
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -92,6 +89,7 @@ const chartSeries = computed(() => [{
 </script>
 
 <template>
+    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }]">
     <Head title="Dashboard" />
 
     <div class="px-6 py-6 md:px-8 space-y-8">
@@ -228,4 +226,5 @@ const chartSeries = computed(() => [{
             </Card>
         </div>
     </div>
+    </AppLayout>
 </template>

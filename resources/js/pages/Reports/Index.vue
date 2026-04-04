@@ -13,6 +13,7 @@ import {
     ShoppingCartIcon
 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 const props = defineProps<{
     type: 'daily' | 'monthly';
@@ -49,12 +50,15 @@ watch(selectedType, () => {
     applyFilter();
 });
 
-const formatRupiah = (value: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(value));
-};
+const { formatRupiah } = useFormatRupiah();
 
+// Arahkan ke endpoint export dengan parameter yang sedang aktif
 const exportData = () => {
-    alert('Fitur Export PDF / Excel sedang dalam pengembangan.');
+    const params = new URLSearchParams({
+        type: selectedType.value,
+        ...(selectedType.value === 'daily' ? { date: selectedDate.value } : { month: selectedMonth.value }),
+    });
+    window.open(route('reports.export') + '?' + params.toString(), '_blank');
 };
 </script>
 

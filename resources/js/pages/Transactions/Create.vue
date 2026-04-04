@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ShoppingCart, Plus, Save, User, FileText, ChevronRight } from 'lucide-vue-next';
+import { Trash2, ShoppingCart, Plus, Save, User, FileText, RefreshCw } from 'lucide-vue-next';
 
 const props = defineProps<{
     services: Array<any>;
@@ -16,7 +18,7 @@ const props = defineProps<{
 
 // Form Data via Inertia untuk dikirim ke Backend
 const form = useForm({
-    customer_id: '',
+    customer_id: 'none',
     items: [] as Array<{
         service_id: string;
         paper_size_id: string | null;
@@ -93,9 +95,19 @@ const changeAmount = computed(() => {
     return Math.max(0, form.amount_paid - totalFinal.value);
 });
 
-// Helper formatting rupiah
-const formatRupiah = (number: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+const { formatRupiah } = useFormatRupiah();
+
+
+// Fungsi Reset Kasir — bersihkan semua item dan kembali ke state awal
+const resetKasir = () => {
+    if (form.items.length > 0 && !confirm('Reset kasir? Semua item keranjang akan dihapus.')) return;
+    form.reset();
+    form.items = [];
+    form.payment_method = 'cash';
+    form.discount_percent = 0;
+    form.amount_paid = 0;
+    form.customer_id = 'none';
+    selectedServiceId.value = '';
 };
 
 // Proses Submit ke Server
@@ -110,7 +122,12 @@ const submitTransaction = () => {
         return;
     }
 
-    form.post(route('transactions.store'), {
+    // forceFormData:true wajib karena ada file upload di dalam item
+    form.transform((data) => ({
+        ...data,
+        customer_id: data.customer_id === 'none' ? '' : data.customer_id
+    })).post(route('transactions.store'), {
+        forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
             // Setelah berhasil akan di-redirect controller ke halaman invoice
@@ -120,6 +137,10 @@ const submitTransaction = () => {
 </script>
 
 <template>
+    <AppLayout :breadcrumbs="[
+        { title: 'Dashboard', href: route('dashboard') },
+        { title: 'Kasir Baru', href: route('transactions.create') }
+    ]">
     <Head title="Kasir & Transaksi Baru" />
 
     <div class="px-4 py-6 md:px-8 max-w-[1600px] mx-auto">
@@ -131,7 +152,9 @@ const submitTransaction = () => {
                 <p class="text-sm text-gray-500 mt-1">Buat pesanan baru untuk pelanggan</p>
             </div>
             <!-- Bantuan / Batal -->
-            <Button variant="outline" class="text-gray-500">Reset Kasir</Button>
+            <Button variant="outline" class="text-gray-500" @click="resetKasir">
+                <RefreshCw class="mr-2 h-4 w-4" /> Reset Kasir
+            </Button>
         </div>
 
         <!-- Layout Kiri (Keranjang & Setup) - Kanan (Ringkasan & Bayar) -->
@@ -144,7 +167,7 @@ const submitTransaction = () => {
                     <CardHeader class="pb-4">
                         <CardTitle class="text-lg flex items-center"><User class="mr-2 h-5 w-5 text-gray-400" /> Informasi Pelanggan</CardTitle>
                     </CardHeader>
-                    <CardContent class="grid grid-cols-2 gap-4">
+                    <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <Label>Pilih Pelanggan (Tetap)</Label>
                             <Select v-model="form.customer_id">
@@ -152,7 +175,7 @@ const submitTransaction = () => {
                                     <SelectValue placeholder="Pilih atau tinggalkan kosong (Umum)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Pelanggan Umum (Tidak Terafiliasi)</SelectItem>
+                                    <SelectItem value="none">Pelanggan Umum (Tidak Terafiliasi)</SelectItem>
                                     <SelectItem v-for="c in customers" :key="c.id" :value="c.id.toString()">{{ c.name }} - {{ c.phone }}</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -195,8 +218,8 @@ const submitTransaction = () => {
                         </div>
 
                         <!-- Table Keranjang -->
-                        <div v-else class="w-full">
-                            <table class="w-full text-sm text-left">
+                        <div v-else class="w-full overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[800px]">
                                 <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
                                     <tr>
                                         <th class="px-4 py-3 font-semibold">Layanan</th>
@@ -282,8 +305,8 @@ const submitTransaction = () => {
             </div>
 
             <!-- KOLOM KANAN: Pembayaran & Ringkasan -->
-            <div class="lg:col-span-4 sticky top-6">
-                <Card class="border-2 border-primary/20 shadow-xl overflow-hidden flex flex-col h-full bg-white">
+            <div class="lg:col-span-4 sticky top-20">
+                <Card class="border-2 border-primary/20 shadow-xl flex flex-col max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-xl">
                     <div class="bg-primary px-6 py-4 flex items-center justify-between text-white">
                         <span class="font-semibold tracking-wide">TOTAL TAGIHAN</span>
                         <h2 class="text-3xl font-bold tracking-tight">{{ formatRupiah(totalFinal) }}</h2>
@@ -315,9 +338,13 @@ const submitTransaction = () => {
                         <div class="space-y-4 pt-2">
                             <div class="space-y-2">
                                 <Label class="text-gray-700 font-semibold" for="payment_method">Metode Pembayaran</Label>
-                                <Select v-model="form.payment_method">
+                                <!-- Gunakan :model-value + @update:modelValue agar shadcn Select dapat baca nilai awal -->
+                                <Select
+                                    :model-value="form.payment_method"
+                                    @update:model-value="(val) => form.payment_method = val as string"
+                                >
                                     <SelectTrigger class="bg-gray-50 border-gray-300">
-                                        <SelectValue placeholder="Pilih Jenis" />
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="cash">Tunai (Cash)</SelectItem>
@@ -357,4 +384,5 @@ const submitTransaction = () => {
             
         </div>
     </div>
+    </AppLayout>
 </template>

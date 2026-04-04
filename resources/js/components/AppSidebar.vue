@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, ShoppingCart, ListOrdered, Users, Package, Wallet, Box, FileBarChart, UsersRound } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
@@ -16,7 +17,18 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+// Baca role user dari shared props Inertia
+const page = usePage();
+const userRole = computed(() => (page.props.auth as any)?.role ?? null);
+const isAdmin = computed(() => userRole.value === 'admin');
+
+/**
+ * Menu navigasi dengan role-based filtering.
+ * Item dengan `adminOnly: true` hanya tampil untuk role 'admin'.
+ * Menggunakan computed agar route() dievaluasi saat komponen di-setup,
+ * bukan saat module diinisialisasi — mencegah SSR error Ziggy.
+ */
+const allNavItems = computed<(NavItem & { adminOnly?: boolean })[]>(() => [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -43,28 +55,39 @@ const mainNavItems: NavItem[] = [
         icon: Users,
     },
     {
+        // Hanya Admin
         title: 'Pengeluaran',
         href: route('expenses.index'),
         icon: Wallet,
+        adminOnly: true,
     },
     {
+        // Hanya Admin
         title: 'Stok Bahan',
         href: route('stocks.index'),
         icon: Box,
+        adminOnly: true,
     },
     {
-        title: 'Laporan',
+        // Hanya Admin
+        title: 'Laporan Keuangan',
         href: route('reports.index'),
         icon: FileBarChart,
+        adminOnly: true,
     },
     {
-        title: 'Daftar Karyawan',
+        // Hanya Admin
+        title: 'Manajemen Akun',
         href: route('users.index'),
         icon: UsersRound,
+        adminOnly: true,
     },
-];
+]);
 
-const footerNavItems: NavItem[] = [];
+// Filter menu berdasarkan role — kasir hanya dapat item non-admin
+const mainNavItems = computed<NavItem[]>(() =>
+    allNavItems.value.filter(item => !item.adminOnly || isAdmin.value)
+);
 </script>
 
 <template>

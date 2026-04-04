@@ -126,8 +126,8 @@ const deleteUser = (id: number) => {
         <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Manajemen Akun</h1>
-                    <p class="text-sm text-gray-500">Kelola akses role Admin dan Kasir.</p>
+                    <h1 class="text-2xl font-bold text-gray-900">Manajemen Akun Karyawan</h1>
+                    <p class="text-sm text-gray-500 mt-0.5">Kelola akun dan role akses untuk Admin dan Kasir.</p>
                 </div>
                 <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
                     <PlusIcon class="h-4 w-4 mr-2" /> Tambah Akun Baru
@@ -206,13 +206,19 @@ const deleteUser = (id: number) => {
             </div>
 
             <!-- Pagination -->
-            <div class="flex justify-between items-center bg-white px-4 py-3 rounded-xl border shadow-sm" v-if="users.total > 0">
-                <div class="text-sm text-gray-500">
-                    Menampilkan <span class="font-medium text-gray-900">{{ users.from }}</span> - <span class="font-medium text-gray-900">{{ users.to }}</span> dari <span class="font-medium text-gray-900">{{ users.total }}</span> akun
-                </div>
-                <div class="flex space-x-2" v-if="users.last_page > 1">
-                    <Button v-if="users.links[0].url" variant="outline" size="sm" @click="router.get(users.links[0].url)" :disabled="!users.links[0].url">Prev</Button>
-                    <Button v-if="users.links[users.links.length - 1].url" variant="outline" size="sm" @click="router.get(users.links[users.links.length - 1].url)" :disabled="!users.links[users.links.length - 1].url">Next</Button>
+            <div class="flex justify-between items-center" v-if="users.last_page > 1">
+                <span class="text-sm text-gray-400">Halaman {{ users.current_page }} / {{ users.last_page }}</span>
+                <div class="flex gap-2">
+                    <Button
+                        variant="outline" size="sm"
+                        :disabled="!users.links?.[0]?.url"
+                        @click="users.links?.[0]?.url && router.get(users.links[0].url)"
+                    >&larr; Sebelumnya</Button>
+                    <Button
+                        variant="outline" size="sm"
+                        :disabled="!users.links?.[users.links.length - 1]?.url"
+                        @click="users.links?.[users.links.length - 1]?.url && router.get(users.links[users.links.length - 1].url)"
+                    >Berikutnya &rarr;</Button>
                 </div>
             </div>
         </div>

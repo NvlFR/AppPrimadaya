@@ -12,6 +12,7 @@ import {
     DownloadIcon,
     PaperclipIcon
 } from 'lucide-vue-next';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface TransactionItem {
     id: number;
@@ -54,9 +55,8 @@ const formStatus = useForm({
     status: props.transaction.status,
 });
 
-const formatRupiah = (value: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(value));
-};
+const { formatRupiah } = useFormatRupiah();
+
 
 const getStatusColor = (status: string) => {
     switch(status) {
@@ -68,7 +68,7 @@ const getStatusColor = (status: string) => {
 };
 
 const updateStatus = () => {
-    formStatus.patch(route('transactions.update-status', props.transaction.id), {
+    formStatus.patch(route('transactions.status', props.transaction.id), {
         preserveScroll: true,
     });
 };
@@ -90,7 +90,7 @@ const downloadPdf = () => {
             <!-- Header Section -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                 <div class="flex items-center space-x-4">
-                    <Link :href="route('transactions.create')">
+                    <Link :href="route('transactions.index')">
                         <Button variant="outline" size="icon" class="h-8 w-8 rounded-full">
                             <ArrowLeftIcon class="h-4 w-4" />
                         </Button>

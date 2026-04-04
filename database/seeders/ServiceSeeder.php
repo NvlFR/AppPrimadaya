@@ -49,7 +49,10 @@ class ServiceSeeder extends Seeder
             ];
 
             foreach ($prices as $price) {
-                ServicePrice::create(array_merge(['service_id' => $printHvs->id], $price));
+                ServicePrice::firstOrCreate(
+                    ['service_id' => $printHvs->id, 'paper_size_id' => $price['paper_size_id'], 'print_type' => $price['print_type']],
+                    ['price' => $price['price']]
+                );
             }
         }
         

@@ -90,19 +90,18 @@ class StockController extends Controller
             'qty.min'       => 'Jumlah stok harus lebih dari 0.',
         ]);
 
+        // Validasi stok keluar dilakukan SEBELUM transaction agar redirect bisa berfungsi
+        if ($request->type === 'keluar' && $request->qty > $stock->current_qty) {
+            return back()->withErrors(['qty' => 'Jumlah keluar melebihi stok yang tersedia (' . $stock->current_qty . ' ' . $stock->unit . ').' ])->withInput();
+        }
+
         DB::transaction(function () use ($request, $stock) {
             $qtyBefore = $stock->current_qty;
 
             // Hitung qty baru berdasarkan tipe perubahan
-            if ($request->type === 'masuk') {
-                $qtyAfter = $qtyBefore + $request->qty;
-            } else {
-                // Pastikan stok tidak negatif
-                if ($request->qty > $qtyBefore) {
-                    return back()->withErrors(['qty' => 'Jumlah keluar melebihi stok yang tersedia.']);
-                }
-                $qtyAfter = $qtyBefore - $request->qty;
-            }
+            $qtyAfter = $request->type === 'masuk'
+                ? $qtyBefore + $request->qty
+                : $qtyBefore - $request->qty;
 
             // Update stok
             $stock->update(['current_qty' => $qtyAfter]);

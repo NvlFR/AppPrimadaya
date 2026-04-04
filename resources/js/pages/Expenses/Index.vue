@@ -6,12 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { 
-    PlusIcon, 
-    TrashIcon, 
-    WalletIcon, 
-} from 'lucide-vue-next';
+import { PlusIcon, TrashIcon, WalletIcon } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Expense {
     id: number;
@@ -66,9 +63,8 @@ const triggerSearch = () => {
 
 watch([categoryFilter, dateFromFilter, dateToFilter], triggerSearch);
 
-const formatRupiah = (value: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(value));
-};
+const { formatRupiah } = useFormatRupiah();
+
 
 // Modal States
 const isCreateModalOpen = ref(false);
@@ -200,13 +196,19 @@ const getCategoryColor = (category: string) => {
             </div>
 
             <!-- Pagination -->
-            <div class="flex justify-between items-center bg-white px-4 py-3 rounded-xl border shadow-sm" v-if="expenses.total > 0">
-                <div class="text-sm text-gray-500">
-                    Menampilkan <span class="font-medium text-gray-900">{{ expenses.from }}</span> - <span class="font-medium text-gray-900">{{ expenses.to }}</span> dari <span class="font-medium text-gray-900">{{ expenses.total }}</span> riwayat
-                </div>
-                <div class="flex space-x-2" v-if="expenses.last_page > 1">
-                    <Button v-if="expenses.links[0].url" variant="outline" size="sm" @click="router.get(expenses.links[0].url)" :disabled="!expenses.links[0].url">Prev</Button>
-                    <Button v-if="expenses.links[expenses.links.length - 1].url" variant="outline" size="sm" @click="router.get(expenses.links[expenses.links.length - 1].url)" :disabled="!expenses.links[expenses.links.length - 1].url">Next</Button>
+            <div class="flex justify-between items-center" v-if="expenses.last_page > 1">
+                <span class="text-sm text-gray-400">Halaman {{ expenses.current_page }} / {{ expenses.last_page }}</span>
+                <div class="flex gap-2">
+                    <Button
+                        variant="outline" size="sm"
+                        :disabled="!expenses.links?.[0]?.url"
+                        @click="expenses.links?.[0]?.url && router.get(expenses.links[0].url)"
+                    >&larr; Sebelumnya</Button>
+                    <Button
+                        variant="outline" size="sm"
+                        :disabled="!expenses.links?.[expenses.links.length - 1]?.url"
+                        @click="expenses.links?.[expenses.links.length - 1]?.url && router.get(expenses.links[expenses.links.length - 1].url)"
+                    >Berikutnya &rarr;</Button>
                 </div>
             </div>
         </div>
