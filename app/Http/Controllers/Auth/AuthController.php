@@ -34,9 +34,18 @@ class AuthController extends Controller
         ]);
 
         $remember = $request->boolean('remember');
+        $throttleKey = md5('login'.implode('|', [$request->email, $request->ip()]));
+
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan login. Silakan coba lagi dalam $seconds detik.",
+            ])->withInput($request->only('email'))->setStatusCode(429);
+        }
 
         // Cek apakah akun aktif sebelum melakukan autentikasi
         if (Auth::attempt($credentials, $remember)) {
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
             $user = Auth::user();
 
             // Tolak akses jika akun tidak aktif
@@ -51,6 +60,8 @@ class AuthController extends Controller
 
             return redirect()->intended(route('dashboard'));
         }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey);
 
         return back()->withErrors([
             'email' => 'Email atau password yang Anda masukkan tidak sesuai.',

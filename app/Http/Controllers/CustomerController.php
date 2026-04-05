@@ -43,8 +43,11 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer): Response
     {
+        // Muat aggregate data (count & sum) dalam satu langkah
+        $customer->loadCount('transactions')->loadSum('transactions', 'total');
+
         $transactions = $customer->transactions()
-            ->with('user')
+            ->with('user:id,name')
             ->latest()
             ->paginate(10)
             ->through(fn ($trx) => [
@@ -64,8 +67,8 @@ class CustomerController extends Controller
                 'phone'               => $customer->phone,
                 'address'             => $customer->address,
                 'notes'               => $customer->notes,
-                'total_spent'         => $customer->transactions()->sum('total'),
-                'transactions_count'  => $customer->transactions()->count(),
+                'total_spent'         => $customer->transactions_sum_total ?? 0,
+                'transactions_count'  => $customer->transactions_count,
                 'created_at'          => $customer->created_at->format('d/m/Y'),
             ],
             'transactions' => $transactions,

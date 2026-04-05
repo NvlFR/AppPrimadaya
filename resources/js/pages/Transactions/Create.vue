@@ -217,8 +217,67 @@ const submitTransaction = () => {
                             <p class="text-sm mt-1">Pilih layanan di atas lalu tekan (+) untuk menambahkan item ke keranjang belanja.</p>
                         </div>
 
-                        <!-- Table Keranjang -->
-                        <div v-else class="w-full overflow-x-auto">
+                        <!-- Tampilan Mobile (Card List) -->
+                        <div class="block md:hidden divide-y divide-gray-100">
+                            <div v-for="(item, index) in form.items" :key="index" class="p-4 space-y-4 bg-white hover:bg-gray-50 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-900 text-lg">{{ services.find(s => s.id == item.service_id)?.name }}</p>
+                                        <Input v-model="item.item_notes" placeholder="Catatan (Pake Spiral...)" class="h-8 text-xs mt-1 bg-white" />
+                                    </div>
+                                    <Button @click="removeItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 shrink-0">
+                                        <Trash2 class="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                <div v-if="services.find(s => s.id == item.service_id)?.has_matrix_pricing" class="grid grid-cols-2 gap-2">
+                                    <Select v-model="item.paper_size_id" @update:modelValue="updateItemPrice(index)">
+                                        <SelectTrigger class="h-9 text-xs bg-white"><SelectValue placeholder="Ukuran" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem v-for="ps in paper_sizes" :key="ps.id" :value="ps.id.toString()">Kertas {{ ps.name }}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select v-model="item.print_type" @update:modelValue="updateItemPrice(index)">
+                                        <SelectTrigger class="h-9 text-xs bg-white"><SelectValue placeholder="Warna/BW" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="color">Warna</SelectItem>
+                                            <SelectItem value="bw">BW</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <div class="w-1/3">
+                                        <Label class="text-[10px] text-gray-400 uppercase">Harga</Label>
+                                        <Input v-model="item.unit_price" type="number" class="h-9 text-right bg-white mt-0.5" />
+                                    </div>
+                                    <div class="w-1/4">
+                                        <Label class="text-[10px] text-gray-400 uppercase">Qty</Label>
+                                        <Input v-model="item.qty" type="number" class="h-9 text-center bg-white mt-0.5" />
+                                    </div>
+                                    <div class="flex-1 text-right pt-4">
+                                        <p class="text-xs text-gray-500">Subtotal</p>
+                                        <p class="font-bold text-gray-900">{{ formatRupiah(item.unit_price * item.qty) }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 pt-1">
+                                    <input type="file" :id="`file-mobile-${index}`" class="hidden" @change="(e: any) => item.file = e.target.files[0]">
+                                    <label :for="`file-mobile-${index}`" class="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                                        <Plus class="h-3 w-3 text-blue-600" />
+                                        <span class="text-xs font-bold text-blue-700 uppercase">
+                                            {{ item.file ? item.file.name.substring(0, 15) + '...' : 'Upload File Desain' }}
+                                        </span>
+                                    </label>
+                                    <Button v-if="item.file" variant="ghost" size="icon" @click="item.file = null" class="h-9 w-9 text-red-500 border border-red-100">
+                                        <Trash2 class="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Full Tablet/Desktop Table Keranjang -->
+                        <div class="hidden md:block w-full overflow-x-auto">
                             <table class="w-full text-sm text-left min-w-[800px]">
                                 <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
                                     <tr>

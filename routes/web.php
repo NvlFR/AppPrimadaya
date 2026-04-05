@@ -39,26 +39,30 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/transactions/{transaction}/status', [TransactionController::class, 'updateStatus'])->name('transactions.status');
     Route::get('/transactions/{transaction}/pdf', [TransactionController::class, 'downloadPdf'])->name('transactions.pdf');
 
-    // Layanan / Produk
+    // Layanan / Produk (Melihat saja)
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
-    Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
-    Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
-    Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::get('/services/{service}/prices', [ServiceController::class, 'getPrices'])->name('services.prices');
-    Route::post('/services/{service}/prices', [ServiceController::class, 'storePrices'])->name('services.prices.store');
 
-    // Pelanggan
+    // Pelanggan (Kasir bisa Tambah & Lihat)
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
-    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
 
     // Status Pesanan
     Route::get('/orders', [TransactionController::class, 'orders'])->name('orders.index');
 
     // Route yang hanya bisa diakses Admin
     Route::middleware(['role:admin'])->group(function () {
+
+        // Manajemen Layanan & Harga (Hanya Admin)
+        Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+        Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+        Route::post('/services/{service}/prices', [ServiceController::class, 'storePrices'])->name('services.prices.store');
+
+        // Manajemen Pelanggan (Hanya Admin yang bisa Hapus)
+        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
 
         // Pengeluaran
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');

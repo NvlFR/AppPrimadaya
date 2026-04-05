@@ -73,7 +73,7 @@ const exportData = () => {
                     <p class="text-sm text-gray-500">Analisa omzet, pengeluaran operasional, dan laba bersih cetak.</p>
                 </div>
                 <Button @click="exportData" variant="outline" class="border-blue-200 text-blue-700 hover:bg-blue-50">
-                    <DownloadIcon class="h-4 w-4 mr-2" /> Export Laporan
+                    <DownloadIcon class="h-4 w-4 mr-2" /> Export CSV
                 </Button>
             </div>
 

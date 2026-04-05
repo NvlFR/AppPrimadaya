@@ -163,7 +163,7 @@ class TransactionController extends Controller
                 $originalFilename = null;
                 if (isset($itemData['file']) && $itemData['file']) {
                     $file             = $itemData['file'];
-                    $filePath         = Storage::disk('local')->put("orders/{$transaction->id}", $file);
+                    $filePath         = Storage::disk('public')->put("orders/{$transaction->id}", $file);
                     $originalFilename = $file->getClientOriginalName();
                 }
 

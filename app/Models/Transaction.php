@@ -6,10 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Transaction extends Model
 {
     use SoftDeletes;
+    
+    /**
+     * Daftarkan event model.
+     */
+    protected static function booted(): void
+    {
+        // Hapus file fisik saat transaksi dihapus (soft delete maupun permanent)
+        // Jika ingin tetap ada di soft delete, ganti ke forceDeleting
+        static::deleting(function (Transaction $transaction) {
+            if ($transaction->isForceDeleting() || !method_exists($transaction, 'isForceDeleting')) {
+                Storage::disk('public')->deleteDirectory("orders/{$transaction->id}");
+            }
+        });
+    }
 
     protected $fillable = [
         'transaction_number',
