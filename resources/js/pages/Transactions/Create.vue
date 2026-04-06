@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { onKeyStroke } from '@vueuse/core';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+// Select masih dipakai untuk dropdown layanan & metode bayar — hanya combobox PELANGGAN yang custom (Issue #25)
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
 import {
     Trash2, ShoppingCart, Plus, Save, User, FileText,
-    RefreshCw, Zap, Keyboard, Loader2, AlertTriangle, UserPlus, Tag, Percent
+    RefreshCw, Zap, Keyboard, Loader2, AlertTriangle, UserPlus, Tag, Percent, Search, X
 } from 'lucide-vue-next';
 
 // ============================================================
@@ -22,19 +23,99 @@ import {
 // ============================================================
 const props = defineProps<{
     services: Array<any>;
-    customers: Array<any>;
     paper_sizes: Array<any>;
 }>();
 
 // ============================================================
-// State reaktif untuk daftar pelanggan (agar bisa di-refresh setelah inline add)
+// State Combobox Async Pelanggan (Issue #25)
+// Menggantikan dropdown pelanggan yang load semua data sekaligus
 // ============================================================
-const customerList = ref<Array<any>>(props.customers);
+interface CustomerOption {
+    id: number;
+    name: string;
+    phone: string;
+}
 
-// Sync customerList saat Inertia me-refresh props setelah pelanggan baru ditambahkan
-watch(() => props.customers, (newList) => {
-    customerList.value = newList;
-}, { deep: true });
+const customerSearchQuery = ref('');
+const customerSearchResults = ref<CustomerOption[]>([]);
+const isSearchingCustomer = ref(false);
+const isCustomerDropdownOpen = ref(false);
+const selectedCustomerLabel = ref('Pelanggan Umum (Tidak Terafiliasi)');
+
+// Debounce timer untuk mengurangi hit ke API
+let customerSearchTimer: ReturnType<typeof setTimeout>;
+
+/**
+ * Mencari pelanggan secara asinkron ke endpoint /customers/search
+ * dengan debounce 300ms agar tidak membebani server.
+ */
+const searchCustomers = (query: string) => {
+    clearTimeout(customerSearchTimer);
+    if (!query.trim()) {
+        customerSearchResults.value = [];
+        return;
+    }
+    isSearchingCustomer.value = true;
+    customerSearchTimer = setTimeout(async () => {
+        try {
+            const response = await fetch(`/customers/search?q=${encodeURIComponent(query)}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (response.ok) {
+                customerSearchResults.value = await response.json();
+            }
+        } catch (error) {
+            // Gagal fetch tidak menghentikan fungsi kasir, cukup log ke konsol
+            console.error('Gagal mengambil data pelanggan:', error);
+        } finally {
+            isSearchingCustomer.value = false;
+        }
+    }, 300);
+};
+
+/**
+ * Memilih pelanggan dari hasil pencarian dan menutup dropdown.
+ */
+const selectCustomer = (customer: CustomerOption) => {
+    form.customer_id = customer.id.toString();
+    selectedCustomerLabel.value = `${customer.name} — ${customer.phone}`;
+    customerSearchQuery.value = '';
+    customerSearchResults.value = [];
+    isCustomerDropdownOpen.value = false;
+};
+
+/**
+ * Mereset pilihan pelanggan ke Pelanggan Umum.
+ */
+const clearCustomer = () => {
+    form.customer_id = 'none';
+    selectedCustomerLabel.value = 'Pelanggan Umum (Tidak Terafiliasi)';
+    customerSearchQuery.value = '';
+    customerSearchResults.value = [];
+    isCustomerDropdownOpen.value = false;
+};
+
+// Pantau perubahan query pencarian dan trigger search ke API
+watch(customerSearchQuery, (newQuery) => {
+    searchCustomers(newQuery);
+});
+
+// ============================================================
+// Click-outside handler untuk menutup dropdown pelanggan
+// Menggunakan native event listener agar tidak perlu library eksternal
+// ============================================================
+const customerComboboxRef = ref<HTMLElement | null>(null);
+
+const handleClickOutside = (event: MouseEvent) => {
+    if (customerComboboxRef.value && !customerComboboxRef.value.contains(event.target as Node)) {
+        isCustomerDropdownOpen.value = false;
+    }
+};
+
+onMounted(() => document.addEventListener('mousedown', handleClickOutside));
+onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside));
+
+
 
 // ============================================================
 // Form Data utama via Inertia
@@ -142,8 +223,20 @@ const addItem = (serviceId?: number) => {
 // ============================================================
 // Fungsi Hapus Item dari Keranjang
 // ============================================================
-const removeItem = (index: number) => {
-    form.items.splice(index, 1);
+const isDeleteModalOpen = ref(false);
+const itemIndexToDelete = ref<number | null>(null);
+
+const confirmRemoveItem = (index: number) => {
+    itemIndexToDelete.value = index;
+    isDeleteModalOpen.value = true;
+};
+
+const executeRemoveItem = () => {
+    if (itemIndexToDelete.value !== null) {
+        form.items.splice(itemIndexToDelete.value, 1);
+        isDeleteModalOpen.value = false;
+        itemIndexToDelete.value = null;
+    }
 };
 
 // ============================================================
@@ -191,8 +284,17 @@ const { formatRupiah } = useFormatRupiah();
 // ============================================================
 // Fungsi Reset Kasir
 // ============================================================
+const isResetModalOpen = ref(false);
+
 const resetKasir = () => {
-    if (form.items.length > 0 && !confirm('Reset kasir? Semua item keranjang akan dihapus.')) return;
+    if (form.items.length > 0) {
+        isResetModalOpen.value = true;
+        return;
+    }
+    executeResetKasir();
+};
+
+const executeResetKasir = () => {
     form.reset();
     form.items = [];
     form.payment_method = 'cash';
@@ -201,6 +303,15 @@ const resetKasir = () => {
     form.amount_paid = 0;
     form.customer_id = 'none';
     selectedServiceId.value = '';
+    
+    // Reset state combobox pelanggan (Issue #25)
+    customerSearchQuery.value = '';
+    isCustomerComboboxOpen.value = false;
+    
+    isResetModalOpen.value = false;
+};
+    // Reset state combobox pelanggan (Issue #25)
+    clearCustomer();
 };
 
 // ============================================================
@@ -234,21 +345,21 @@ const submitTransaction = () => {
 };
 
 // ============================================================
-// Tambah Pelanggan Inline (Issue #10)
+// Tambah Pelanggan Inline (Issue #10) — Diperbarui untuk async combobox (Issue #25)
 // ============================================================
 const submitNewCustomer = () => {
     isAddingCustomer.value = true;
     newCustomerForm.post(route('customers.store'), {
         preserveScroll: true,
-        onSuccess: (page: any) => {
-            // Ambil daftar pelanggan terbaru dari props yang sudah di-refresh oleh Inertia
-            // Karena CustomerController.store redirect back(), kita perlu reload data customers
-            // Trik: fetch ulang data via Inertia partial reload
-            router.reload({ only: ['customers'], onSuccess: () => {
-                customerList.value = (page.props as any).customers ?? customerList.value;
-            }});
+        onSuccess: () => {
+            // Setelah pelanggan baru berhasil dibuat, langsung pilih pelanggan tersebut
+            // dengan melakukan search berdasarkan nama yang baru diisi
+            const newName = newCustomerForm.name;
             showAddCustomerDialog.value = false;
             newCustomerForm.reset();
+            // Trigger search agar pelanggan baru muncul dan dapat dipilih
+            customerSearchQuery.value = newName;
+            isCustomerDropdownOpen.value = true;
         },
         onFinish: () => {
             isAddingCustomer.value = false;
@@ -289,7 +400,8 @@ const submitNewCustomer = () => {
                         <CardTitle class="text-lg flex items-center"><User class="mr-2 h-5 w-5 text-gray-400" /> Informasi Pelanggan</CardTitle>
                     </CardHeader>
                     <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Pilih Pelanggan + Tombol Tambah Inline (Issue #10) -->
+                        <!-- Combobox Async Pelanggan — Issue #25 -->
+                        <!-- Pencarian asinkron: tidak load semua data saat halaman dibuka -->
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <Label>Pilih Pelanggan (Tetap)</Label>
@@ -303,19 +415,107 @@ const submitNewCustomer = () => {
                                     <UserPlus class="h-3 w-3 mr-1" /> Daftarkan Baru
                                 </Button>
                             </div>
-                            <Select v-model="form.customer_id">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih atau tinggalkan kosong (Umum)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Pelanggan Umum (Tidak Terafiliasi)</SelectItem>
-                                    <SelectItem
-                                        v-for="c in customerList"
-                                        :key="c.id"
-                                        :value="c.id.toString()"
-                                    >{{ c.name }} — {{ c.phone }}</SelectItem>
-                                </SelectContent>
-                            </Select>
+
+                            <!-- Trigger combobox — menampilkan pelanggan terpilih -->
+                            <div ref="customerComboboxRef" class="relative">
+                                <button
+                                    type="button"
+                                    class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background transition-colors focus:outline-none focus:ring-1 focus:ring-ring hover:bg-accent"
+                                    :class="isCustomerDropdownOpen ? 'ring-1 ring-ring' : ''"
+                                    @click="isCustomerDropdownOpen = !isCustomerDropdownOpen"
+                                >
+                                    <span :class="form.customer_id === 'none' ? 'text-muted-foreground' : 'text-foreground'">
+                                        {{ selectedCustomerLabel }}
+                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        <!-- Tombol clear jika ada pelanggan terpilih -->
+                                        <button
+                                            v-if="form.customer_id !== 'none'"
+                                            type="button"
+                                            class="rounded-full p-0.5 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
+                                            @click.stop="clearCustomer"
+                                        >
+                                            <X class="h-3.5 w-3.5" />
+                                        </button>
+                                        <Search class="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                </button>
+
+                                <!-- Dropdown results -->
+                                <div
+                                    v-if="isCustomerDropdownOpen"
+                                    class="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-lg"
+                                >
+                                    <!-- Input pencarian -->
+                                    <div class="p-2 border-b">
+                                        <div class="relative">
+                                            <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                            <input
+                                                v-model="customerSearchQuery"
+                                                type="text"
+                                                placeholder="Ketik nama atau no. HP..."
+                                                class="w-full h-8 pl-8 pr-3 text-sm rounded border border-input bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                                                autofocus
+                                                @keydown.escape="isCustomerDropdownOpen = false"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <!-- List hasil pencarian -->
+                                    <div class="max-h-48 overflow-y-auto py-1">
+                                        <!-- Opsi Pelanggan Umum selalu ada -->
+                                        <button
+                                            type="button"
+                                            class="w-full flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                                            :class="form.customer_id === 'none' ? 'bg-primary/5 text-primary font-medium' : 'text-gray-600'"
+                                            @click="clearCustomer"
+                                        >
+                                            <User class="mr-2 h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                            Pelanggan Umum (Tidak Terafiliasi)
+                                        </button>
+
+                                        <!-- Loading state -->
+                                        <div v-if="isSearchingCustomer" class="flex items-center justify-center py-4 text-gray-400">
+                                            <Loader2 class="h-4 w-4 animate-spin mr-2" />
+                                            <span class="text-xs">Mencari...</span>
+                                        </div>
+
+                                        <!-- Hasil pencarian -->
+                                        <template v-else-if="customerSearchResults.length > 0">
+                                            <button
+                                                v-for="c in customerSearchResults"
+                                                :key="c.id"
+                                                type="button"
+                                                class="w-full flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                                                :class="form.customer_id === c.id.toString() ? 'bg-primary/5 text-primary font-medium' : ''"
+                                                @click="selectCustomer(c)"
+                                            >
+                                                <User class="mr-2 h-3.5 w-3.5 shrink-0 text-primary/60" />
+                                                <div>
+                                                    <p class="font-medium leading-none">{{ c.name }}</p>
+                                                    <p class="text-xs text-muted-foreground mt-0.5">{{ c.phone || 'Tanpa nomor HP' }}</p>
+                                                </div>
+                                            </button>
+                                        </template>
+
+                                        <!-- Empty state (setelah mengetik tapi tidak ada hasil) -->
+                                        <div
+                                            v-else-if="customerSearchQuery.trim() && !isSearchingCustomer"
+                                            class="py-4 text-center text-xs text-gray-400"
+                                        >
+                                            Pelanggan "{{ customerSearchQuery }}" tidak ditemukan.
+                                        </div>
+
+                                        <!-- Prompt awal sebelum mengetik -->
+                                        <div
+                                            v-else-if="!customerSearchQuery.trim()"
+                                            class="py-3 text-center text-xs text-gray-400"
+                                        >
+                                            Ketik nama atau no. HP untuk mencari...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="space-y-2">
                             <Label>Catatan Umum Pesanan</Label>
@@ -382,7 +582,7 @@ const submitNewCustomer = () => {
                                         <p class="font-bold text-gray-900 text-lg">{{ services.find(s => s.id == item.service_id)?.name }}</p>
                                         <Input v-model="item.item_notes" placeholder="Catatan (Pake Spiral...)" class="h-8 text-xs mt-1 bg-white" />
                                     </div>
-                                    <Button @click="removeItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 shrink-0">
+                                    <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 shrink-0">
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -579,7 +779,11 @@ const submitNewCustomer = () => {
                                 <Label class="text-gray-700 font-semibold" for="payment_method">Metode Pembayaran</Label>
                                 <Select
                                     :model-value="form.payment_method"
-                                    @update:model-value="(val) => { form.payment_method = val as string; form.amount_paid = 0; }"
+                                    @update:model-value="(val) => { 
+                                        form.payment_method = val as string; 
+                                        // Auto-fill amount_paid jika bukan cash
+                                        form.amount_paid = val === 'cash' ? 0 : totalFinal; 
+                                    }"
                                 >
                                     <SelectTrigger class="bg-gray-50 border-gray-300">
                                         <SelectValue />
@@ -592,24 +796,31 @@ const submitNewCustomer = () => {
                                 </Select>
                             </div>
 
-                            <!-- Field Nominal Tunai — hanya muncul jika metode = cash (Issue #6) -->
-                            <div v-if="form.payment_method === 'cash'" class="space-y-3 pt-1">
-                                <Label class="text-gray-700 font-semibold">Nominal Dibayarkan (Tunai)</Label>
+                            <!-- Field Nominal Dibayarkan — Konsisten (Issue layout fix) -->
+                            <div class="space-y-3 pt-1">
+                                <Label class="text-gray-700 font-semibold">
+                                    Nominal Dibayarkan {{ form.payment_method === 'cash' ? '(Tunai)' : `(${form.payment_method.toUpperCase()})` }}
+                                </Label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500 font-medium">Rp</div>
                                     <Input
                                         v-model="form.amount_paid"
                                         type="number"
-                                        class="pl-10 text-lg font-bold h-12 border-primary/50 focus-visible:ring-primary/50"
+                                        class="pl-10 text-lg font-bold h-12 border-primary/50"
+                                        :class="{
+                                            'focus-visible:ring-primary/50': form.payment_method === 'cash',
+                                            'bg-gray-100 opacity-80 cursor-not-allowed': form.payment_method !== 'cash'
+                                        }"
+                                        :readonly="form.payment_method !== 'cash'"
                                         data-payment-input
                                     />
-                                    <kbd class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium text-muted-foreground opacity-100 pointer-events-none shadow-sm">
+                                    <kbd v-if="form.payment_method === 'cash'" class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium text-muted-foreground opacity-100 pointer-events-none shadow-sm">
                                         F4
                                     </kbd>
                                 </div>
 
-                                <!-- Tombol cepat nominal uang (Issue #7 enhancement) -->
-                                <div class="grid grid-cols-3 gap-1.5">
+                                <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
+                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-3 gap-1.5">
                                     <Button
                                         v-for="nominal in [5000, 10000, 20000, 50000, 100000, 200000]"
                                         :key="nominal"
@@ -623,8 +834,9 @@ const submitNewCustomer = () => {
                                     </Button>
                                 </div>
 
-                                <!-- Tampilan Kembalian (Issue #7) — menonjol dengan warna kontekstual -->
+                                <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
                                 <div
+                                    v-if="form.payment_method === 'cash'"
                                     class="flex justify-between items-center p-3 rounded-lg border transition-colors mt-1"
                                     :class="{
                                         'bg-green-50 border-green-200': changeAmount >= 0 && form.amount_paid > 0,
@@ -650,12 +862,12 @@ const submitNewCustomer = () => {
                                         {{ isUnderpaid ? formatRupiah(Math.abs(changeAmount)) : formatRupiah(changeAmount) }}
                                     </span>
                                 </div>
-                            </div>
 
-                            <!-- Info non-cash -->
-                            <div v-else class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-700 flex items-center gap-2">
-                                <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
-                                <span>Pembayaran <strong>{{ form.payment_method.toUpperCase() }}</strong> — pastikan sudah diterima sebelum konfirmasi.</span>
+                                <!-- Info non-cash -->
+                                <div v-if="form.payment_method !== 'cash'" class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-700 flex items-center gap-2 mt-1">
+                                    <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
+                                    <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
+                                </div>
                             </div>
                         </div>
 
@@ -801,6 +1013,42 @@ const submitNewCustomer = () => {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+
+        <!-- Delete Item Confirmation Modal -->
+        <Dialog :open="isDeleteModalOpen" @update:open="val => { if (!val) isDeleteModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Hapus Item Keranjang</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin menghapus layanan ini dari keranjang pesanan?
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isDeleteModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeRemoveItem" class="bg-red-600 hover:bg-red-700">Ya, Hapus</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Reset Kasir Confirmation Modal -->
+        <Dialog :open="isResetModalOpen" @update:open="val => { if (!val) isResetModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Reset Kasir</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin mereset kasir? Semua item di keranjang dan pengaturan pembayaran akan dihapus.
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isResetModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeResetKasir" class="bg-red-600 hover:bg-red-700">Ya, Reset Kasir</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
     </AppLayout>
 </template>

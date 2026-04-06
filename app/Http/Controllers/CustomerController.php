@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -73,6 +74,27 @@ class CustomerController extends Controller
             ],
             'transactions' => $transactions,
         ]);
+    }
+
+    /**
+     * Mencari pelanggan secara asinkron berdasarkan query pencarian.
+     * Digunakan oleh combobox async di halaman kasir (Issue #25).
+     * Mengembalikan maksimal 20 data untuk menjaga performa.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->get('q', '');
+
+        $customers = Customer::query()
+            ->when($query, fn ($q) => $q->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('phone', 'like', "%{$query}%");
+            }))
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name', 'phone']);
+
+        return response()->json($customers);
     }
 
     /**

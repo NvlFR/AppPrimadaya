@@ -4,8 +4,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2 } from 'lucide-vue-next';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
@@ -31,13 +31,17 @@ const props = defineProps<{
     filters: { search?: string };
 }>();
 
+// ============================================================
 // Filter States
+// ============================================================
 const search = ref(props.filters.search || '');
 
-// Automatic search when typing
-let searchTimeout: any;
+let searchTimeout: ReturnType<typeof setTimeout>;
 watch(search, () => {
     clearTimeout(searchTimeout);
+    // Reset infinite scroll saat search berubah
+    localData.value = [];
+    currentPage.value = 1;
     searchTimeout = setTimeout(() => {
         router.get(route('customers.index'), { search: search.value }, {
             preserveState: true,
@@ -46,12 +50,67 @@ watch(search, () => {
     }, 300);
 });
 
-// Modal States
+// ============================================================
+// Infinite Scroll — Intersection Observer (Issue #26)
+// ============================================================
+const localData = ref<Customer[]>([...props.customers.data]);
+const currentPage = ref(props.customers.current_page);
+const isLoadingMore = ref(false);
+const sentinelRef = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+/**
+ * Memuat halaman berikutnya dan append ke localData.
+ */
+const loadNextPage = () => {
+    if (isLoadingMore.value || currentPage.value >= props.customers.last_page) return;
+
+    isLoadingMore.value = true;
+    const nextPage = currentPage.value + 1;
+
+    router.get(route('customers.index'), {
+        search: search.value,
+        page: nextPage,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: () => {
+            localData.value = [...localData.value, ...props.customers.data];
+            currentPage.value = nextPage;
+            isLoadingMore.value = false;
+        },
+        onError: () => { isLoadingMore.value = false; },
+    });
+};
+
+// Sinkronkan ulang saat filter berubah (page 1 = data baru, bukan append)
+watch(() => props.customers.data, (newData) => {
+    if (props.customers.current_page === 1) {
+        localData.value = [...newData];
+        currentPage.value = 1;
+    }
+}, { deep: true });
+
+onMounted(() => {
+    observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) loadNextPage();
+    }, { rootMargin: '200px', threshold: 0.1 });
+
+    if (sentinelRef.value) observer.observe(sentinelRef.value);
+});
+
+onUnmounted(() => observer?.disconnect());
+
+const hasMore = () => currentPage.value < props.customers.last_page;
+
+// ============================================================
+// Modal CRUD Pelanggan
+// ============================================================
 const isModalOpen = ref(false);
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
 
-// Form Pelanggan
 const form = useForm({
     name: '',
     phone: '',
@@ -71,10 +130,7 @@ const openEditModal = (customer: Customer) => {
     form.name = customer.name;
     form.phone = customer.phone || '';
     form.address = customer.address || '';
-    // Catatan: route response awal di index nggak kirim 'notes', 
-    // tapi form request support updatenya. Dikosongin dulu buat index edit, 
-    // real-nya biasa nampilin di detail show.
-    form.notes = ''; 
+    form.notes = '';
     isModalOpen.value = true;
 };
 
@@ -95,9 +151,23 @@ const saveCustomer = () => {
     }
 };
 
-const deleteCustomer = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus data pelanggan ini beserta semua riwayat hubungannya?')) {
-        router.delete(route('customers.destroy', id));
+// Delete Confirmation State
+const isDeleteModalOpen = ref(false);
+const customerToDelete = ref<number | null>(null);
+
+const confirmDeleteCustomer = (id: number) => {
+    customerToDelete.value = id;
+    isDeleteModalOpen.value = true;
+};
+
+const executeDeleteCustomer = () => {
+    if (customerToDelete.value !== null) {
+        router.delete(route('customers.destroy', customerToDelete.value), {
+            onSuccess: () => {
+                isDeleteModalOpen.value = false;
+                customerToDelete.value = null;
+            }
+        });
     }
 };
 </script>
@@ -122,6 +192,10 @@ const deleteCustomer = (id: number) => {
                 <div class="flex-1">
                     <Input v-model="search" type="search" placeholder="Cari nama atau no. telepon..." class="max-w-md" />
                 </div>
+                <!-- Summary -->
+                <p v-if="customers.total > 0" class="text-sm text-gray-500 self-center">
+                    Menampilkan <span class="font-semibold text-gray-800">{{ localData.length }}</span> dari <span class="font-semibold text-gray-800">{{ customers.total }}</span> pelanggan
+                </p>
             </div>
 
             <!-- Table -->
@@ -137,7 +211,7 @@ const deleteCustomer = (id: number) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <tr v-for="item in customers.data" :key="item.id" class="hover:bg-gray-50 transition">
+                        <tr v-for="item in localData" :key="item.id" class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 font-medium text-gray-900">{{ item.name }}</td>
                             <td class="px-6 py-4">{{ item.phone || '-' }}</td>
                             <td class="px-6 py-4">
@@ -155,42 +229,29 @@ const deleteCustomer = (id: number) => {
                                 <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
                                     <PencilIcon class="h-3 w-3" />
                                 </Button>
-                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="deleteCustomer(item.id)">
+                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteCustomer(item.id)">
                                     <TrashIcon class="h-3 w-3" />
                                 </Button>
                             </td>
                         </tr>
-                        <tr v-if="customers.data.length === 0">
+                        <tr v-if="localData.length === 0">
                             <td colspan="5" class="px-6 py-8 text-center text-gray-500">Tidak ada data pelanggan ditemukan.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="flex justify-between items-center bg-white px-4 py-3 rounded-xl border shadow-sm" v-if="customers.total > 0">
-                <div class="text-sm text-gray-500">
-                    Menampilkan <span class="font-medium text-gray-900">{{ customers.from }}</span> - <span class="font-medium text-gray-900">{{ customers.to }}</span> dari <span class="font-medium text-gray-900">{{ customers.total }}</span> pelanggan
+            <!-- Sentinel element untuk Intersection Observer (Issue #26) -->
+            <div ref="sentinelRef" class="py-1">
+                <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 py-4 text-gray-400">
+                    <Loader2 class="h-5 w-5 animate-spin" />
+                    <span class="text-sm">Memuat lebih banyak...</span>
                 </div>
-                <div class="flex space-x-2" v-if="customers.last_page > 1">
-                    <Button 
-                        v-if="customers.links?.[0]?.url" 
-                        variant="outline" 
-                        size="sm"
-                        @click="router.get(customers.links[0].url)" 
-                        :disabled="!customers.links[0].url"
-                    >
-                        Prev
-                    </Button>
-                    <Button 
-                        v-if="customers.links?.[customers.links.length - 1]?.url" 
-                        variant="outline" 
-                        size="sm"
-                        @click="router.get(customers.links[customers.links.length - 1].url)"
-                        :disabled="!customers.links[customers.links.length - 1].url"
-                    >
-                        Next
-                    </Button>
+                <div
+                    v-else-if="localData.length > 0 && !hasMore()"
+                    class="text-center text-xs text-gray-300 py-4"
+                >
+                    — Semua data telah ditampilkan ({{ localData.length }} pelanggan) —
                 </div>
             </div>
         </div>
@@ -201,7 +262,7 @@ const deleteCustomer = (id: number) => {
                 <DialogHeader>
                     <DialogTitle>{{ isEditMode ? 'Edit Pelanggan' : 'Tambah Pelanggan Baru' }}</DialogTitle>
                 </DialogHeader>
-                
+
                 <form @submit.prevent="saveCustomer" class="space-y-4 py-4">
                     <div class="space-y-2">
                         <Label for="name">Nama Lengkap <span class="text-red-500">*</span></Label>
@@ -225,6 +286,23 @@ const deleteCustomer = (id: number) => {
                         <Button type="submit" :disabled="form.processing" class="bg-blue-600 hover:bg-blue-700">Simpan Data</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+        <!-- Delete Confirmation Modal -->
+        <Dialog :open="isDeleteModalOpen" @update:open="val => { if (!val) isDeleteModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Hapus Pelanggan</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin menghapus data pelanggan ini beserta semua riwayat transaksinya? Tindakan ini tidak dapat dibatalkan.
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isDeleteModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeDeleteCustomer" class="bg-red-600 hover:bg-red-700">Ya, Hapus</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </AppLayout>

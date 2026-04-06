@@ -110,10 +110,23 @@ const saveUser = () => {
     }
 };
 
-const deleteUser = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus akun pengguna ini?')) {
-        router.delete(route('users.destroy', id), {
+// Delete Confirmation State
+const isDeleteModalOpen = ref(false);
+const userToDelete = ref<number | null>(null);
+
+const confirmDeleteUser = (id: number) => {
+    userToDelete.value = id;
+    isDeleteModalOpen.value = true;
+};
+
+const executeDeleteUser = () => {
+    if (userToDelete.value !== null) {
+        router.delete(route('users.destroy', userToDelete.value), {
             preserveScroll: true,
+            onSuccess: () => {
+                isDeleteModalOpen.value = false;
+                userToDelete.value = null;
+            }
         });
     }
 };
@@ -190,7 +203,7 @@ const deleteUser = (id: number) => {
                                 <Button 
                                     v-if="item.id !== currentUserId"
                                     variant="destructive" size="sm" class="h-8 shadow-sm" 
-                                    @click="deleteUser(item.id)"
+                                    @click="confirmDeleteUser(item.id)"
                                 >
                                     <TrashIcon class="h-3 w-3" />
                                 </Button>
@@ -271,6 +284,23 @@ const deleteUser = (id: number) => {
                         <Button type="submit" :disabled="form.processing" class="bg-blue-600 hover:bg-blue-700">Simpan Akun</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+        <!-- Delete Confirmation Modal -->
+        <Dialog :open="isDeleteModalOpen" @update:open="val => { if (!val) isDeleteModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Hapus Akun Karyawan</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin menghapus akun pengguna ini? Tindakan ini tidak dapat dibatalkan.
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isDeleteModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeDeleteUser" class="bg-red-600 hover:bg-red-700">Ya, Hapus</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </AppLayout>

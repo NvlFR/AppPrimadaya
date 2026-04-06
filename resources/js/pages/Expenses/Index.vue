@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { PlusIcon, TrashIcon, WalletIcon } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { PlusIcon, TrashIcon, WalletIcon, Loader2 } from 'lucide-vue-next';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Expense {
@@ -33,27 +33,31 @@ const props = defineProps<{
     };
     total_filtered: string | number;
     categories: Record<string, string>;
-    filters: { 
+    filters: {
         category?: string;
         date_from?: string;
         date_to?: string;
     };
 }>();
 
+// ============================================================
 // Filter States
+// ============================================================
 const categoryFilter = ref(props.filters.category || '');
 const dateFromFilter = ref(props.filters.date_from || '');
 const dateToFilter = ref(props.filters.date_to || '');
 
-// Automatic search
-let searchTimeout: any;
+let searchTimeout: ReturnType<typeof setTimeout>;
 const triggerSearch = () => {
     clearTimeout(searchTimeout);
+    // Reset infinite scroll saat filter berubah
+    localData.value = [];
+    currentPage.value = 1;
     searchTimeout = setTimeout(() => {
-        router.get(route('expenses.index'), {  
+        router.get(route('expenses.index'), {
             category: categoryFilter.value,
             date_from: dateFromFilter.value,
-            date_to: dateToFilter.value
+            date_to: dateToFilter.value,
         }, {
             preserveState: true,
             replace: true,
@@ -65,8 +69,65 @@ watch([categoryFilter, dateFromFilter, dateToFilter], triggerSearch);
 
 const { formatRupiah } = useFormatRupiah();
 
+// ============================================================
+// Infinite Scroll — Intersection Observer (Issue #26)
+// ============================================================
+const localData = ref<Expense[]>([...props.expenses.data]);
+const currentPage = ref(props.expenses.current_page);
+const isLoadingMore = ref(false);
+const sentinelRef = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
 
-// Modal States
+/**
+ * Memuat halaman berikutnya dan append ke localData.
+ */
+const loadNextPage = () => {
+    if (isLoadingMore.value || currentPage.value >= props.expenses.last_page) return;
+
+    isLoadingMore.value = true;
+    const nextPage = currentPage.value + 1;
+
+    router.get(route('expenses.index'), {
+        category: categoryFilter.value,
+        date_from: dateFromFilter.value,
+        date_to: dateToFilter.value,
+        page: nextPage,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: () => {
+            localData.value = [...localData.value, ...props.expenses.data];
+            currentPage.value = nextPage;
+            isLoadingMore.value = false;
+        },
+        onError: () => { isLoadingMore.value = false; },
+    });
+};
+
+// Sinkronkan ulang saat filter berubah (page 1 = reset)
+watch(() => props.expenses.data, (newData) => {
+    if (props.expenses.current_page === 1) {
+        localData.value = [...newData];
+        currentPage.value = 1;
+    }
+}, { deep: true });
+
+onMounted(() => {
+    observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) loadNextPage();
+    }, { rootMargin: '200px', threshold: 0.1 });
+
+    if (sentinelRef.value) observer.observe(sentinelRef.value);
+});
+
+onUnmounted(() => observer?.disconnect());
+
+const hasMore = () => currentPage.value < props.expenses.last_page;
+
+// ============================================================
+// Modal Catat Pengeluaran
+// ============================================================
 const isCreateModalOpen = ref(false);
 const formCreate = useForm({
     category: 'bahan',
@@ -88,10 +149,23 @@ const saveExpense = () => {
     });
 };
 
-const deleteExpense = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini?')) {
-        router.delete(route('expenses.destroy', id), {
+// Delete Confirmation State
+const isDeleteModalOpen = ref(false);
+const expenseToDelete = ref<number | null>(null);
+
+const confirmDeleteExpense = (id: number) => {
+    expenseToDelete.value = id;
+    isDeleteModalOpen.value = true;
+};
+
+const executeDeleteExpense = () => {
+    if (expenseToDelete.value !== null) {
+        router.delete(route('expenses.destroy', expenseToDelete.value), {
             preserveScroll: true,
+            onSuccess: () => {
+                isDeleteModalOpen.value = false;
+                expenseToDelete.value = null;
+            }
         });
     }
 };
@@ -150,6 +224,10 @@ const getCategoryColor = (category: string) => {
                     <span class="text-sm text-gray-500">Sampai:</span>
                     <Input type="date" v-model="dateToFilter" class="w-[140px] h-9 text-sm" />
                 </div>
+                <!-- Summary count -->
+                <p v-if="expenses.total > 0" class="ml-auto text-sm text-gray-500">
+                    Menampilkan <span class="font-semibold text-gray-800">{{ localData.length }}</span> dari <span class="font-semibold text-gray-800">{{ expenses.total }}</span> catatan
+                </p>
             </div>
 
             <!-- Table -->
@@ -166,7 +244,7 @@ const getCategoryColor = (category: string) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <tr v-for="item in expenses.data" :key="item.id" class="hover:bg-gray-50 transition">
+                        <tr v-for="item in localData" :key="item.id" class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 font-medium text-gray-900">{{ item.expense_date }}</td>
                             <td class="px-6 py-4">
                                 <Badge variant="outline" :class="getCategoryColor(item.category)">
@@ -180,12 +258,12 @@ const getCategoryColor = (category: string) => {
                             <td class="px-6 py-4 font-bold text-gray-900 text-right">{{ formatRupiah(item.amount) }}</td>
                             <td class="px-6 py-4 text-xs text-gray-500">{{ item.user_name }}</td>
                             <td class="px-6 py-4 text-right">
-                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="deleteExpense(item.id)">
+                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteExpense(item.id)">
                                     <TrashIcon class="h-3 w-3" />
                                 </Button>
                             </td>
                         </tr>
-                        <tr v-if="expenses.data.length === 0">
+                        <tr v-if="localData.length === 0">
                             <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                 <p class="font-medium">Tidak ada catatan pengeluaran.</p>
                                 <p class="text-sm">Coba sesuaikan filter pencarian di atas.</p>
@@ -195,20 +273,17 @@ const getCategoryColor = (category: string) => {
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="flex justify-between items-center" v-if="expenses.last_page > 1">
-                <span class="text-sm text-gray-400">Halaman {{ expenses.current_page }} / {{ expenses.last_page }}</span>
-                <div class="flex gap-2">
-                    <Button
-                        variant="outline" size="sm"
-                        :disabled="!expenses.links?.[0]?.url"
-                        @click="expenses.links?.[0]?.url && router.get(expenses.links[0].url)"
-                    >&larr; Sebelumnya</Button>
-                    <Button
-                        variant="outline" size="sm"
-                        :disabled="!expenses.links?.[expenses.links.length - 1]?.url"
-                        @click="expenses.links?.[expenses.links.length - 1]?.url && router.get(expenses.links[expenses.links.length - 1].url)"
-                    >Berikutnya &rarr;</Button>
+            <!-- Sentinel element untuk Intersection Observer (Issue #26) -->
+            <div ref="sentinelRef" class="py-1">
+                <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 py-4 text-gray-400">
+                    <Loader2 class="h-5 w-5 animate-spin" />
+                    <span class="text-sm">Memuat lebih banyak...</span>
+                </div>
+                <div
+                    v-else-if="localData.length > 0 && !hasMore()"
+                    class="text-center text-xs text-gray-300 py-4"
+                >
+                    — Semua data telah ditampilkan ({{ localData.length }} catatan) —
                 </div>
             </div>
         </div>
@@ -220,7 +295,6 @@ const getCategoryColor = (category: string) => {
                     <DialogTitle>Catat Pengeluaran Baru</DialogTitle>
                 </DialogHeader>
                 <form @submit.prevent="saveExpense" class="space-y-4 py-4">
-                    
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <Label for="expense_date">Tanggal</Label>
@@ -257,6 +331,23 @@ const getCategoryColor = (category: string) => {
                         <Button type="submit" :disabled="formCreate.processing" class="bg-blue-600 hover:bg-blue-700">Simpan Tagihan</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+        <!-- Delete Confirmation Modal -->
+        <Dialog :open="isDeleteModalOpen" @update:open="val => { if (!val) isDeleteModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Hapus Pengeluaran</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin menghapus catatan pengeluaran ini? Tindakan ini tidak dapat dibatalkan.
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isDeleteModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeDeleteExpense" class="bg-red-600 hover:bg-red-700">Ya, Hapus</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </AppLayout>

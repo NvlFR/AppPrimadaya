@@ -89,12 +89,12 @@ class TransactionController extends Controller
                 ]),
             ]);
 
-        $customers = Customer::orderBy('name')->get(['id', 'name', 'phone']);
         $paperSizes = PaperSize::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Transactions/Create', [
             'services'    => $services,
-            'customers'   => $customers,
+            // Daftar pelanggan tidak dimuat saat halaman dibuka (Issue #25)
+            // Data pelanggan di-load secara asinkron via endpoint /customers/search
             'paper_sizes' => $paperSizes,
         ]);
     }

@@ -4,8 +4,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, EyeIcon, PrinterIcon } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { PlusIcon, EyeIcon, PrinterIcon, Loader2 } from 'lucide-vue-next';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Transaction {
@@ -40,17 +40,23 @@ const props = defineProps<{
 
 const { formatRupiah } = useFormatRupiah();
 
+// ============================================================
 // Filter States
+// ============================================================
 const search = ref(props.filters.search || '');
 const statusFilter = ref(props.filters.status || '');
 const dateFromFilter = ref(props.filters.date_from || '');
 const dateToFilter = ref(props.filters.date_to || '');
 
-// Auto-search dengan debounce 400ms
+// Auto-search dengan debounce — reset ke page 1 saat filter berubah
 let searchTimeout: ReturnType<typeof setTimeout>;
 const triggerSearch = () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
+        // Reset infinite scroll state saat filter berubah
+        localData.value = [];
+        currentPage.value = 1;
+
         router.get(route('transactions.index'), {
             search: search.value,
             status: statusFilter.value,
@@ -65,7 +71,81 @@ const triggerSearch = () => {
 
 watch([search, statusFilter, dateFromFilter, dateToFilter], triggerSearch);
 
-// Mapping warna badge berdasarkan status pesanan
+// ============================================================
+// Infinite Scroll — Intersection Observer (Issue #26)
+// Strategi: simpan data yang sudah dimuat di localData,
+// append halaman berikutnya saat sentinel masuk viewport.
+// ============================================================
+const localData = ref<Transaction[]>([...props.transactions.data]);
+const currentPage = ref(props.transactions.current_page);
+const isLoadingMore = ref(false);
+const sentinelRef = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+/**
+ * Memuat halaman berikutnya dari server dan append ke localData.
+ * Menggunakan Inertia preserveState agar posisi scroll tidak berubah.
+ */
+const loadNextPage = () => {
+    // Jangan muat jika sedang loading atau sudah di halaman terakhir
+    if (isLoadingMore.value || currentPage.value >= props.transactions.last_page) return;
+
+    isLoadingMore.value = true;
+    const nextPage = currentPage.value + 1;
+
+    router.get(route('transactions.index'), {
+        search: search.value,
+        status: statusFilter.value,
+        date_from: dateFromFilter.value,
+        date_to: dateToFilter.value,
+        page: nextPage,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: () => {
+            // Append data baru ke list lokal
+            localData.value = [...localData.value, ...props.transactions.data];
+            currentPage.value = nextPage;
+            isLoadingMore.value = false;
+        },
+        onError: () => {
+            isLoadingMore.value = false;
+        },
+    });
+};
+
+// Saat props.transactions berubah (karena filter direction), sinkronkan ulang localData
+watch(() => props.transactions.data, (newData) => {
+    // Jika ini bukan append (page == 1 atau search baru), reset localData
+    if (props.transactions.current_page === 1) {
+        localData.value = [...newData];
+        currentPage.value = 1;
+    }
+}, { deep: true });
+
+// Setup Intersection Observer untuk memantau sentinel element di bawah tabel
+onMounted(() => {
+    observer = new IntersectionObserver((entries) => {
+        const sentinel = entries[0];
+        if (sentinel.isIntersecting) {
+            loadNextPage();
+        }
+    }, {
+        rootMargin: '200px', // Pra-muat 200px sebelum sentinel terlihat
+        threshold: 0.1,
+    });
+
+    if (sentinelRef.value) observer.observe(sentinelRef.value);
+});
+
+onUnmounted(() => {
+    observer?.disconnect();
+});
+
+// ============================================================
+// Utility helpers
+// ============================================================
 const getStatusColor = (status: string) => {
     switch (status) {
         case 'selesai':  return 'bg-green-100 text-green-800 border-green-200';
@@ -76,7 +156,6 @@ const getStatusColor = (status: string) => {
     }
 };
 
-// Pembayaran label mapping
 const getPaymentLabel = (method: string) => {
     const map: Record<string, string> = {
         cash: 'Tunai',
@@ -90,9 +169,8 @@ const downloadPdf = (id: number) => {
     window.open(route('transactions.pdf', id), '_blank');
 };
 
-// Navigasi paginasi
-const prevPage = props.transactions.links[0];
-const nextPage = props.transactions.links[props.transactions.links.length - 1];
+// Hitung apakah masih ada data yang belum dimuat
+const hasMore = () => currentPage.value < props.transactions.last_page;
 </script>
 
 <template>
@@ -140,7 +218,7 @@ const nextPage = props.transactions.links[props.transactions.links.length - 1];
 
             <!-- Summary Info -->
             <div v-if="transactions.total > 0" class="text-sm text-gray-500">
-                Menampilkan <span class="font-semibold text-gray-800">{{ transactions.from }}–{{ transactions.to }}</span> dari <span class="font-semibold text-gray-800">{{ transactions.total }}</span> transaksi
+                Menampilkan <span class="font-semibold text-gray-800">{{ localData.length }}</span> dari <span class="font-semibold text-gray-800">{{ transactions.total }}</span> transaksi
             </div>
 
             <!-- Table -->
@@ -159,7 +237,7 @@ const nextPage = props.transactions.links[props.transactions.links.length - 1];
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="item in transactions.data" :key="item.id" class="hover:bg-gray-50 transition-colors">
+                            <tr v-for="item in localData" :key="item.id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-5 py-4">
                                     <p class="font-bold text-gray-900 font-mono text-xs">{{ item.transaction_number }}</p>
                                     <p class="text-xs text-gray-400 mt-0.5">{{ item.created_at }}</p>
@@ -192,7 +270,9 @@ const nextPage = props.transactions.links[props.transactions.links.length - 1];
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-if="transactions.data.length === 0">
+
+                            <!-- Empty state -->
+                            <tr v-if="localData.length === 0">
                                 <td colspan="7" class="px-6 py-16 text-center text-gray-400">
                                     <PrinterIcon class="h-10 w-10 mx-auto mb-3 text-gray-200" />
                                     <p class="font-medium text-gray-600">Tidak ada transaksi ditemukan.</p>
@@ -204,26 +284,20 @@ const nextPage = props.transactions.links[props.transactions.links.length - 1];
                 </div>
             </div>
 
-            <!-- Pagination -->
-            <div class="flex justify-between items-center" v-if="transactions.last_page > 1">
-                <span class="text-sm text-gray-400">Halaman {{ transactions.current_page }} / {{ transactions.last_page }}</span>
-                <div class="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="!prevPage?.url"
-                        @click="prevPage?.url && router.get(prevPage.url)"
-                    >
-                        &larr; Sebelumnya
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="!nextPage?.url"
-                        @click="nextPage?.url && router.get(nextPage.url)"
-                    >
-                        Berikutnya &rarr;
-                    </Button>
+            <!-- Sentinel element untuk Intersection Observer (Issue #26) -->
+            <!-- Elemen kecil ini dipantau — saat terlihat di viewport, muat halaman berikutnya -->
+            <div ref="sentinelRef" class="py-1">
+                <!-- Loading spinner saat sedang muat data berikutnya -->
+                <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 py-4 text-gray-400">
+                    <Loader2 class="h-5 w-5 animate-spin" />
+                    <span class="text-sm">Memuat lebih banyak...</span>
+                </div>
+                <!-- Indikator akhir data -->
+                <div
+                    v-else-if="localData.length > 0 && !hasMore()"
+                    class="text-center text-xs text-gray-300 py-4"
+                >
+                    — Semua data telah ditampilkan ({{ localData.length }} transaksi) —
                 </div>
             </div>
         </div>

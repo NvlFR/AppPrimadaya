@@ -46,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Pelanggan (Kasir bisa Tambah & Lihat)
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    // Endpoint async search untuk combobox pelanggan di halaman kasir (Issue #25)
+    // WAJIB dideklarasikan sebelum wildcard {customer} agar tidak tertangkap sebagai ID
+    Route::get('/customers/search', [CustomerController::class, 'search'])->name('customers.search');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');

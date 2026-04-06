@@ -148,9 +148,23 @@ const saveMatrixPrices = () => {
     });
 };
 
-const deleteService = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus layanan ini?')) {
-        router.delete(route('services.destroy', id));
+// Delete Confirmation State
+const isDeleteModalOpen = ref(false);
+const serviceToDelete = ref<number | null>(null);
+
+const confirmDeleteService = (id: number) => {
+    serviceToDelete.value = id;
+    isDeleteModalOpen.value = true;
+};
+
+const executeDelete = () => {
+    if (serviceToDelete.value !== null) {
+        router.delete(route('services.destroy', serviceToDelete.value), {
+            onSuccess: () => {
+                isDeleteModalOpen.value = false;
+                serviceToDelete.value = null;
+            }
+        });
     }
 };
 
@@ -225,7 +239,7 @@ const { formatRupiah } = useFormatRupiah();
                                 <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
                                     <PencilIcon class="h-3 w-3 mr-1" /> Edit
                                 </Button>
-                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="deleteService(item.id)">
+                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteService(item.id)">
                                     <TrashIcon class="h-3 w-3" />
                                 </Button>
                             </td>
@@ -363,6 +377,23 @@ const { formatRupiah } = useFormatRupiah();
                     <Button type="button" @click="saveMatrixPrices" :disabled="matrixForm.processing" class="bg-amber-600 hover:bg-amber-700 text-white">
                         Simpan Matriks Harga
                     </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <!-- Delete Confirmation Modal -->
+        <Dialog :open="isDeleteModalOpen" @update:open="val => { if (!val) isDeleteModalOpen = false; }">
+            <DialogContent class="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Hapus Layanan</DialogTitle>
+                </DialogHeader>
+                <div class="py-4">
+                    <p class="text-sm text-gray-500">
+                        Apakah Anda yakin ingin menghapus layanan ini? Tindakan ini tidak dapat dibatalkan.
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isDeleteModalOpen = false">Batal</Button>
+                    <Button type="button" variant="destructive" @click="executeDelete" class="bg-red-600 hover:bg-red-700">Ya, Hapus</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
