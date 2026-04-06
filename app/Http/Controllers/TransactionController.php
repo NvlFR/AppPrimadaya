@@ -80,6 +80,7 @@ class TransactionController extends Controller
                 'base_price'         => $s->base_price,
                 'unit'               => $s->unit,
                 'has_matrix_pricing' => $s->has_matrix_pricing,
+                'is_pinned'          => (bool) $s->is_pinned,
                 'prices'             => $s->prices->map(fn ($p) => [
                     'paper_size_id'   => $p->paper_size_id,
                     'paper_size_name' => $p->paperSize?->name,
@@ -112,7 +113,8 @@ class TransactionController extends Controller
             'items.*.qty'         => ['required', 'integer', 'min:1'],
             'items.*.unit_price'  => ['required', 'numeric', 'min:0'],
             'items.*.item_notes'  => ['nullable', 'string'],
-            'discount_percent'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discount_type'       => ['nullable', 'in:percent,flat'],
+            'discount_value'      => ['nullable', 'numeric', 'min:0'],
             'payment_method'      => ['required', 'in:cash,transfer,qris'],
             'amount_paid'         => ['required', 'numeric', 'min:0'],
             'notes'               => ['nullable', 'string'],
@@ -122,11 +124,21 @@ class TransactionController extends Controller
             // Hitung subtotal dari semua item
             $subtotal = collect($request->items)->sum(fn ($item) => $item['unit_price'] * $item['qty']);
 
-            // Hitung diskon
-            $discountPercent = $request->discount_percent ?? 0;
-            $discountAmount  = $subtotal * ($discountPercent / 100);
-            $total           = $subtotal - $discountAmount;
-            $changeAmount    = max(0, $request->amount_paid - $total);
+            // Hitung diskon — mendukung persen dan flat nominal
+            $discountType  = $request->discount_type ?? 'percent';
+            $discountValue = $request->discount_value ?? 0;
+
+            if ($discountType === 'percent') {
+                $discountPercent = min($discountValue, 100);
+                $discountAmount  = $subtotal * ($discountPercent / 100);
+            } else {
+                // Flat nominal — pastikan tidak melebihi subtotal
+                $discountAmount  = min($discountValue, $subtotal);
+                $discountPercent = $subtotal > 0 ? round(($discountAmount / $subtotal) * 100, 2) : 0;
+            }
+
+            $total        = $subtotal - $discountAmount;
+            $changeAmount = max(0, $request->amount_paid - $total);
 
             // Generate nomor transaksi unik
             $transactionNumber = $this->generateTransactionNumber();
@@ -307,6 +319,19 @@ class TransactionController extends Controller
         $filename = "Invoice-{$transaction->transaction_number}.pdf";
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Menampilkan struk thermal 80mm untuk dicetak langsung dari browser.
+     * Endpoint ini mengembalikan HTML yang dioptimalkan untuk printer thermal.
+     */
+    public function printThermal(Transaction $transaction)
+    {
+        $transaction->load(['customer', 'user', 'items']);
+
+        return view('invoices.thermal', [
+            'transaction' => $transaction,
+        ]);
     }
 
     /**

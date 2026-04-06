@@ -91,6 +91,8 @@ class CustomerController extends Controller
 
         Customer::create($validated);
 
+        // Share data customers terbaru agar bisa di-reload via Inertia partial reload
+        // (digunakan oleh fitur tambah pelanggan inline di halaman kasir)
         return back()->with('success', 'Pelanggan berhasil ditambahkan.');
     }
 

@@ -81,6 +81,111 @@ indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 index.form = indexForm
 
 /**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+export const getPrices = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: getPrices.url(args, options),
+    method: 'get',
+})
+
+getPrices.definition = {
+    methods: ["get","head"],
+    url: '/services/{service}/prices',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+getPrices.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { service: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
+        args = { service: args.id }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            service: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        service: typeof args.service === 'object'
+        ? args.service.id
+        : args.service,
+    }
+
+    return getPrices.definition.url
+            .replace('{service}', parsedArgs.service.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+getPrices.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: getPrices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+getPrices.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: getPrices.url(args, options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+const getPricesForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: getPrices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+getPricesForm.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: getPrices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::getPrices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+getPricesForm.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: getPrices.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+getPrices.form = getPricesForm
+
+/**
 * @see \App\Http\Controllers\ServiceController::store
 * @see app/Http/Controllers/ServiceController.php:50
 * @route '/services'
@@ -317,111 +422,6 @@ destroyForm.delete = (args: { service: number | { id: number } } | [service: num
 destroy.form = destroyForm
 
 /**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-export const getPrices = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: getPrices.url(args, options),
-    method: 'get',
-})
-
-getPrices.definition = {
-    methods: ["get","head"],
-    url: '/services/{service}/prices',
-} satisfies RouteDefinition<["get","head"]>
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-getPrices.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { service: args }
-    }
-
-    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
-        args = { service: args.id }
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            service: args[0],
-        }
-    }
-
-    args = applyUrlDefaults(args)
-
-    const parsedArgs = {
-        service: typeof args.service === 'object'
-        ? args.service.id
-        : args.service,
-    }
-
-    return getPrices.definition.url
-            .replace('{service}', parsedArgs.service.toString())
-            .replace(/\/+$/, '') + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-getPrices.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: getPrices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-getPrices.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: getPrices.url(args, options),
-    method: 'head',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-const getPricesForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: getPrices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-getPricesForm.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: getPrices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::getPrices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-getPricesForm.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: getPrices.url(args, {
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'HEAD',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        }
-    }),
-    method: 'get',
-})
-
-getPrices.form = getPricesForm
-
-/**
 * @see \App\Http\Controllers\ServiceController::storePrices
 * @see app/Http/Controllers/ServiceController.php:114
 * @route '/services/{service}/prices'
@@ -501,6 +501,6 @@ storePricesForm.post = (args: { service: number | { id: number } } | [service: n
 
 storePrices.form = storePricesForm
 
-const ServiceController = { index, store, update, destroy, getPrices, storePrices }
+const ServiceController = { index, getPrices, store, update, destroy, storePrices }
 
 export default ServiceController

@@ -82,6 +82,111 @@ indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 index.form = indexForm
 
 /**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+export const prices = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: prices.url(args, options),
+    method: 'get',
+})
+
+prices.definition = {
+    methods: ["get","head"],
+    url: '/services/{service}/prices',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+prices.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { service: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
+        args = { service: args.id }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            service: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        service: typeof args.service === 'object'
+        ? args.service.id
+        : args.service,
+    }
+
+    return prices.definition.url
+            .replace('{service}', parsedArgs.service.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+prices.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: prices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+prices.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: prices.url(args, options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+const pricesForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: prices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+pricesForm.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: prices.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\ServiceController::prices
+* @see app/Http/Controllers/ServiceController.php:104
+* @route '/services/{service}/prices'
+*/
+pricesForm.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: prices.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+prices.form = pricesForm
+
+/**
 * @see \App\Http\Controllers\ServiceController::store
 * @see app/Http/Controllers/ServiceController.php:50
 * @route '/services'
@@ -317,117 +422,12 @@ destroyForm.delete = (args: { service: number | { id: number } } | [service: num
 
 destroy.form = destroyForm
 
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-export const prices = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: prices.url(args, options),
-    method: 'get',
-})
-
-prices.definition = {
-    methods: ["get","head"],
-    url: '/services/{service}/prices',
-} satisfies RouteDefinition<["get","head"]>
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-prices.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { service: args }
-    }
-
-    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
-        args = { service: args.id }
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            service: args[0],
-        }
-    }
-
-    args = applyUrlDefaults(args)
-
-    const parsedArgs = {
-        service: typeof args.service === 'object'
-        ? args.service.id
-        : args.service,
-    }
-
-    return prices.definition.url
-            .replace('{service}', parsedArgs.service.toString())
-            .replace(/\/+$/, '') + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-prices.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: prices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-prices.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: prices.url(args, options),
-    method: 'head',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-const pricesForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: prices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-pricesForm.get = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: prices.url(args, options),
-    method: 'get',
-})
-
-/**
-* @see \App\Http\Controllers\ServiceController::prices
-* @see app/Http/Controllers/ServiceController.php:104
-* @route '/services/{service}/prices'
-*/
-pricesForm.head = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: prices.url(args, {
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'HEAD',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        }
-    }),
-    method: 'get',
-})
-
-prices.form = pricesForm
-
 const services = {
     index: Object.assign(index, index),
+    prices: Object.assign(prices, prices56fd13),
     store: Object.assign(store, store),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),
-    prices: Object.assign(prices, prices56fd13),
 }
 
 export default services

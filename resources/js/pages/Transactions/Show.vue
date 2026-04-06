@@ -76,6 +76,11 @@ const updateStatus = () => {
 const downloadPdf = () => {
     window.open(route('transactions.pdf', props.transaction.id), '_blank');
 };
+
+// Buka struk thermal 80mm di tab baru untuk dicetak langsung (Issue #12)
+const printThermal = () => {
+    window.open(route('transactions.thermal', props.transaction.id), '_blank');
+};
 </script>
 
 <template>
@@ -107,8 +112,11 @@ const downloadPdf = () => {
                 </div>
 
                 <div class="flex items-center space-x-3">
+                    <Button variant="outline" @click="printThermal" class="border-gray-300 text-gray-700 hover:bg-gray-50">
+                        <PrinterIcon class="h-4 w-4 mr-2" /> Struk Thermal
+                    </Button>
                     <Button variant="outline" @click="downloadPdf" class="border-blue-200 text-blue-700 hover:bg-blue-50">
-                        <PrinterIcon class="h-4 w-4 mr-2" /> Cetak / Download PDF
+                        <DownloadIcon class="h-4 w-4 mr-2" /> Download PDF
                     </Button>
                 </div>
             </div>

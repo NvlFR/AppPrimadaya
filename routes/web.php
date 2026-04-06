@@ -38,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::patch('/transactions/{transaction}/status', [TransactionController::class, 'updateStatus'])->name('transactions.status');
     Route::get('/transactions/{transaction}/pdf', [TransactionController::class, 'downloadPdf'])->name('transactions.pdf');
+    Route::get('/transactions/{transaction}/thermal', [TransactionController::class, 'printThermal'])->name('transactions.thermal');
 
     // Layanan / Produk (Melihat saja)
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
