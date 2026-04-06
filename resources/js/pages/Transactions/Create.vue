@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Trash2, ShoppingCart, Plus, Save, User, FileText,
     RefreshCw, Zap, Keyboard, Loader2, AlertTriangle, UserPlus, Tag, Percent, Search, X
@@ -306,12 +307,10 @@ const executeResetKasir = () => {
     
     // Reset state combobox pelanggan (Issue #25)
     customerSearchQuery.value = '';
-    isCustomerComboboxOpen.value = false;
+    isCustomerDropdownOpen.value = false;
+    clearCustomer();
     
     isResetModalOpen.value = false;
-};
-    // Reset state combobox pelanggan (Issue #25)
-    clearCustomer();
 };
 
 // ============================================================
@@ -474,10 +473,15 @@ const submitNewCustomer = () => {
                                             Pelanggan Umum (Tidak Terafiliasi)
                                         </button>
 
-                                        <!-- Loading state -->
-                                        <div v-if="isSearchingCustomer" class="flex items-center justify-center py-4 text-gray-400">
-                                            <Loader2 class="h-4 w-4 animate-spin mr-2" />
-                                            <span class="text-xs">Mencari...</span>
+                                        <!-- Loading state (Skeleton) -->
+                                        <div v-if="isSearchingCustomer" class="p-2 space-y-3">
+                                            <div v-for="i in 3" :key="i" class="flex items-center px-1">
+                                                <Skeleton class="h-6 w-6 rounded-full mr-3" />
+                                                <div class="space-y-2 w-full">
+                                                    <Skeleton class="h-3 w-1/2" />
+                                                    <Skeleton class="h-2 w-1/3" />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Hasil pencarian -->
@@ -518,7 +522,9 @@ const submitNewCustomer = () => {
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <Label>Catatan Umum Pesanan</Label>
+                            <div class="flex items-center h-6">
+                                <Label>Catatan Umum Pesanan</Label>
+                            </div>
                             <Input v-model="form.notes" placeholder="Catatan untuk tim produksi..." />
                         </div>
                     </CardContent>
@@ -699,7 +705,7 @@ const submitNewCustomer = () => {
                                             {{ formatRupiah(item.unit_price * item.qty) }}
                                         </td>
                                         <td class="px-4 py-4 align-top text-right">
-                                            <Button @click="removeItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 hover:bg-red-50">
+                                            <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 hover:bg-red-50">
                                                 <Trash2 class="h-4 w-4" />
                                             </Button>
                                         </td>

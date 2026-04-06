@@ -234,18 +234,33 @@ const executeDeleteCustomer = () => {
                                 </Button>
                             </td>
                         </tr>
-                        <tr v-if="localData.length === 0">
+                        <tr v-if="localData.length === 0 && !isLoadingMore">
                             <td colspan="5" class="px-6 py-8 text-center text-gray-500">Tidak ada data pelanggan ditemukan.</td>
                         </tr>
+                        <!-- Skeleton Rows for Infinite Scroll Loading -->
+                        <template v-if="isLoadingMore">
+                            <tr v-for="i in 3" :key="'skel-'+i" class="animate-pulse">
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-24 sm:w-[150px]" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-24 sm:w-[120px]" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-6 w-20 sm:w-[100px] rounded-full" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-20 sm:w-[100px]" /></td>
+                                <td class="px-6 py-4 align-middle text-right">
+                                    <div class="flex justify-end space-x-2">
+                                        <Skeleton class="h-8 w-16" />
+                                        <Skeleton class="h-8 w-8" />
+                                        <Skeleton class="h-8 w-8" />
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
 
             <!-- Sentinel element untuk Intersection Observer (Issue #26) -->
             <div ref="sentinelRef" class="py-1">
-                <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 py-4 text-gray-400">
-                    <Loader2 class="h-5 w-5 animate-spin" />
-                    <span class="text-sm">Memuat lebih banyak...</span>
+                <div v-if="isLoadingMore" class="sr-only">
+                    Memuat lebih banyak data...
                 </div>
                 <div
                     v-else-if="localData.length > 0 && !hasMore()"
