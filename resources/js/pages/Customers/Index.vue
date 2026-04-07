@@ -8,6 +8,7 @@ import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2 } from 'lucide-vue-ne
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Customer {
     id: number;
@@ -200,7 +201,7 @@ const executeDeleteCustomer = () => {
 
             <!-- Table -->
             <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
-                <table class="w-full text-sm text-left">
+                <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium">
                         <tr>
                             <th class="px-6 py-3 border-b">Nama Pelanggan</th>

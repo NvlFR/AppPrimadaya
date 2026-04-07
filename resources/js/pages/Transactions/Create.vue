@@ -146,6 +146,9 @@ const selectedServiceId = ref('');
 
 // -- State untuk Dialog Konfirmasi Submit (Issue #8) --
 const showConfirmDialog = ref(false);
+const showCheckoutWarningDialog = ref(false);
+const checkoutWarningTitle = ref('');
+const checkoutWarningMessage = ref('');
 
 // -- State untuk Dialog Tambah Pelanggan Inline (Issue #10) --
 const showAddCustomerDialog = ref(false);
@@ -318,11 +321,15 @@ const executeResetKasir = () => {
 // ============================================================
 const openConfirmDialog = () => {
     if (form.items.length === 0) {
-        alert('Keranjang masih kosong!');
+        checkoutWarningTitle.value = 'Keranjang Masih Kosong';
+        checkoutWarningMessage.value = 'Pilih minimal satu layanan sebelum menyimpan transaksi.';
+        showCheckoutWarningDialog.value = true;
         return;
     }
     if (form.payment_method === 'cash' && isUnderpaid.value) {
-        alert('Nominal pembayaran kurang dari total tagihan!');
+        checkoutWarningTitle.value = 'Pembayaran Belum Cukup';
+        checkoutWarningMessage.value = 'Nominal pembayaran tunai masih kurang dari total tagihan.';
+        showCheckoutWarningDialog.value = true;
         return;
     }
     showConfirmDialog.value = true;
@@ -374,27 +381,27 @@ const submitNewCustomer = () => {
     ]">
     <Head title="Kasir & Transaksi Baru" />
 
-    <div class="px-4 py-6 md:px-8 max-w-[1600px] mx-auto">
-        <div class="flex items-center justify-between mb-6">
+    <div class="mx-auto w-full max-w-[1440px] overflow-x-clip px-4 py-5 md:px-6 xl:px-8">
+        <div class="flex flex-col gap-3 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="text-2xl font-bold tracking-tight text-gray-900 flex items-center">
-                    <ShoppingCart class="mr-3 h-6 w-6 text-primary" /> Transaksi Kasir
+                <h2 class="flex items-center text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
+                    <ShoppingCart class="mr-3 h-6 w-6 text-primary" /> Kasir Baru
                 </h2>
-                <p class="text-sm text-gray-500 mt-1">Buat pesanan baru untuk pelanggan</p>
+                <p class="mt-1 text-sm text-gray-500">Pilih pelanggan, susun layanan, lalu selesaikan pembayaran.</p>
             </div>
-            <Button variant="outline" class="text-gray-500" @click="resetKasir">
+            <Button variant="outline" class="w-full text-gray-600 sm:w-auto" @click="resetKasir">
                 <RefreshCw class="mr-2 h-4 w-4" /> Reset Kasir
             </Button>
         </div>
 
         <!-- Layout Kiri (Keranjang & Setup) - Kanan (Ringkasan & Bayar) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full items-start">
+        <div class="mt-5 grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
 
             <!-- KOLOM KIRI: Keranjang Belanja -->
-            <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="flex min-w-0 flex-col gap-5">
 
                 <!-- 1. Block Informasi Pelanggan -->
-                <Card class="border shadow-sm">
+                <Card class="min-w-0 rounded-lg border bg-white shadow-sm">
                     <CardHeader class="pb-4">
                         <CardTitle class="text-lg flex items-center"><User class="mr-2 h-5 w-5 text-gray-400" /> Informasi Pelanggan</CardTitle>
                     </CardHeader>
@@ -531,8 +538,8 @@ const submitNewCustomer = () => {
                 </Card>
 
                 <!-- 2. Block Keranjang Belanja -->
-                <Card class="border shadow-sm min-h-[400px] flex flex-col">
-                    <CardHeader class="bg-gray-50 rounded-t-xl border-b pb-4">
+                <Card class="flex min-w-0 min-h-[420px] flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
+                    <CardHeader class="rounded-t-lg border-b bg-gray-50/80 pb-4">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <CardTitle class="text-lg flex items-center"><FileText class="mr-2 h-5 w-5 text-gray-400" /> Keranjang Belanja</CardTitle>
                             <div class="flex items-center gap-2 w-full md:w-[400px]">
@@ -639,96 +646,107 @@ const submitNewCustomer = () => {
                             </div>
                         </div>
 
-                        <!-- Desktop Table Keranjang -->
-                        <div class="hidden md:block w-full overflow-x-auto">
-                            <table class="w-full text-sm text-left min-w-[800px]">
-                                <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
-                                    <tr>
-                                        <th class="px-4 py-3 font-semibold">Layanan</th>
-                                        <th class="px-4 py-3 font-semibold w-40">Detail Ukuran / Tipe</th>
-                                        <th class="px-4 py-3 font-semibold w-32">Harga Satuan</th>
-                                        <th class="px-4 py-3 font-semibold w-24">Qty</th>
-                                        <th class="px-4 py-3 font-semibold text-right w-32">Subtotal</th>
-                                        <th class="px-4 py-3 w-10"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(item, index) in form.items" :key="index" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td class="px-4 py-4 align-top">
-                                            <p class="font-medium text-gray-900 text-base mb-2">{{ services.find(s => s.id == item.service_id)?.name }}</p>
-                                            <div class="space-y-2">
-                                                <Input v-model="item.item_notes" placeholder="Catatan item (contoh: Pake Spiral)" class="h-8 text-xs bg-white" />
-                                                <!-- Upload File per Item -->
-                                                <div class="flex items-center gap-2">
-                                                    <input type="file" :id="`file-${index}`" class="hidden" @change="(e: any) => item.file = e.target.files[0]">
-                                                    <label :for="`file-${index}`" class="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
-                                                        <Plus class="h-3 w-3 text-blue-600" />
-                                                        <span class="text-[10px] font-bold text-blue-700 uppercase">
-                                                            {{ item.file ? item.file.name.substring(0, 15) + '...' : 'Upload File' }}
-                                                        </span>
-                                                    </label>
-                                                    <Button v-if="item.file" variant="ghost" size="icon" @click="item.file = null" class="h-6 w-6 text-red-500">
-                                                        <Trash2 class="h-3 w-3" />
-                                                    </Button>
+                        <!-- Desktop POS Item List -->
+                        <div class="hidden max-w-full overflow-hidden p-4 md:block">
+                            <div class="space-y-3">
+                                <div
+                                    v-for="(item, index) in form.items"
+                                    :key="index"
+                                    class="min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-blue-50/20"
+                                >
+                                    <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
+                                        <div class="min-w-0 space-y-3 lg:col-span-12 2xl:col-span-5">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <p class="truncate text-base font-semibold text-gray-900">
+                                                        {{ services.find(s => s.id == item.service_id)?.name }}
+                                                    </p>
+                                                    <p class="mt-0.5 text-xs text-gray-400">Item #{{ index + 1 }}</p>
+                                                </div>
+                                                <div class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary 2xl:hidden">
+                                                    {{ formatRupiah(item.unit_price * item.qty) }}
                                                 </div>
                                             </div>
-                                        </td>
 
-                                        <!-- Opsi Matrix Pricing -->
-                                        <td class="px-4 py-4 align-top">
-                                            <div v-if="services.find(s => s.id == item.service_id)?.has_matrix_pricing" class="flex flex-col gap-2">
+                                            <Input v-model="item.item_notes" placeholder="Catatan item, contoh: pakai spiral" class="h-9 bg-white text-xs" />
+
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <input type="file" :id="`file-${index}`" class="hidden" @change="(e: any) => item.file = e.target.files[0]">
+                                                <label
+                                                    :for="`file-${index}`"
+                                                    class="inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold uppercase text-blue-700 transition-colors hover:bg-blue-100"
+                                                >
+                                                    <Plus class="h-3 w-3 shrink-0 text-blue-600" />
+                                                    <span class="truncate">{{ item.file ? item.file.name : 'Upload File' }}</span>
+                                                </label>
+                                                <Button v-if="item.file" variant="ghost" size="icon" @click="item.file = null" class="h-7 w-7 text-red-500">
+                                                    <Trash2 class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div class="min-w-0 space-y-2 lg:col-span-4 2xl:col-span-2">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Ukuran / Tipe</Label>
+                                            <div v-if="services.find(s => s.id == item.service_id)?.has_matrix_pricing" class="grid min-w-0 grid-cols-2 gap-2 2xl:grid-cols-1">
                                                 <Select v-model="item.paper_size_id" @update:modelValue="updateItemPrice(index)">
-                                                    <SelectTrigger class="h-8 text-xs bg-white"><SelectValue placeholder="Pilih Ukuran" /></SelectTrigger>
+                                                    <SelectTrigger class="h-9 bg-white text-xs"><SelectValue placeholder="Ukuran" /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem v-for="ps in paper_sizes" :key="ps.id" :value="ps.id.toString()">Kertas {{ ps.name }}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <Select v-model="item.print_type" @update:modelValue="updateItemPrice(index)">
-                                                    <SelectTrigger class="h-8 text-xs bg-white"><SelectValue placeholder="Warna/BW" /></SelectTrigger>
+                                                    <SelectTrigger class="h-9 bg-white text-xs"><SelectValue placeholder="Warna/BW" /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="color">Warna Full</SelectItem>
                                                         <SelectItem value="bw">Hitam Putih</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div v-else class="text-xs text-gray-400 italic py-2">Tidak ada opsi/standar</div>
-                                        </td>
+                                            <div v-else class="rounded-md border border-dashed bg-gray-50 px-3 py-2 text-xs text-gray-400">Standar</div>
+                                        </div>
 
-                                        <!-- Harga Satuan & QTY -->
-                                        <td class="px-4 py-4 align-top">
-                                            <Input v-model="item.unit_price" type="number" class="h-8 text-right bg-white" min="0" />
-                                        </td>
-                                        <td class="px-4 py-4 align-top">
-                                            <Input v-model="item.qty" type="number" class="h-8 text-center bg-white" min="1" />
-                                        </td>
-                                        <td class="px-4 py-4 align-top text-right font-semibold text-gray-900 pt-5">
-                                            {{ formatRupiah(item.unit_price * item.qty) }}
-                                        </td>
-                                        <td class="px-4 py-4 align-top text-right">
-                                            <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-8 w-8 text-red-500 hover:bg-red-50">
+                                        <div class="min-w-0 space-y-2 lg:col-span-3 2xl:col-span-2">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Harga</Label>
+                                            <Input v-model="item.unit_price" type="number" class="h-9 bg-white text-right font-medium" min="0" />
+                                        </div>
+
+                                        <div class="min-w-0 space-y-2 lg:col-span-2 2xl:col-span-1">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Qty</Label>
+                                            <Input v-model="item.qty" type="number" class="h-9 bg-white text-center font-medium" min="1" />
+                                        </div>
+
+                                        <div class="hidden min-w-0 space-y-2 text-right 2xl:col-span-1 2xl:block">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Subtotal</Label>
+                                            <div class="rounded-md bg-gray-50 px-3 py-2 text-sm font-bold text-gray-900">
+                                                {{ formatRupiah(item.unit_price * item.qty) }}
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end lg:col-span-3 lg:pt-6 2xl:col-span-1">
+                                            <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-9 w-9 text-red-500 hover:bg-red-50">
                                                 <Trash2 class="h-4 w-4" />
                                             </Button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
             <!-- KOLOM KANAN: Pembayaran & Ringkasan -->
-            <div class="lg:col-span-4 sticky top-20">
-                <Card class="border-2 border-primary/20 shadow-xl flex flex-col max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-xl">
+            <div class="min-w-0 xl:sticky xl:top-20">
+                <Card class="flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
                     <!-- Header Total -->
-                    <div class="bg-primary px-6 py-4 flex items-center justify-between text-white">
-                        <span class="font-semibold tracking-wide">TOTAL TAGIHAN</span>
-                        <h2 class="text-3xl font-bold tracking-tight">{{ formatRupiah(totalFinal) }}</h2>
+                    <div class="bg-primary px-5 py-5 text-white">
+                        <span class="text-xs font-semibold uppercase tracking-wide text-white/80">Total Tagihan</span>
+                        <h2 class="mt-1 break-words text-2xl font-bold tracking-tight md:text-3xl">{{ formatRupiah(totalFinal) }}</h2>
                     </div>
 
-                    <CardContent class="p-6 space-y-6 flex-1">
+                    <CardContent class="flex-1 space-y-5 p-5">
                         <!-- Ringkasan Rincian -->
-                        <div class="space-y-3 pb-6 border-b border-dashed border-gray-200">
+                        <div class="space-y-3 rounded-lg border bg-gray-50/70 p-4">
                             <div class="flex justify-between items-center text-sm">
                                 <span class="text-gray-500">Subtotal Item ({{ form.items.length }})</span>
                                 <span class="font-medium text-gray-900">{{ formatRupiah(subtotal) }}</span>
@@ -773,14 +791,14 @@ const submitNewCustomer = () => {
                             </div>
 
                             <!-- Tampil potongan harga jika ada -->
-                            <div v-if="discountAmount > 0" class="flex justify-between items-center text-sm text-green-600 font-medium pt-1">
+                            <div v-if="discountAmount > 0" class="flex justify-between items-center border-t border-dashed pt-3 text-sm text-green-600 font-medium">
                                 <span>Potongan Harga</span>
                                 <span>- {{ formatRupiah(discountAmount) }}</span>
                             </div>
                         </div>
 
                         <!-- Pembayaran Form -->
-                        <div class="space-y-4 pt-2">
+                        <div class="space-y-4">
                             <div class="space-y-2">
                                 <Label class="text-gray-700 font-semibold" for="payment_method">Metode Pembayaran</Label>
                                 <Select
@@ -791,7 +809,7 @@ const submitNewCustomer = () => {
                                         form.amount_paid = val === 'cash' ? 0 : totalFinal; 
                                     }"
                                 >
-                                    <SelectTrigger class="bg-gray-50 border-gray-300">
+                                    <SelectTrigger class="h-10 bg-white">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -812,7 +830,7 @@ const submitNewCustomer = () => {
                                     <Input
                                         v-model="form.amount_paid"
                                         type="number"
-                                        class="pl-10 text-lg font-bold h-12 border-primary/50"
+                                        class="h-12 pl-10 text-lg font-bold"
                                         :class="{
                                             'focus-visible:ring-primary/50': form.payment_method === 'cash',
                                             'bg-gray-100 opacity-80 cursor-not-allowed': form.payment_method !== 'cash'
@@ -826,14 +844,14 @@ const submitNewCustomer = () => {
                                 </div>
 
                                 <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
-                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-3 gap-1.5">
+                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-3 gap-2">
                                     <Button
                                         v-for="nominal in [5000, 10000, 20000, 50000, 100000, 200000]"
                                         :key="nominal"
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        class="h-8 text-xs font-medium hover:bg-primary/10 hover:border-primary/40"
+                                        class="h-9 text-xs font-medium hover:bg-primary/10 hover:border-primary/40"
                                         @click="form.amount_paid = nominal"
                                     >
                                         {{ formatRupiah(nominal).replace('Rp ', '') }}
@@ -843,7 +861,7 @@ const submitNewCustomer = () => {
                                 <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
                                 <div
                                     v-if="form.payment_method === 'cash'"
-                                    class="flex justify-between items-center p-3 rounded-lg border transition-colors mt-1"
+                                    class="flex justify-between items-center rounded-lg border p-3 transition-colors"
                                     :class="{
                                         'bg-green-50 border-green-200': changeAmount >= 0 && form.amount_paid > 0,
                                         'bg-red-50 border-red-200': isUnderpaid,
@@ -855,7 +873,7 @@ const submitNewCustomer = () => {
                                         'text-red-600': isUnderpaid,
                                         'text-gray-500': form.amount_paid === 0
                                     }">
-                                        {{ isUnderpaid ? '⚠ Kurang Bayar:' : 'Kembalian:' }}
+                                        {{ isUnderpaid ? 'Kurang Bayar:' : 'Kembalian:' }}
                                     </span>
                                     <span
                                         class="text-2xl font-bold"
@@ -870,7 +888,7 @@ const submitNewCustomer = () => {
                                 </div>
 
                                 <!-- Info non-cash -->
-                                <div v-if="form.payment_method !== 'cash'" class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-700 flex items-center gap-2 mt-1">
+                                <div v-if="form.payment_method !== 'cash'" class="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
                                     <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
                                     <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
                                 </div>
@@ -887,10 +905,10 @@ const submitNewCustomer = () => {
                     </CardContent>
 
                     <!-- Tombol Submit -->
-                    <div class="p-6 bg-gray-50 border-t border-gray-100 mt-auto">
+                    <div class="mt-auto border-t border-gray-100 bg-gray-50 p-5">
                         <Button
                             @click="openConfirmDialog"
-                            class="w-full h-14 text-base font-bold shadow-lg bg-primary hover:bg-primary/90"
+                            class="h-12 w-full text-sm font-bold shadow-sm bg-primary hover:bg-primary/90 md:text-base"
                             :disabled="form.items.length === 0 || form.processing || isUnderpaid"
                         >
                             <div class="flex items-center justify-center gap-2">
@@ -910,6 +928,26 @@ const submitNewCustomer = () => {
     <!-- ============================================================ -->
     <!-- DIALOG KONFIRMASI SUBMIT TRANSAKSI (Issue #8)                -->
     <!-- ============================================================ -->
+    <Dialog :open="showCheckoutWarningDialog" @update:open="showCheckoutWarningDialog = $event">
+        <DialogContent class="max-w-sm">
+            <DialogHeader>
+                <DialogTitle class="flex items-center gap-2 text-lg">
+                    <AlertTriangle class="h-5 w-5 text-amber-500" />
+                    {{ checkoutWarningTitle }}
+                </DialogTitle>
+                <DialogDescription class="mt-1">
+                    {{ checkoutWarningMessage }}
+                </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter>
+                <Button @click="showCheckoutWarningDialog = false" class="w-full">
+                    Oke, Perbaiki
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     <Dialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
         <DialogContent class="max-w-md">
             <DialogHeader>

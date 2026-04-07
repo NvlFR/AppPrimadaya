@@ -110,7 +110,7 @@ watch(selectedStockId, () => {
             <!-- Table Log -->
             <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
+                    <table class="data-table">
                         <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                             <tr>
                                 <th class="px-6 py-3">Waktu</th>

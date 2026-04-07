@@ -166,7 +166,7 @@ const getStatusColor = (status: string) => {
                             </Link>
                         </div>
                         <div class="overflow-x-auto whitespace-nowrap">
-                            <table class="w-full text-sm text-left">
+                            <table class="data-table">
                                 <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                                     <tr>
                                         <th class="px-6 py-3">No. Nota</th>

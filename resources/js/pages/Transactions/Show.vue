@@ -151,7 +151,7 @@ const printThermal = () => {
                             <h3 class="font-semibold text-gray-900">Detail Pesanan</h3>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
+                            <table class="data-table">
                                 <thead class="bg-white text-gray-500 border-b">
                                     <tr>
                                         <th class="px-6 py-3 font-medium">Layanan & Keterangan</th>

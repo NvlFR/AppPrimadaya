@@ -224,7 +224,7 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
             <!-- Table -->
             <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
+                    <table class="data-table">
                         <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100 whitespace-nowrap">
                             <tr>
                                 <th class="px-5 py-3">No. Transaksi</th>

@@ -89,6 +89,32 @@
     }
 }
 
+@layer components {
+    .data-table {
+        @apply w-full text-left text-sm;
+    }
+
+    .data-table thead {
+        @apply border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500;
+    }
+
+    .data-table tbody {
+        @apply divide-y divide-gray-100;
+    }
+
+    .data-table tbody tr {
+        @apply transition-colors hover:bg-gray-50;
+    }
+
+    .data-table th {
+        @apply px-6 py-3;
+    }
+
+    .data-table td {
+        @apply px-6 py-4;
+    }
+}
+
 :root {
     --background: hsl(0 0% 100%);
     --foreground: hsl(0 0% 3.9%);
@@ -167,7 +193,7 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply overflow-x-hidden bg-background text-foreground;
     }
 
     /* Remove arrows/spinners from number inputs */

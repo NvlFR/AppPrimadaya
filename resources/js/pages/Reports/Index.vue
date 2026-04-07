@@ -165,7 +165,7 @@ const exportData = () => {
                         <Badge variant="outline" class="bg-green-50 text-green-700 border-green-200">Pesanan Selesai</Badge>
                     </div>
                     <div class="overflow-x-auto p-0 flex-1">
-                        <table class="w-full text-sm text-left">
+                        <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
                                     <th class="px-4 py-2 font-medium">Nota / Pelanggan</th>
@@ -197,7 +197,7 @@ const exportData = () => {
                         <Badge variant="outline" class="bg-red-50 text-red-700 border-red-200">Operasional</Badge>
                     </div>
                     <div class="overflow-x-auto p-0 flex-1">
-                        <table class="w-full text-sm text-left">
+                        <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
                                     <th class="px-4 py-2 font-medium">Deskripsi / Kategori</th>
@@ -231,7 +231,7 @@ const exportData = () => {
                         <span class="text-gray-900 flex items-center">Rekap Harian (Pendapatan)</span>
                     </div>
                     <div class="overflow-x-auto p-0 flex-1">
-                        <table class="w-full text-sm text-left">
+                        <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
                                     <th class="px-4 py-2 font-medium">Tanggal</th>
@@ -264,7 +264,7 @@ const exportData = () => {
                         <span class="text-gray-900 flex items-center">Rekap Harian (Pengeluaran)</span>
                     </div>
                     <div class="overflow-x-auto p-0 flex-1">
-                        <table class="w-full text-sm text-left">
+                        <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
                                     <th class="px-4 py-2 font-medium">Tanggal</th>

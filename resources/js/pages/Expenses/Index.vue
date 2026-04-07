@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { PlusIcon, TrashIcon, WalletIcon, Loader2 } from 'lucide-vue-next';
+import { PlusIcon, TrashIcon, WalletIcon } from 'lucide-vue-next';
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Expense {
@@ -232,12 +233,12 @@ const getCategoryColor = (category: string) => {
 
             <!-- Table -->
             <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
-                <table class="w-full text-sm text-left">
+                <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                         <tr>
                             <th class="px-6 py-3">Tanggal</th>
                             <th class="px-6 py-3">Kategori</th>
-                            <th class="px-6 py-3">Deskripsi</th>
+                            <th class="px-6 py-3 min-w-[250px]">Deskripsi</th>
                             <th class="px-6 py-3 text-right">Nominal (Rp)</th>
                             <th class="px-6 py-3">Dicatat Oleh</th>
                             <th class="px-6 py-3 text-right">Aksi</th>
@@ -252,10 +253,16 @@ const getCategoryColor = (category: string) => {
                                 </Badge>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="text-gray-900 truncate max-w-sm" :title="item.description">{{ item.description }}</p>
-                                <p v-if="item.notes" class="text-xs text-gray-500 truncate max-w-sm mt-1">{{ item.notes }}</p>
+                                <div class="max-w-[300px] whitespace-normal">
+                                    <p class="text-sm font-medium text-gray-900 break-words line-clamp-2" :title="item.description">
+                                        {{ item.description }}
+                                    </p>
+                                    <p v-if="item.notes" class="text-xs text-gray-500 break-words mt-1 italic">
+                                        {{ item.notes }}
+                                    </p>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 font-bold text-gray-900 text-right">{{ formatRupiah(item.amount) }}</td>
+                            <td class="px-6 py-4 font-bold text-gray-900 text-right tabular-nums">{{ formatRupiah(item.amount) }}</td>
                             <td class="px-6 py-4 text-xs text-gray-500">{{ item.user_name }}</td>
                             <td class="px-6 py-4 text-right">
                                 <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteExpense(item.id)">
@@ -263,21 +270,31 @@ const getCategoryColor = (category: string) => {
                                 </Button>
                             </td>
                         </tr>
-                        <tr v-if="localData.length === 0">
+                        <tr v-if="localData.length === 0 && !isLoadingMore">
                             <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                 <p class="font-medium">Tidak ada catatan pengeluaran.</p>
                                 <p class="text-sm">Coba sesuaikan filter pencarian di atas.</p>
                             </td>
                         </tr>
+                        <!-- Infinite Scroll Skeleton — Issue #26 -->
+                        <template v-if="isLoadingMore">
+                            <tr v-for="i in 3" :key="'skel-exp-'+i" class="animate-pulse">
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-20" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-6 w-16 rounded-full" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-40" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-24 ml-auto" /></td>
+                                <td class="px-6 py-4"><Skeleton class="h-4 w-12" /></td>
+                                <td class="px-6 py-4 text-right"><Skeleton class="h-8 w-8 ml-auto" /></td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
 
             <!-- Sentinel element untuk Intersection Observer (Issue #26) -->
             <div ref="sentinelRef" class="py-1">
-                <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 py-4 text-gray-400">
-                    <Loader2 class="h-5 w-5 animate-spin" />
-                    <span class="text-sm">Memuat lebih banyak...</span>
+                <div v-if="isLoadingMore" class="sr-only">
+                    Memuat data pengeluaran...
                 </div>
                 <div
                     v-else-if="localData.length > 0 && !hasMore()"
@@ -312,7 +329,8 @@ const getCategoryColor = (category: string) => {
 
                     <div class="space-y-2">
                         <Label for="amount">Nominal Pengeluaran (Rp) <span class="text-red-500">*</span></Label>
-                        <Input id="amount" type="number" step="0.01" v-model="formCreate.amount" required min="1" class="text-lg font-medium" />
+                        <Input id="amount" type="number" step="0.01" v-model="formCreate.amount" required min="1" max="999999999" class="text-lg font-medium" />
+                        <p class="text-[10px] text-gray-400">Maks: Rp 999.999.999</p>
                         <span class="text-xs text-red-500" v-if="formCreate.errors.amount">{{ formCreate.errors.amount }}</span>
                     </div>
 
