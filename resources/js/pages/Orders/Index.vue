@@ -135,8 +135,8 @@ const { formatRupiah } = useFormatRupiah();
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Tracking Pesanan', href: route('orders.index') }]">
         <Head title="Tracking Pesanan" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <Package class="h-6 w-6 text-primary" /> Tracking Pesanan
@@ -145,8 +145,33 @@ const { formatRupiah } = useFormatRupiah();
                 </div>
             </div>
 
+                        <!-- Filters -->
+            <div class="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm xl:flex-row xl:items-center">
+                <div class="relative flex-1 w-full">
+                    <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input v-model="search" type="search" placeholder="Cari No. Transaksi (TRX-xxx)..." class="pl-10 h-10" />
+                </div>
+                <div class="flex items-center gap-2 w-full xl:w-auto">
+                    <Filter class="h-4 w-4 text-gray-400" />
+                    <select v-model="statusFilter" class="flex h-10 w-full xl:w-[200px] rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                        <option value="">Semua Status</option>
+                        <option v-for="(label, key) in status_options" :key="key" :value="key">
+                            {{ label }}
+                        </option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 w-full xl:w-auto">
+                    <Filter class="h-4 w-4 text-gray-400" />
+                    <select v-model="perPageFilter" class="flex h-10 w-full xl:w-[160px] rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                        <option value="12">Tampilkan 12</option>
+                        <option value="24">Tampilkan 24</option>
+                        <option value="48">Tampilkan 48</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Dashboard Mini Stats (Optional) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                 <div v-for="(label, key) in status_options" :key="key" 
                     class="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between cursor-pointer hover:border-primary transition-colors"
                     :class="statusFilter === key ? 'border-primary ring-1 ring-primary' : ''"
@@ -188,33 +213,10 @@ const { formatRupiah } = useFormatRupiah();
                 </div>
             </div>
 
-            <!-- Filters -->
-            <div class="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border shadow-sm items-center">
-                <div class="relative flex-1 w-full">
-                    <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <Input v-model="search" type="search" placeholder="Cari No. Transaksi (TRX-xxx)..." class="pl-10 h-10" />
-                </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <Filter class="h-4 w-4 text-gray-400" />
-                    <select v-model="statusFilter" class="flex h-10 w-full sm:w-[200px] rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                        <option value="">Semua Status</option>
-                        <option v-for="(label, key) in status_options" :key="key" :value="key">
-                            {{ label }}
-                        </option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <Filter class="h-4 w-4 text-gray-400" />
-                    <select v-model="perPageFilter" class="flex h-10 w-full sm:w-[160px] rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                        <option value="12">Tampilkan 12</option>
-                        <option value="24">Tampilkan 24</option>
-                        <option value="48">Tampilkan 48</option>
-                    </select>
-                </div>
-            </div>
+
 
             <!-- Order Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-3">
                 <div v-for="order in orders.data" :key="order.id" class="group relative bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                     :class="isOrderSelected(order.id) ? 'ring-2 ring-primary border-primary' : ''">
                     <!-- Progress Bar (Simulation based on status) -->

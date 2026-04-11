@@ -227,31 +227,33 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Riwayat Transaksi', href: route('transactions.index') }]">
+    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Riwayat ', href: route('transactions.index') }]">
+        <template #header-actions>
+            <Link :href="route('transactions.create')">
+                <Button size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
+                    <PlusIcon class="h-4 w-4 mr-2" /> Transaksi
+                </Button>
+            </Link>
+        </template>
         <Head title="Riwayat Transaksi" />
 
-        <div class="px-4 py-6 md:px-8 space-y-5 max-w-7xl mx-auto">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Riwayat Transaksi</h1>
                     <p class="text-sm text-gray-500 mt-0.5">Pantau semua transaksi pesanan beserta status pengerjaannya.</p>
                 </div>
-                <Link :href="route('transactions.create')">
-                    <Button class="bg-blue-600 hover:bg-blue-700 shadow-sm">
-                        <PlusIcon class="h-4 w-4 mr-2" /> Kasir POS Baru
-                    </Button>
-                </Link>
             </div>
 
             <!-- Filters -->
             <div class="flex flex-wrap gap-3 bg-white p-4 rounded-xl border shadow-sm items-center">
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-0">
                     <Input v-model="search" type="search" placeholder="Cari No. Transaksi (TRX-)..." />
                 </div>
                 <select
                     v-model="statusFilter"
-                    class="h-9 w-[150px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[150px]"
                 >
                     <option value="">Semua Status</option>
                     <option value="pending">Pending</option>
@@ -259,13 +261,13 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                     <option value="selesai">Selesai</option>
                     <option value="diambil">Diambil</option>
                 </select>
-                <div class="flex items-center gap-2">
+                <div class="flex w-full items-center gap-2 sm:w-auto">
                     <span class="text-sm text-gray-500 whitespace-nowrap">Dari:</span>
-                    <Input type="date" v-model="dateFromFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" v-model="dateFromFilter" class="h-9 w-full text-sm sm:w-[140px]" />
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex w-full items-center gap-2 sm:w-auto">
                     <span class="text-sm text-gray-500 whitespace-nowrap">s/d:</span>
-                    <Input type="date" v-model="dateToFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" v-model="dateToFilter" class="h-9 w-full text-sm sm:w-[140px]" />
                 </div>
             </div>
 
@@ -296,9 +298,65 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                 Menampilkan <span class="font-semibold text-gray-800">{{ localData.length }}</span> dari <span class="font-semibold text-gray-800">{{ transactions.total }}</span> transaksi
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in localData" :key="`transaction-mobile-${item.id}`" class="mobile-data-card space-y-3" :class="isAdmin && isTransactionSelected(item.id) ? 'ring-2 ring-blue-200' : ''">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="font-mono text-xs font-bold text-gray-900">{{ item.transaction_number }}</p>
+                            <p class="mt-1 text-sm font-medium text-gray-900 break-words">{{ item.customer_name }}</p>
+                            <p class="mt-1 text-xs text-gray-500">{{ item.created_at }}</p>
+                        </div>
+                        <div v-if="isAdmin" class="shrink-0 pt-1">
+                            <Checkbox
+                                :model-value="isTransactionSelected(item.id)"
+                                @update:model-value="checked => toggleTransactionSelection(item.id, checked)"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Kasir</p>
+                            <p class="mt-1 text-gray-600">{{ item.kasir_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Metode</p>
+                            <p class="mt-1 text-gray-600">{{ getPaymentLabel(item.payment_method) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Total Bayar</p>
+                            <p class="mt-1 font-semibold text-gray-900">{{ formatRupiah(item.total) }}</p>
+                        </div>
+                        <Badge variant="outline" :class="getStatusColor(item.status)">
+                            {{ item.status_label }}
+                        </Badge>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <Button variant="outline" size="sm" class="h-8 shadow-sm text-gray-600" title="Cetak PDF" @click="downloadPdf(item.id)">
+                            <PrinterIcon class="h-3.5 w-3.5 mr-1" /> PDF
+                        </Button>
+                        <Link :href="route('transactions.show', item.id)">
+                            <Button variant="outline" size="sm" class="h-8 shadow-sm text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <EyeIcon class="h-3.5 w-3.5 mr-1" /> Detail
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+
+                <div v-if="localData.length === 0" class="mobile-data-card px-6 py-16 text-center text-gray-400">
+                    <PrinterIcon class="h-10 w-10 mx-auto mb-3 text-gray-200" />
+                    <p class="font-medium text-gray-600">Tidak ada transaksi ditemukan.</p>
+                    <p class="text-sm mt-1">Coba sesuaikan filter pencarian di atas.</p>
+                </div>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                     <table class="data-table">
                         <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100 whitespace-nowrap">
                             <tr>

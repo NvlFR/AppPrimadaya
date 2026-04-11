@@ -69,9 +69,9 @@ const getStatusColor = (status: string) => {
     ]">
         <Head :title="`Detail Pelanggan: ${customer.name}`" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header Nav -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center gap-4">
                 <Link :href="route('customers.index')">
                     <Button variant="outline" size="icon" class="h-8 w-8 rounded-full">
                         <ArrowLeftIcon class="h-4 w-4" />
@@ -82,10 +82,10 @@ const getStatusColor = (status: string) => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <!-- Customer Info Card -->
-                <div class="col-span-1 border bg-white rounded-xl shadow-sm p-6 space-y-6 h-fit">
-                    <div class="flex items-center space-x-4">
+                <div class="col-span-1 h-fit space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+                    <div class="flex items-center gap-4">
                         <div class="h-16 w-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-2xl">
                             {{ customer.name.charAt(0).toUpperCase() }}
                         </div>
@@ -128,11 +128,11 @@ const getStatusColor = (status: string) => {
                 </div>
 
                 <!-- Transaction History & Stats -->
-                <div class="col-span-1 lg:col-span-2 space-y-6">
+                <div class="col-span-1 space-y-6 lg:col-span-2">
                     
                     <!-- Stats Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-blue-600 rounded-xl p-5 text-white shadow-sm flex items-center space-x-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="flex items-center gap-4 rounded-xl bg-blue-600 p-5 text-white shadow-sm">
                             <div class="bg-blue-500 p-3 rounded-full">
                                 <CreditCardIcon class="h-6 w-6 text-white" />
                             </div>
@@ -141,7 +141,7 @@ const getStatusColor = (status: string) => {
                                 <p class="text-2xl font-bold">{{ formatRupiah(customer.total_spent) }}</p>
                             </div>
                         </div>
-                        <div class="bg-white border rounded-xl p-5 shadow-sm flex items-center space-x-4">
+                        <div class="flex items-center gap-4 rounded-xl border bg-white p-5 shadow-sm">
                             <div class="bg-blue-50 p-3 rounded-full">
                                 <ShoppingBagIcon class="h-6 w-6 text-blue-600" />
                             </div>
@@ -165,7 +165,44 @@ const getStatusColor = (status: string) => {
                                 </Button>
                             </Link>
                         </div>
-                        <div class="overflow-x-auto whitespace-nowrap">
+                        <div class="mobile-data-list p-4 sm:p-6">
+                            <div v-for="trx in transactions.data" :key="`customer-show-mobile-${trx.id}`" class="mobile-data-card space-y-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 break-words">{{ trx.transaction_number }}</p>
+                                        <p class="mt-1 text-sm text-gray-500">{{ trx.created_at }}</p>
+                                    </div>
+                                    <Badge variant="outline" :class="getStatusColor(trx.status)">
+                                        {{ trx.status_label }}
+                                    </Badge>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <p class="text-xs uppercase tracking-wide text-gray-400">Metode Bayar</p>
+                                        <p class="mt-1 font-medium uppercase text-gray-700">{{ trx.payment_method }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs uppercase tracking-wide text-gray-400">Total</p>
+                                        <p class="mt-1 font-medium text-gray-900">{{ formatRupiah(trx.total) }}</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Link :href="route('transactions.show', trx.id) || '#'">
+                                        <Button variant="ghost" size="sm" class="h-8 text-blue-600 hover:bg-blue-50">
+                                            Lihat Detail
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+
+                            <div v-if="transactions.data.length === 0" class="mobile-data-card py-12 text-center text-sm text-gray-500">
+                                Pelanggan ini belum pernah melakukan pemesanan.
+                            </div>
+                        </div>
+
+                        <div class="data-table-scroll hidden md:block">
                             <table class="data-table">
                                 <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                                     <tr>

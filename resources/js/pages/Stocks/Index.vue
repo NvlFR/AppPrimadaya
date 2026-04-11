@@ -10,7 +10,8 @@ import {
     PlusIcon, 
     ArrowDownUpIcon, 
     AlertTriangleIcon,
-    HistoryIcon
+    HistoryIcon,
+    Box
 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
@@ -116,25 +117,25 @@ const submitUpdateStock = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Manajemen Stok', href: route('stocks.index') }]">
+    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Manage Stok', href: route('stocks.index') }]">
+        <template #header-actions>
+            <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700">
+                <PlusIcon class="h-4 w-4 mr-2" /> Item Baru
+            </Button>
+        </template>
         <Head title="Manajemen Stok Barang" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Manajemen Stok Barang</h1>
-                    <p class="text-sm text-gray-500">Kelola ketersediaan inventaris operasional toko.</p>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><Box class="h-6 w-6 text-primary"/>Manajeman Stok</h1>
+                    <!-- <p class="text-sm text-gray-500">Kelola stok barang dan pantau pergerakan inventaris toko.</p> -->
                 </div>
-                <div class="flex space-x-3">
-                    <Link :href="route('stocks.logs')">
-                        <Button variant="outline" class="border-gray-300">
-                            <HistoryIcon class="h-4 w-4 mr-2" /> Riwayat Keluar-Masuk
-                        </Button>
-                    </Link>
-                    <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700">
-                        <PlusIcon class="h-4 w-4 mr-2" /> Tambah Item Baru
+                <Link :href="route('stocks.logs')" class="w-full sm:w-auto">
+                    <Button variant="outline" class="w-full border-gray-300 bg-white text-gray-700 hover:bg-gray-50 sm:w-auto">
+                        <HistoryIcon class="h-4 w-4 mr-2" /> Lihat Riwayat Keluar-Masuk
                     </Button>
-                </div>
+                </Link>
             </div>
 
             <div v-if="low_stock_count > 0" class="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 flex items-start space-x-3 shadow-sm">
@@ -147,10 +148,10 @@ const submitUpdateStock = () => {
 
             <!-- Filters -->
             <div class="flex flex-wrap gap-4 bg-white p-4 rounded-xl border shadow-sm items-center">
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-0">
                     <Input v-model="search" type="search" placeholder="Cari nama barang..." />
                 </div>
-                <select v-model="categoryFilter" class="flex h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <select v-model="categoryFilter" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[180px]">
                     <option value="">Semua Kategori</option>
                     <option value="kertas">Kertas</option>
                     <option value="tinta">Tinta</option>
@@ -159,8 +160,43 @@ const submitUpdateStock = () => {
                 </select>
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in stocks.data" :key="`stock-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-base font-semibold text-gray-900 break-words">{{ item.name }}</p>
+                            <p class="mt-1 text-sm capitalize text-gray-500">{{ item.category }}</p>
+                            <p class="mt-2 text-xs text-gray-500 break-words">{{ item.notes || 'Tidak ada catatan' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold" :class="item.is_low_stock ? 'text-red-600' : 'text-gray-900'">{{ item.current_qty }}</p>
+                            <p class="text-xs text-gray-500">{{ item.unit }}</p>
+                            <Badge v-if="item.is_low_stock" variant="destructive" class="mt-2 text-[10px] px-1 py-0 h-4">Perlu Restock</Badge>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Batas Minimum</p>
+                            <p class="mt-1 font-medium text-gray-900">{{ item.min_qty }} {{ item.unit }}</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <Button variant="outline" size="sm" class="h-8 shadow-sm border-blue-200 text-blue-700 hover:bg-blue-50" @click="openUpdateModal(item)">
+                            <ArrowDownUpIcon class="h-3 w-3 mr-2" /> Keluar / Masuk
+                        </Button>
+                    </div>
+                </div>
+
+                <div v-if="stocks.data.length === 0" class="mobile-data-card py-12 text-center text-sm text-gray-500">
+                    <p class="font-medium">Tidak ada barang tercatat di stok.</p>
+                </div>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                 <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                         <tr>
@@ -199,6 +235,7 @@ const submitUpdateStock = () => {
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Pagination -->

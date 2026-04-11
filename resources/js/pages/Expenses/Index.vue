@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { PlusIcon, TrashIcon, WalletIcon } from 'lucide-vue-next';
+import { PlusIcon, TrashIcon, WalletIcon, Wallet } from 'lucide-vue-next';
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
@@ -183,17 +183,17 @@ const getCategoryColor = (category: string) => {
 
 <template>
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Pengeluaran', href: route('expenses.index') }]">
+        <template #header-actions>
+            <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
+                <PlusIcon class="h-4 w-4 mr-2" />Pengeluaran
+            </Button>
+        </template>
         <Head title="Pengeluaran Operasional" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Catatan Pengeluaran</h1>
-                    <p class="text-sm text-gray-500">Kelola administrasi pengeluaran kas operasional.</p>
-                </div>
-                <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
-                    <PlusIcon class="h-4 w-4 mr-2" /> Catat Pengeluaran
-                </Button>
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><Wallet class="h-6 w-6 text-primary"/>Catatan Pengeluaran</h1>
+                <!-- <p class="text-sm text-gray-500">Kelola administrasi pengeluaran kas operasional.</p> -->
             </div>
 
             <!-- Summary Highlight -->
@@ -204,8 +204,8 @@ const getCategoryColor = (category: string) => {
                             <WalletIcon class="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                            <p class="text-gray-500 text-sm font-medium">Total Estimasi Pengeluaran (Berdasarkan Filter)</p>
-                            <p class="text-3xl font-bold text-gray-900">{{ formatRupiah(total_filtered) }}</p>
+                            <p class="text-gray-500 text-sm font-medium">Total Estimasi Pengeluaran</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ formatRupiah(total_filtered) }}</p>
                         </div>
                     </div>
                     <div class="hidden sm:flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
@@ -217,19 +217,19 @@ const getCategoryColor = (category: string) => {
 
             <!-- Filters -->
             <div class="flex flex-wrap gap-4 bg-white p-4 rounded-xl border shadow-sm items-center">
-                <select v-model="categoryFilter" class="flex h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <select v-model="categoryFilter" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[180px]">
                     <option value="">Semua Kategori</option>
                     <option v-for="(label, key) in categories" :key="key" :value="key">
                         {{ label }}
                     </option>
                 </select>
-                <div class="flex items-center space-x-2">
+                <div class="flex w-full items-center space-x-2 sm:w-auto">
                     <span class="text-sm text-gray-500">Dari:</span>
-                    <Input type="date" lang="id-ID" v-model="dateFromFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" lang="id-ID" v-model="dateFromFilter" class="h-9 w-full text-sm sm:w-[140px]" />
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex w-full items-center space-x-2 sm:w-auto">
                     <span class="text-sm text-gray-500">Sampai:</span>
-                    <Input type="date" lang="id-ID" v-model="dateToFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" lang="id-ID" v-model="dateToFilter" class="h-9 w-full text-sm sm:w-[140px]" />
                 </div>
                 <!-- Summary count -->
                 <p v-if="expenses.total > 0" class="ml-auto text-sm text-gray-500">
@@ -237,8 +237,54 @@ const getCategoryColor = (category: string) => {
                 </p>
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in localData" :key="`expense-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-base font-semibold text-gray-900 break-words">{{ item.description }}</p>
+                            <p v-if="item.notes" class="mt-1 text-sm italic text-gray-500 break-words">{{ item.notes }}</p>
+                        </div>
+                        <Button variant="destructive" size="sm" class="h-8 shadow-sm shrink-0" @click="confirmDeleteExpense(item.id)">
+                            <TrashIcon class="h-3 w-3 mr-1" /> Hapus
+                        </Button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Tanggal</p>
+                            <p class="mt-1 font-medium text-gray-900">{{ item.expense_date }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Dicatat Oleh</p>
+                            <p class="mt-1 text-gray-600">{{ item.user_name }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3">
+                        <Badge variant="outline" :class="getCategoryColor(item.category)">
+                            {{ item.category_label }}
+                        </Badge>
+                        <p class="text-sm font-bold text-gray-900">{{ formatRupiah(item.amount) }}</p>
+                    </div>
+                </div>
+
+                <div v-if="localData.length === 0 && !isLoadingMore" class="mobile-data-card py-12 text-center text-sm text-gray-500">
+                    <p class="font-medium">Tidak ada catatan pengeluaran.</p>
+                    <p class="mt-1 text-sm">Coba sesuaikan filter pencarian di atas.</p>
+                </div>
+
+                <template v-if="isLoadingMore">
+                    <div v-for="i in 3" :key="`expense-mobile-skel-${i}`" class="mobile-data-card space-y-3 animate-pulse">
+                        <Skeleton class="h-5 w-40" />
+                        <Skeleton class="h-4 w-28" />
+                        <Skeleton class="h-6 w-24 rounded-full" />
+                    </div>
+                </template>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                 <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                         <tr>
@@ -295,6 +341,7 @@ const getCategoryColor = (category: string) => {
                         </template>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Sentinel element untuk Intersection Observer (Issue #26) -->

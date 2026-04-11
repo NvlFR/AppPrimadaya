@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2 } from 'lucide-vue-next';
+import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2, Users } from 'lucide-vue-next';
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -175,22 +175,22 @@ const executeDeleteCustomer = () => {
 
 <template>
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Pelanggan', href: route('customers.index') }]">
+        <template #header-actions>
+            <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700">
+                <PlusIcon class="h-4 w-4 mr-2" />Pelanggan
+            </Button>
+        </template>
         <Head title="Data Pelanggan" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Data Pelanggan</h1>
-                    <p class="text-sm text-gray-500">Kelola informasi pelanggan dan riwayat pesanan (CRM).</p>
-                </div>
-                <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700">
-                    <PlusIcon class="h-4 w-4 mr-2" /> Tambah Pelanggan
-                </Button>
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><Users class="h-6 w-6 text-primary"/>Data Pelanggan</h1>
+                <!-- <p class="text-sm text-gray-500">Kelola informasi pelanggan dan riwayat pesanan (CRM).</p> -->
             </div>
 
             <!-- Filters -->
-            <div class="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex-1">
+            <div class="flex flex-col gap-4 bg-white p-4 rounded-xl border shadow-sm sm:flex-row sm:items-center">
+                <div class="flex-1 min-w-0">
                     <Input v-model="search" type="search" placeholder="Cari nama atau no. telepon..." class="max-w-md" />
                 </div>
                 <!-- Summary -->
@@ -199,8 +199,59 @@ const executeDeleteCustomer = () => {
                 </p>
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in localData" :key="`customer-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-base font-semibold text-gray-900 break-words">{{ item.name }}</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ item.phone || '-' }}</p>
+                        </div>
+                        <Badge variant="secondary" class="shrink-0 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                            {{ item.transactions_count }} Pesanan
+                        </Badge>
+                    </div>
+
+                    <div class="text-sm">
+                        <p class="text-xs uppercase tracking-wide text-gray-400">Bergabung Sejak</p>
+                        <p class="mt-1 text-gray-600">{{ item.created_at }}</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <Link :href="route('customers.show', item.id)">
+                            <Button variant="outline" size="sm" class="h-8 shadow-sm text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <EyeIcon class="h-3 w-3 mr-1" /> Detail
+                            </Button>
+                        </Link>
+                        <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
+                            <PencilIcon class="h-3 w-3 mr-1" /> Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteCustomer(item.id)">
+                            <TrashIcon class="h-3 w-3 mr-1" /> Hapus
+                        </Button>
+                    </div>
+                </div>
+
+                <div v-if="localData.length === 0 && !isLoadingMore" class="mobile-data-card py-8 text-center text-sm text-gray-500">
+                    Tidak ada data pelanggan ditemukan.
+                </div>
+
+                <template v-if="isLoadingMore">
+                    <div v-for="i in 3" :key="`customer-mobile-skel-${i}`" class="mobile-data-card space-y-3 animate-pulse">
+                        <Skeleton class="h-5 w-40" />
+                        <Skeleton class="h-4 w-28" />
+                        <Skeleton class="h-4 w-32" />
+                        <div class="flex gap-2">
+                            <Skeleton class="h-8 w-16" />
+                            <Skeleton class="h-8 w-16" />
+                            <Skeleton class="h-8 w-16" />
+                        </div>
+                    </div>
+                </template>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                 <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium">
                         <tr>
@@ -256,6 +307,7 @@ const executeDeleteCustomer = () => {
                         </template>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Sentinel element untuk Intersection Observer (Issue #26) -->

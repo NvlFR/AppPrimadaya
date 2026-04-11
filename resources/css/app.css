@@ -90,8 +90,18 @@
 }
 
 @layer components {
+    .data-table-shell {
+        @apply overflow-hidden rounded-xl border bg-white shadow-sm;
+    }
+
+    .data-table-scroll {
+        @apply overflow-x-auto scroll-smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable both-edges;
+    }
+
     .data-table {
-        @apply w-full text-left text-sm;
+        @apply min-w-full table-auto text-left text-sm;
     }
 
     .data-table thead {
@@ -107,11 +117,21 @@
     }
 
     .data-table th {
-        @apply px-6 py-3;
+        @apply px-6 py-3 align-top;
     }
 
     .data-table td {
-        @apply px-6 py-4;
+        @apply px-6 py-4 align-top break-words whitespace-normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-data-list {
+        @apply space-y-3 md:hidden;
+    }
+
+    .mobile-data-card {
+        @apply rounded-xl border bg-white p-4 shadow-sm;
     }
 }
 

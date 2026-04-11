@@ -95,10 +95,10 @@ const printThermal = () => {
     ]">
         <Head :title="`Invoice ${transaction.transaction_number}`" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-5xl mx-auto">
+        <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header Section -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div class="flex items-center space-x-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-center gap-4">
                     <Link :href="route('transactions.index')">
                         <Button variant="outline" size="icon" class="h-8 w-8 rounded-full">
                             <ArrowLeftIcon class="h-4 w-4" />
@@ -115,7 +115,7 @@ const printThermal = () => {
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <Button variant="outline" @click="printThermal" class="border-gray-300 text-gray-700 hover:bg-gray-50">
                         <PrinterIcon class="h-4 w-4 mr-2" /> Struk Thermal
                     </Button>
@@ -126,15 +126,15 @@ const printThermal = () => {
             </div>
 
             <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 
                 <!-- Left Column (Invoice Content) -->
-                <div class="col-span-1 lg:col-span-2 space-y-6">
+                <div class="col-span-1 space-y-6 lg:col-span-2">
                     
                     <!-- Customer Info -->
                     <div class="bg-white rounded-xl border shadow-sm p-6">
                         <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Informasi Pelanggan</h3>
-                        <div v-if="transaction.customer" class="grid grid-cols-2 gap-4">
+                        <div v-if="transaction.customer" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <p class="text-sm text-gray-500">Nama Pelanggan / Instansi</p>
                                 <p class="font-medium text-gray-900">{{ customerDisplayName }}</p>
@@ -160,11 +160,44 @@ const printThermal = () => {
                     </div>
 
                     <!-- Order Items -->
-                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div class="overflow-hidden rounded-xl border bg-white shadow-sm">
+                        <div class="border-b border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6">
                             <h3 class="font-semibold text-gray-900">Detail Pesanan</h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="mobile-data-list p-4 sm:p-6">
+                            <div v-for="item in transaction.items" :key="`transaction-show-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                                <div class="space-y-2">
+                                    <p class="text-base font-semibold text-gray-900 break-words">{{ item.service_name }}</p>
+                                    <div class="flex flex-wrap gap-2 text-xs text-gray-500">
+                                        <Badge v-if="item.paper_size_name" variant="secondary" class="font-normal">{{ item.paper_size_name }}</Badge>
+                                        <Badge v-if="item.print_type !== 'na'" variant="outline" class="font-normal">{{ item.print_type_label }}</Badge>
+                                    </div>
+                                    <div v-if="item.original_filename" class="text-xs text-blue-600 flex items-center bg-blue-50 bg-opacity-50 w-fit px-2 py-1 rounded">
+                                        <PaperclipIcon class="h-3 w-3 mr-1" /> {{ item.original_filename }}
+                                    </div>
+                                    <p v-if="item.item_notes" class="text-sm italic text-gray-600">
+                                        Catatan: {{ item.item_notes }}
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-3 text-sm">
+                                    <div>
+                                        <p class="text-xs uppercase tracking-wide text-gray-400">Qty</p>
+                                        <p class="mt-1 font-medium text-gray-900">{{ item.qty }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs uppercase tracking-wide text-gray-400">Harga</p>
+                                        <p class="mt-1 font-medium text-gray-900">{{ formatRupiah(item.unit_price) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs uppercase tracking-wide text-gray-400">Subtotal</p>
+                                        <p class="mt-1 font-semibold text-gray-900">{{ formatRupiah(item.subtotal) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-table-scroll hidden md:block">
                             <table class="data-table">
                                 <thead class="bg-white text-gray-500 border-b">
                                     <tr>

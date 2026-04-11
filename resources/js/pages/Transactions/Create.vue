@@ -160,6 +160,19 @@ const newCustomerForm = useForm({
 });
 const isAddingCustomer = ref(false);
 
+/**
+ * Membuka dialog pendaftaran pelanggan baru.
+ * Jika dipicu dari search (bukan dari tombol manual), pre-fill nama dari query pencarian.
+ */
+const openAddCustomerDialog = (prefillName?: string) => {
+    newCustomerForm.reset();
+    if (prefillName) {
+        newCustomerForm.name = prefillName;
+    }
+    showAddCustomerDialog.value = true;
+    isCustomerDropdownOpen.value = false;
+};
+
 // ============================================================
 // Keyboard Shortcuts (Issue #4 — sudah ada, dipertahankan)
 // ============================================================
@@ -258,6 +271,11 @@ const updateItemPrice = (index: number) => {
     }
 };
 
+const updateFormattedItemPrice = (index: number, value: string | number) => {
+    const normalizedValue = String(value).replace(/[^\d]/g, '');
+    form.items[index].unit_price = normalizedValue ? Number(normalizedValue) : 0;
+};
+
 // ============================================================
 // Perhitungan Total Otomatis
 // ============================================================
@@ -287,7 +305,7 @@ const isCartEmpty = computed(() => form.items.length === 0);
 const requiresCashAmount = computed(() => form.payment_method === 'cash');
 const isCashAmountMissing = computed(() => requiresCashAmount.value && Number(form.amount_paid) <= 0);
 
-const { formatRupiah } = useFormatRupiah();
+const { formatRupiah, formatAngka } = useFormatRupiah();
 const totalItemCount = computed(() =>
     form.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
 );
@@ -433,7 +451,7 @@ const shouldShowPaymentError = computed(() =>
         { title: 'Dashboard', href: route('dashboard') },
         { title: 'Kasir Baru', href: route('transactions.create') }
     ]">
-    <Head title="Kasir & Transaksi Baru" />
+    <Head title="Transaksi Baru" />
 
     <div class="relative mx-auto w-full max-w-[1440px] overflow-x-clip px-4 py-5 md:px-6 xl:px-8">
         <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden">
@@ -444,11 +462,11 @@ const shouldShowPaymentError = computed(() =>
         <div class="relative flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:flex-row sm:items-end sm:justify-between">
             <div class="space-y-3">
                 <div>
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/80">Kasir / Transaksi</p>
+                    <!-- <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/80">Transaksi</p> -->
                     <h2 class="mt-2 flex items-center text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-                        <ShoppingCart class="mr-3 h-7 w-7 text-primary" /> Kasir Baru
+                        <ShoppingCart class="mr-3 h-7 w-7 text-primary" /> Transaksi
                     </h2>
-                    <p class="mt-1 max-w-2xl text-sm text-slate-500">Pilih pelanggan, susun layanan, lalu selesaikan pembayaran dengan alur yang cepat dan jelas.</p>
+                    <!-- <p class="mt-1 max-w-2xl text-sm text-slate-500">Pilih pelanggan, susun layanan, lalu selesaikan pembayaran dengan alur yang cepat dan jelas.</p> -->
                 </div>
                 <div class="flex flex-wrap gap-2 text-xs">
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 shadow-sm">
@@ -490,14 +508,14 @@ const shouldShowPaymentError = computed(() =>
                         <!-- Combobox Async Pelanggan — Issue #25 -->
                         <!-- Pencarian asinkron: tidak load semua data saat halaman dibuka -->
                             <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <Label>Pilih Pelanggan (Tetap)</Label>
+                                <div class="flex items-center justify-between min-h-[32px]">
+                                    <Label>Pilih Pelanggan</Label>
                                     <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     class="h-6 text-xs text-primary hover:text-primary/80 px-2"
-                                    @click="showAddCustomerDialog = true"
+                                    @click="openAddCustomerDialog()"
                                 >
                                     <UserPlus class="h-3 w-3 mr-1" /> Daftarkan Baru
                                 </Button>
@@ -512,7 +530,7 @@ const shouldShowPaymentError = computed(() =>
                                     @click="isCustomerDropdownOpen = !isCustomerDropdownOpen"
                                 >
                                     <span :class="form.customer_id === 'none' ? 'text-muted-foreground' : 'text-foreground'">
-                                        {{ selectedCustomerLabel }}
+                                        {{ form.customer_id === 'none' ? 'Tambah Pelanggan' : selectedCustomerLabel }}
                                     </span>
                                     <div class="flex items-center gap-1">
                                         <!-- Tombol clear jika ada pelanggan terpilih -->
@@ -528,10 +546,7 @@ const shouldShowPaymentError = computed(() =>
                                     </div>
                                 </button>
 
-                                <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-500">
-                                    <span class="font-medium text-slate-700">{{ selectedCustomerLabel }}</span>
-                                    <span class="ml-2 text-slate-400">Cari pelanggan cepat, atau daftarkan baru jika belum ada.</span>
-                                </div>
+
 
                                 <div
                                     v-if="shouldShowCustomerError || form.errors.customer_id"
@@ -563,16 +578,7 @@ const shouldShowPaymentError = computed(() =>
 
                                     <!-- List hasil pencarian -->
                                     <div class="max-h-48 overflow-y-auto py-1">
-                                        <!-- Opsi Pelanggan Umum selalu ada -->
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                                            :class="form.customer_id === 'none' ? 'bg-primary/5 text-primary font-medium' : 'text-gray-600'"
-                                            @click="clearCustomer"
-                                        >
-                                            <User class="mr-2 h-3.5 w-3.5 shrink-0 text-gray-400" />
-                                            Pelanggan Umum (Tidak Terafiliasi)
-                                        </button>
+
 
                                         <!-- Loading state (Skeleton) -->
                                         <div v-if="isSearchingCustomer" class="p-2 space-y-3">
@@ -603,12 +609,22 @@ const shouldShowPaymentError = computed(() =>
                                             </button>
                                         </template>
 
-                                        <!-- Empty state (setelah mengetik tapi tidak ada hasil) -->
+                                        <!-- Empty state: auto-detect tidak ada hasil → tawarkan daftar baru -->
                                         <div
                                             v-else-if="customerSearchQuery.trim() && !isSearchingCustomer"
-                                            class="py-5 text-center text-xs text-slate-400"
+                                            class="py-2"
                                         >
-                                            Pelanggan "{{ customerSearchQuery }}" tidak ditemukan.
+                                            <p class="px-3 py-2 text-xs text-slate-400 text-center">
+                                                Pelanggan "<span class="font-medium text-slate-600">{{ customerSearchQuery }}</span>" tidak ditemukan.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 transition-colors border-t border-slate-100"
+                                                @click="openAddCustomerDialog(customerSearchQuery)"
+                                            >
+                                                <UserPlus class="h-4 w-4 shrink-0" />
+                                                Tambah "{{ customerSearchQuery }}" sebagai pelanggan baru
+                                            </button>
                                         </div>
 
                                         <!-- Prompt awal sebelum mengetik -->
@@ -623,10 +639,10 @@ const shouldShowPaymentError = computed(() =>
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <div class="flex items-center h-6">
+                            <div class="flex items-center min-h-[32px]">
                                 <Label>Catatan Umum Pesanan</Label>
                             </div>
-                            <Input v-model="form.notes" placeholder="Catatan untuk tim produksi..." />
+                            <Input v-model="form.notes" placeholder="Catatan untuk tim produksi..." class="h-11 rounded-xl shadow-sm" />
                         </div>
                     </CardContent>
                 </Card>
@@ -642,7 +658,7 @@ const shouldShowPaymentError = computed(() =>
                                 Keranjang Belanja
                             </CardTitle>
                             <div class="flex items-center gap-2 w-full md:w-[400px]">
-                                <div class="relative flex-1">
+                                <div class="relative w-full">
                                     <Select v-model="selectedServiceId">
                                         <SelectTrigger class="h-10 rounded-xl border-slate-200 bg-white shadow-sm" data-search-trigger>
                                             <SelectValue placeholder="Pilih layanan (F2)..." />
@@ -657,9 +673,6 @@ const shouldShowPaymentError = computed(() =>
                                         F2
                                     </kbd>
                                 </div>
-                                <Button @click="() => addItem()" :disabled="!selectedServiceId" size="icon" class="shrink-0 rounded-xl bg-primary text-white shadow-sm hover:bg-primary/90">
-                                    <Plus class="h-4 w-4" />
-                                </Button>
                             </div>
                         </div>
 
@@ -690,8 +703,8 @@ const shouldShowPaymentError = computed(() =>
                         </div>
                     </CardHeader>
 
-                    <CardContent class="p-0 flex-1 relative overflow-auto">
-                        <div v-if="form.items.length === 0" class="absolute inset-0 flex flex-col items-center justify-center px-8 text-center text-slate-500">
+                    <CardContent class="flex-1 overflow-auto p-0">
+                        <div v-if="form.items.length === 0" class="flex min-h-[260px] flex-col items-center justify-center px-6 py-8 text-center text-slate-500 sm:min-h-[300px] sm:px-8">
                             <div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-300 shadow-inner">
                                 <ShoppingCart class="h-9 w-9" />
                             </div>
@@ -704,7 +717,7 @@ const shouldShowPaymentError = computed(() =>
                         </div>
 
                         <!-- Tampilan Mobile (Card List) -->
-                        <div class="block md:hidden divide-y divide-gray-100">
+                        <div v-else class="block divide-y divide-gray-100 md:hidden">
                             <div v-for="(item, index) in form.items" :key="index" class="p-4 space-y-4 bg-white hover:bg-gray-50 transition-colors">
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
@@ -735,7 +748,13 @@ const shouldShowPaymentError = computed(() =>
                                 <div class="flex items-center justify-between gap-4">
                                     <div class="w-1/3">
                                         <Label class="text-[10px] text-gray-400 uppercase">Harga</Label>
-                                        <Input v-model="item.unit_price" type="number" class="h-9 text-right bg-white mt-0.5" />
+                                        <Input
+                                            :model-value="formatAngka(item.unit_price)"
+                                            type="text"
+                                            inputmode="numeric"
+                                            class="h-9 text-right bg-white mt-0.5"
+                                            @update:model-value="value => updateFormattedItemPrice(index, value)"
+                                        />
                                     </div>
                                     <div class="w-1/4">
                                         <Label class="text-[10px] text-gray-400 uppercase">Qty</Label>
@@ -763,7 +782,7 @@ const shouldShowPaymentError = computed(() =>
                         </div>
 
                         <!-- Desktop POS Item List -->
-                        <div class="hidden max-w-full overflow-hidden p-4 md:block">
+                        <div v-if="form.items.length > 0" class="hidden max-w-full overflow-hidden p-4 md:block">
                             <div class="space-y-3">
                                 <div
                                     v-for="(item, index) in form.items"
@@ -823,7 +842,13 @@ const shouldShowPaymentError = computed(() =>
 
                                         <div class="min-w-0 space-y-2 lg:col-span-3 2xl:col-span-2">
                                             <Label class="text-[10px] font-bold uppercase text-gray-400">Harga</Label>
-                                            <Input v-model="item.unit_price" type="number" class="h-9 bg-white text-right font-medium" min="0" />
+                                            <Input
+                                                :model-value="formatAngka(item.unit_price)"
+                                                type="text"
+                                                inputmode="numeric"
+                                                class="h-9 bg-white text-right font-medium"
+                                                @update:model-value="value => updateFormattedItemPrice(index, value)"
+                                            />
                                         </div>
 
                                         <div class="min-w-0 space-y-2 lg:col-span-2 2xl:col-span-1">
@@ -967,62 +992,72 @@ const shouldShowPaymentError = computed(() =>
                                     </kbd>
                                 </div>
 
-                                <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
-                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                    <Button
-                                        v-for="nominal in cashQuickAmounts"
-                                        :key="nominal"
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        class="h-9 rounded-xl text-xs font-medium hover:border-primary/40 hover:bg-primary/10"
-                                        @click="form.amount_paid = nominal"
+                                <!-- Wrapper dengan tinggi tetap agar layout panel konsisten di semua metode pembayaran -->
+                                <div class="space-y-3" style="min-height: 168px;">
+
+                                    <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
+                                    <div v-if="form.payment_method === 'cash'" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                        <Button
+                                            v-for="nominal in cashQuickAmounts"
+                                            :key="nominal"
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            class="h-9 rounded-xl text-xs font-medium hover:border-primary/40 hover:bg-primary/10"
+                                            @click="form.amount_paid = nominal"
+                                        >
+                                            {{ formatRupiah(nominal).replace('Rp ', '') }}
+                                        </Button>
+                                    </div>
+
+                                    <!-- Placeholder tinggi saat bukan cash (supaya layout tidak berubah) -->
+                                    <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3 invisible">
+                                        <div v-for="i in 6" :key="i" class="h-9 rounded-xl"></div>
+                                    </div>
+
+                                    <div
+                                        v-if="shouldShowPaymentError || form.errors.amount_paid"
+                                        class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
                                     >
-                                        {{ formatRupiah(nominal).replace('Rp ', '') }}
-                                    </Button>
-                                </div>
+                                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                        <span>{{ form.errors.amount_paid || 'Nominal dibayarkan harus diisi saat pembayaran tunai.' }}</span>
+                                    </div>
 
-                                <div
-                                    v-if="shouldShowPaymentError || form.errors.amount_paid"
-                                    class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
-                                >
-                                    <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                    <span>{{ form.errors.amount_paid || 'Nominal dibayarkan harus diisi saat pembayaran tunai.' }}</span>
-                                </div>
-
-                                <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
-                                <div
-                                    v-if="form.payment_method === 'cash'"
-                                    class="flex items-center justify-between rounded-2xl border p-3 transition-colors"
-                                    :class="{
-                                        'border-emerald-200 bg-emerald-50/80': changeAmount >= 0 && form.amount_paid > 0,
-                                        'border-red-200 bg-red-50/80': isUnderpaid,
-                                        'border-slate-200 bg-slate-50': form.amount_paid === 0
-                                    }"
-                                >
-                                    <span class="text-sm font-medium" :class="{
-                                        'text-emerald-700': changeAmount >= 0 && form.amount_paid > 0,
-                                        'text-red-600': isUnderpaid,
-                                        'text-slate-500': form.amount_paid === 0
-                                    }">
-                                        {{ isUnderpaid ? 'Kurang Bayar:' : 'Kembalian:' }}
-                                    </span>
-                                    <span
-                                        class="text-2xl font-bold"
+                                    <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
+                                    <div
+                                        v-if="form.payment_method === 'cash'"
+                                        class="flex items-center justify-between rounded-2xl border p-3 transition-colors"
                                         :class="{
-                                            'text-emerald-600': changeAmount >= 0 && form.amount_paid > 0,
-                                            'text-red-600': isUnderpaid,
-                                            'text-slate-400': form.amount_paid === 0
+                                            'border-emerald-200 bg-emerald-50/80': changeAmount >= 0 && form.amount_paid > 0,
+                                            'border-red-200 bg-red-50/80': isUnderpaid,
+                                            'border-slate-200 bg-slate-50': form.amount_paid === 0
                                         }"
                                     >
-                                        {{ isUnderpaid ? formatRupiah(Math.abs(changeAmount)) : formatRupiah(changeAmount) }}
-                                    </span>
-                                </div>
+                                        <span class="text-sm font-medium" :class="{
+                                            'text-emerald-700': changeAmount >= 0 && form.amount_paid > 0,
+                                            'text-red-600': isUnderpaid,
+                                            'text-slate-500': form.amount_paid === 0
+                                        }">
+                                            {{ isUnderpaid ? 'Kurang Bayar:' : 'Kembalian:' }}
+                                        </span>
+                                        <span
+                                            class="text-2xl font-bold"
+                                            :class="{
+                                                'text-emerald-600': changeAmount >= 0 && form.amount_paid > 0,
+                                                'text-red-600': isUnderpaid,
+                                                'text-slate-400': form.amount_paid === 0
+                                            }"
+                                        >
+                                            {{ isUnderpaid ? formatRupiah(Math.abs(changeAmount)) : formatRupiah(changeAmount) }}
+                                        </span>
+                                    </div>
 
-                                <!-- Info non-cash -->
-                                <div v-if="form.payment_method !== 'cash'" class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-sm text-blue-700">
-                                    <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
-                                    <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
+                                    <!-- Info non-cash — menggantikan posisi box Kembalian agar tinggi sama -->
+                                    <div v-else class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-sm text-blue-700">
+                                        <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
+                                        <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>

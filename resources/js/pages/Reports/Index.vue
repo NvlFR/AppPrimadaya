@@ -10,7 +10,8 @@ import {
     TrendingDownIcon,
     DollarSignIcon,
     CalendarCheckIcon,
-    ShoppingCartIcon
+    ShoppingCartIcon,
+    FileBarChart
 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
@@ -66,11 +67,11 @@ const exportData = () => {
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Laporan Keuangan', href: route('reports.index') }]">
         <Head title="Laporan Keuangan" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Laporan Keuangan</h1>
-                    <p class="text-sm text-gray-500">Analisa omzet, pengeluaran operasional, dan laba bersih cetak.</p>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><FileBarChart class="h-6 w-6 text-primary"/>Laporan Keuangan</h1>
+                    <!-- <p class="text-sm text-gray-500">Analisa omzet, pengeluaran operasional, dan laba bersih cetak.</p> -->
                 </div>
                 <Button @click="exportData" variant="outline" class="border-blue-200 text-blue-700 hover:bg-blue-50">
                     <DownloadIcon class="h-4 w-4 mr-2" /> Export CSV
@@ -78,7 +79,7 @@ const exportData = () => {
             </div>
 
             <!-- Filters -->
-            <div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col sm:flex-row gap-4 items-center w-fit">
+            <div class="bg-white p-4 rounded-xl border shadow-sm flex w-full flex-col gap-4 sm:flex-row sm:items-center">
                 <div class="flex bg-gray-100 p-1 rounded-lg">
                     <button 
                         @click="selectedType = 'daily'" 
@@ -98,14 +99,14 @@ const exportData = () => {
 
                 <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
 
-                <div v-if="selectedType === 'daily'" class="flex items-center space-x-2">
+                <div v-if="selectedType === 'daily'" class="flex w-full items-center space-x-2 sm:w-auto">
                     <span class="text-sm text-gray-500 font-medium">Pilih Tanggal:</span>
-                    <Input type="date" v-model="selectedDate" @change="applyFilter" class="w-[150px] h-9 text-sm" />
+                    <Input type="date" v-model="selectedDate" @change="applyFilter" class="h-9 w-full text-sm sm:w-[150px]" />
                 </div>
 
-                <div v-if="selectedType === 'monthly'" class="flex items-center space-x-2">
+                <div v-if="selectedType === 'monthly'" class="flex w-full items-center space-x-2 sm:w-auto">
                     <span class="text-sm text-gray-500 font-medium">Bulan:</span>
-                    <Input type="month" v-model="selectedMonth" @change="applyFilter" class="w-[150px] h-9 text-sm" />
+                    <Input type="month" v-model="selectedMonth" @change="applyFilter" class="h-9 w-full text-sm sm:w-[150px]" />
                 </div>
             </div>
 
@@ -164,7 +165,17 @@ const exportData = () => {
                         <span class="text-gray-900 flex items-center">Rincian Pendapatan</span>
                         <Badge variant="outline" class="bg-green-50 text-green-700 border-green-200">Pesanan Selesai</Badge>
                     </div>
-                    <div class="overflow-x-auto p-0 flex-1">
+                    <div class="mobile-data-list p-4">
+                        <div v-for="trx in transactions" :key="`report-daily-income-mobile-${trx.id}`" class="mobile-data-card space-y-2">
+                            <div>
+                                <p class="font-semibold text-gray-900">{{ trx.transaction_number }}</p>
+                                <p class="text-sm text-gray-500">{{ trx.customer?.name || 'Umum' }}</p>
+                            </div>
+                            <p class="text-right font-medium text-green-600">+ {{ formatRupiah(trx.total) }}</p>
+                        </div>
+                        <div v-if="transactions.length === 0" class="mobile-data-card py-8 text-center text-xs text-gray-500">Belum ada pendapatan tervalidasi hari ini.</div>
+                    </div>
+                    <div class="data-table-scroll hidden md:block p-0 flex-1">
                         <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
@@ -196,7 +207,17 @@ const exportData = () => {
                         <span class="text-gray-900 flex items-center">Rincian Pengeluaran</span>
                         <Badge variant="outline" class="bg-red-50 text-red-700 border-red-200">Operasional</Badge>
                     </div>
-                    <div class="overflow-x-auto p-0 flex-1">
+                    <div class="mobile-data-list p-4">
+                        <div v-for="exp in expenses" :key="`report-daily-expense-mobile-${exp.id}`" class="mobile-data-card space-y-2">
+                            <div>
+                                <p class="font-semibold text-gray-900 break-words">{{ exp.description }}</p>
+                                <p class="text-sm uppercase text-gray-500">{{ exp.category }}</p>
+                            </div>
+                            <p class="text-right font-medium text-red-600">- {{ formatRupiah(exp.amount) }}</p>
+                        </div>
+                        <div v-if="expenses.length === 0" class="mobile-data-card py-8 text-center text-xs text-gray-500">Tidak ada catatan pengeluaran hari ini.</div>
+                    </div>
+                    <div class="data-table-scroll hidden md:block p-0 flex-1">
                         <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
@@ -230,7 +251,20 @@ const exportData = () => {
                     <div class="px-5 py-4 border-b bg-gray-50 flex items-center justify-between font-semibold">
                         <span class="text-gray-900 flex items-center">Rekap Harian (Pendapatan)</span>
                     </div>
-                    <div class="overflow-x-auto p-0 flex-1">
+                    <div class="mobile-data-list p-4">
+                        <div v-for="trx in transactions" :key="`report-monthly-income-mobile-${trx.date}`" class="mobile-data-card space-y-2">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-center text-sm font-medium text-gray-900">
+                                    <CalendarCheckIcon class="h-3 w-3 mr-2 text-gray-400" />
+                                    {{ trx.date }}
+                                </div>
+                                <span class="text-sm text-gray-500">{{ trx.total_transactions }} Trx</span>
+                            </div>
+                            <p class="text-right font-bold text-green-600">{{ formatRupiah(trx.daily_revenue) }}</p>
+                        </div>
+                        <div v-if="transactions.length === 0" class="mobile-data-card py-8 text-center text-xs text-gray-500">Data transaksi bulan ini masih kosong.</div>
+                    </div>
+                    <div class="data-table-scroll hidden md:block p-0 flex-1">
                         <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>
@@ -263,7 +297,17 @@ const exportData = () => {
                     <div class="px-5 py-4 border-b bg-gray-50 flex items-center justify-between font-semibold">
                         <span class="text-gray-900 flex items-center">Rekap Harian (Pengeluaran)</span>
                     </div>
-                    <div class="overflow-x-auto p-0 flex-1">
+                    <div class="mobile-data-list p-4">
+                        <div v-for="exp in expenses" :key="`report-monthly-expense-mobile-${exp.date}`" class="mobile-data-card space-y-2">
+                            <div class="flex items-center text-sm font-medium text-gray-900">
+                                <CalendarCheckIcon class="h-3 w-3 mr-2 text-gray-400" />
+                                {{ exp.date }}
+                            </div>
+                            <p class="text-right font-bold text-red-600">{{ formatRupiah(exp.daily_expense) }}</p>
+                        </div>
+                        <div v-if="expenses.length === 0" class="mobile-data-card py-8 text-center text-xs text-gray-500">Belum ada rekap pengeluaran bulan ini.</div>
+                    </div>
+                    <div class="data-table-scroll hidden md:block p-0 flex-1">
                         <table class="data-table">
                             <thead class="text-gray-500 bg-white border-b">
                                 <tr>

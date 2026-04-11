@@ -10,7 +10,8 @@ import {
     PlusIcon, 
     PencilIcon, 
     TrashIcon, 
-    UsersIcon 
+    UsersIcon,
+    UsersRound
 } from 'lucide-vue-next';
 import { ref, watch, computed } from 'vue';
 
@@ -133,26 +134,26 @@ const executeDeleteUser = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Manajemen Akun', href: route('users.index') }]">
+    <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Manage Akun', href: route('users.index') }]">
+        <template #header-actions>
+            <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
+                <PlusIcon class="h-4 w-4 mr-2" />Akun Baru
+            </Button>
+        </template>
         <Head title="Manajemen Akun Karyawan" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Manajemen Akun Karyawan</h1>
-                    <p class="text-sm text-gray-500 mt-0.5">Kelola akun dan role akses untuk Admin dan Kasir.</p>
-                </div>
-                <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
-                    <PlusIcon class="h-4 w-4 mr-2" /> Tambah Akun Baru
-                </Button>
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><UsersRound class="h-6 w-6 text-primary"/>Manajemen Akun Karyawan</h1>
+                <!-- <p class="text-sm text-gray-500 mt-0.5">Kelola akun dan role akses untuk Admin dan Kasir.</p> -->
             </div>
 
             <!-- Filters -->
             <div class="flex flex-wrap gap-4 bg-white p-4 rounded-xl border shadow-sm items-center">
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-0">
                     <Input v-model="search" type="search" placeholder="Cari nama atau email..." />
                 </div>
-                <select v-model="roleFilter" class="flex h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <select v-model="roleFilter" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[180px]">
                     <option value="">Semua Role</option>
                     <option v-for="role in roles" :key="role.id" :value="role.id">
                         {{ role.label }}
@@ -160,8 +161,54 @@ const executeDeleteUser = () => {
                 </select>
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in users.data" :key="`user-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold uppercase text-blue-600">
+                            {{ item.name.charAt(0) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-base font-semibold text-gray-900 break-words">{{ item.name }}</p>
+                            <p class="mt-1 text-sm text-gray-500 break-words">{{ item.email }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" :class="item.role === 'Administrator' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50'">
+                            {{ item.role }}
+                        </Badge>
+                        <Badge :variant="item.is_active ? 'default' : 'secondary'">
+                            {{ item.is_active ? 'Aktif' : 'Non-Aktif' }}
+                        </Badge>
+                    </div>
+
+                    <div class="text-sm">
+                        <p class="text-xs uppercase tracking-wide text-gray-400">Terdaftar Sejak</p>
+                        <p class="mt-1 text-gray-600">{{ item.created_at }}</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
+                            <PencilIcon class="h-3 w-3 mr-1" /> Edit
+                        </Button>
+                        <Button
+                            v-if="item.id !== currentUserId"
+                            variant="destructive" size="sm" class="h-8 shadow-sm"
+                            @click="confirmDeleteUser(item.id)"
+                        >
+                            <TrashIcon class="h-3 w-3 mr-1" /> Hapus
+                        </Button>
+                    </div>
+                </div>
+
+                <div v-if="users.data.length === 0" class="mobile-data-card py-12 text-center text-sm text-gray-500">
+                    <p class="font-medium">Tidak ada pengguna ditemukan.</p>
+                </div>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                 <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
                         <tr>
@@ -216,6 +263,7 @@ const executeDeleteUser = () => {
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Pagination -->

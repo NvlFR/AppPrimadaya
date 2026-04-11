@@ -78,9 +78,9 @@ const rightNavItems: NavItem[] = [
 <template>
     <div>
         <div class="border-b border-sidebar-border/80">
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
+            <div class="mx-auto flex min-h-16 w-full items-center gap-3 px-4 sm:px-6 md:max-w-7xl">
                 <!-- Mobile Menu -->
-                <div class="lg:hidden">
+                <div class="lg:hidden shrink-0">
                     <Sheet>
                         <SheetTrigger :as-child="true">
                             <Button
@@ -91,7 +91,10 @@ const rightNavItems: NavItem[] = [
                                 <Menu class="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" class="w-[300px] p-6">
+                        <SheetContent
+                            side="left"
+                            class="w-[18rem] max-w-[calc(100vw-1rem)] p-4 sm:p-6"
+                        >
                             <SheetTitle class="sr-only"
                                 >Navigation menu</SheetTitle
                             >
@@ -146,12 +149,12 @@ const rightNavItems: NavItem[] = [
                     </Sheet>
                 </div>
 
-                <Link :href="dashboard()" class="flex items-center gap-x-2">
+                <Link :href="dashboard()" class="flex min-w-0 items-center gap-x-2">
                     <AppLogo />
                 </Link>
 
                 <!-- Desktop Menu -->
-                <div class="hidden h-full lg:flex lg:flex-1">
+                <div class="hidden h-full min-w-0 lg:flex lg:flex-1">
                     <NavigationMenu class="ml-10 flex h-full items-stretch">
                         <NavigationMenuList
                             class="flex h-full items-stretch space-x-2"
@@ -188,19 +191,19 @@ const rightNavItems: NavItem[] = [
                     </NavigationMenu>
                 </div>
 
-                <div class="ml-auto flex items-center space-x-2">
-                    <div class="relative flex items-center space-x-1">
+                <div class="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+                    <div class="relative flex min-w-0 items-center gap-1">
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="group h-9 w-9 cursor-pointer"
+                            class="group h-9 w-9 shrink-0 cursor-pointer"
                         >
                             <Search
                                 class="size-5 opacity-80 group-hover:opacity-100"
                             />
                         </Button>
 
-                        <div class="hidden space-x-1 lg:flex">
+                        <div class="hidden items-center gap-1 lg:flex">
                             <template
                                 v-for="item in rightNavItems"
                                 :key="item.title"
@@ -212,7 +215,7 @@ const rightNavItems: NavItem[] = [
                                                 variant="ghost"
                                                 size="icon"
                                                 as-child
-                                                class="group h-9 w-9 cursor-pointer"
+                                                class="group h-9 w-9 shrink-0 cursor-pointer"
                                             >
                                                 <a
                                                     :href="toUrl(item.href)"
@@ -243,7 +246,7 @@ const rightNavItems: NavItem[] = [
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
+                                class="relative size-10 w-auto shrink-0 rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                             >
                                 <Avatar
                                     class="size-8 overflow-hidden rounded-full"
@@ -274,7 +277,7 @@ const rightNavItems: NavItem[] = [
             class="flex w-full border-b border-sidebar-border/70"
         >
             <div
-                class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl"
+                class="mx-auto flex h-auto w-full items-center justify-start overflow-x-auto px-4 py-2 text-neutral-500 sm:px-6 md:max-w-7xl"
             >
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>

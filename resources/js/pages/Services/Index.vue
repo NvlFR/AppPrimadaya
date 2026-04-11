@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, PencilIcon, TrashIcon, TagIcon } from 'lucide-vue-next';
+import { PlusIcon, PencilIcon, TrashIcon, TagIcon, Package } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -178,25 +178,27 @@ const { formatRupiah } = useFormatRupiah();
 
 <template>
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }, { title: 'Layanan', href: route('services.index') }]">
-        <Head title="Master Layanan" />
+        <template #header-actions>
+            <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700">
+                <PlusIcon class="h-4 w-4 mr-2" /> Tambah Layanan
+            </Button>
+        </template>
+        <Head title="Layanan" />
 
-        <div class="px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Master Layanan</h1>
-                    <p class="text-sm text-gray-500">Kelola daftar layanan dan matriks harga cetak.</p>
-                </div>
-                <Button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700">
-                    <PlusIcon class="h-4 w-4 mr-2" /> Tambah Layanan
-                </Button>
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div>
+                 <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <Package class="h-6 w-6 text-primary" />Layanan
+                    </h1>
+                <!-- <p class="text-sm text-gray-500">Kelola daftar layanan dan matriks harga cetak.</p> -->
             </div>
 
             <!-- Filters -->
-            <div class="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex-1">
+            <div class="flex flex-col gap-4 bg-white p-4 rounded-xl border shadow-sm sm:flex-row">
+                <div class="flex-1 min-w-0">
                     <Input v-model="search" type="search" placeholder="Cari layanan..." class="max-w-md" />
                 </div>
-                <select v-model="categoryFilter" class="flex h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                <select v-model="categoryFilter" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:w-[180px]">
                     <option value="">Semua Kategori</option>
                     <option value="print">Print Dokumen</option>
                     <option value="banner">Banner / Spanduk</option>
@@ -207,8 +209,53 @@ const { formatRupiah } = useFormatRupiah();
                 </select>
             </div>
 
+            <div class="mobile-data-list">
+                <div v-for="item in services.data" :key="`service-mobile-${item.id}`" class="mobile-data-card space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-base font-semibold text-gray-900 break-words">{{ item.name }}</p>
+                            <p class="mt-1 text-sm capitalize text-gray-500">{{ item.category }}</p>
+                        </div>
+                        <div class="flex shrink-0 flex-col items-end gap-2">
+                            <Badge :variant="item.is_active ? 'default' : 'secondary'">
+                                {{ item.is_active ? 'Aktif' : 'Non-Aktif' }}
+                            </Badge>
+                            <Badge v-if="item.has_matrix_pricing" variant="outline" class="text-xs border-blue-200 text-blue-700 bg-blue-50">Matrix</Badge>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Harga Dasar</p>
+                            <p class="mt-1 font-medium text-gray-900">{{ formatRupiah(item.base_price) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Satuan</p>
+                            <p class="mt-1 font-medium text-gray-900">{{ item.unit }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <Button v-if="item.has_matrix_pricing" variant="outline" size="sm" class="h-8 shadow-sm border-amber-200 text-amber-700 hover:bg-amber-50" @click="openMatrixModal(item)">
+                            <TagIcon class="h-3 w-3 mr-1" /> Prices
+                        </Button>
+                        <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
+                            <PencilIcon class="h-3 w-3 mr-1" /> Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteService(item.id)">
+                            <TrashIcon class="h-3 w-3 mr-1" /> Hapus
+                        </Button>
+                    </div>
+                </div>
+
+                <div v-if="services.data.length === 0" class="mobile-data-card py-8 text-center text-sm text-gray-500">
+                    Tidak ada data layanan ditemukan.
+                </div>
+            </div>
+
             <!-- Table -->
-            <div class="bg-white rounded-xl border shadow-sm overflow-hidden whitespace-nowrap overflow-x-auto">
+            <div class="data-table-shell hidden md:block">
+                <div class="data-table-scroll">
                 <table class="data-table">
                     <thead class="bg-gray-50 text-gray-600 font-medium">
                         <tr>
@@ -249,6 +296,7 @@ const { formatRupiah } = useFormatRupiah();
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Pagination -->

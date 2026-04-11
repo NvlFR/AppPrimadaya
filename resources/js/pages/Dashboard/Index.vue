@@ -3,7 +3,8 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, ShoppingCart, PieChart, AlertTriangle } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon } from 'lucide-vue-next';
 import VueApexCharts from 'vue3-apexcharts';
 import { computed } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
@@ -135,29 +136,40 @@ const revenueGrowthLabel = computed(() => {
     const prefix = revenueGrowthPositive.value ? '+' : '-';
     return `${prefix}${Math.abs(props.stats.revenue_growth).toFixed(1)}%`;
 });
+
+const openCreateModal = () => {
+    // isEditMode.value = false;
+    // form.reset();
+    // isModalOpen.value = true;
+};
 </script>
 
 <template>
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }]">
+        <template #header-actions>
+             <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
+                <PlusIcon class="h-4 w-4 mr-2" />Transaksi Baru
+            </Button>
+        </template>
         <Head title="Dashboard" />
 
-        <div class="px-6 py-6 md:px-8 space-y-8">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header Section -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
                     <p class="text-sm text-gray-500 mt-1">Ringkasan aktivitas dan performa percetakan hari ini.</p>
                 </div>
                 <div class="flex gap-3">
-                    <Link :href="route('transactions.create')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4 shadow-sm">
+                    <!-- <Link :href="route('transactions.create')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4 shadow-sm">
                         <ShoppingCart class="mr-2 h-4 w-4" />
                         Transaksi Baru
-                    </Link>
+                    </Link> -->
                 </div>
             </div>
 
             <!-- Metric Cards -->
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
                 <Card class="hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium text-gray-500">Penjualan Hari Ini</CardTitle>
@@ -166,7 +178,7 @@ const revenueGrowthLabel = computed(() => {
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <div class="text-2xl font-bold text-gray-900">{{ formatRupiah(stats.today_revenue) }}</div>
+                        <div class="text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.today_revenue) }}</div>
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-xs text-muted-foreground">
                                 <span class="text-green-600 font-medium">{{ stats.today_transactions }}</span> transaksi berhasil
@@ -187,7 +199,7 @@ const revenueGrowthLabel = computed(() => {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold text-gray-900">{{ stats.pending_orders }} <span class="text-base font-normal text-gray-500">pesanan</span></div>
+                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ stats.pending_orders }} <span class="text-base font-normal text-gray-500">pesanan</span></div>
                         <p class="text-xs text-muted-foreground mt-1">
                             Segera proses untuk hari ini
                         </p>
@@ -202,7 +214,7 @@ const revenueGrowthLabel = computed(() => {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold text-gray-900">{{ formatRupiah(stats.monthly_revenue) }}</div>
+                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.monthly_revenue) }}</div>
                         <p class="text-xs text-muted-foreground mt-1 text-green-600">
                             Pemasukan kotor berjalan
                         </p>
@@ -217,7 +229,7 @@ const revenueGrowthLabel = computed(() => {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold text-gray-900">{{ formatRupiah(stats.monthly_expenses) }}</div>
+                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.monthly_expenses) }}</div>
                         <p class="text-xs text-muted-foreground mt-1 text-red-500 font-medium">
                             Beban operasional berjalan
                         </p>
@@ -232,7 +244,7 @@ const revenueGrowthLabel = computed(() => {
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <div class="text-2xl font-bold" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
+                        <div class="break-words text-2xl font-bold leading-tight" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
                             {{ formatRupiah(stats.net_profit) }}
                         </div>
                         <p class="text-xs font-medium" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
