@@ -91,6 +91,8 @@ const selectedStock = ref<Stock | null>(null);
 const formUpdate = useForm({
     type: 'masuk',
     qty: 0,
+    reason: '',
+    reference_transaction_number: '',
     notes: '',
 });
 
@@ -99,6 +101,8 @@ const openUpdateModal = (stock: Stock) => {
     formUpdate.reset();
     formUpdate.type = 'masuk';
     formUpdate.qty = 0;
+    formUpdate.reason = '';
+    formUpdate.reference_transaction_number = '';
     isUpdateModalOpen.value = true;
 };
 
@@ -300,6 +304,32 @@ const submitUpdateStock = () => {
                             <span class="text-gray-500 font-medium">{{ selectedStock?.unit }}</span>
                         </div>
                         <span class="text-xs text-red-500" v-if="formUpdate.errors.qty">{{ formUpdate.errors.qty }}</span>
+                    </div>
+
+                    <div v-if="formUpdate.type === 'keluar'" class="space-y-4 rounded-xl border border-orange-200 bg-orange-50/70 p-4">
+                        <div class="space-y-2">
+                            <Label for="reason">Alasan Stok Keluar</Label>
+                            <select id="reason" v-model="formUpdate.reason" class="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus:ring-1 focus:ring-orange-500">
+                                <option value="">Pilih alasan</option>
+                                <option value="rusak">Rusak</option>
+                                <option value="kadaluarsa">Kadaluarsa</option>
+                                <option value="salah_input">Salah Input</option>
+                                <option value="koreksi">Koreksi</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                            <span class="text-xs text-red-500" v-if="formUpdate.errors.reason">{{ formUpdate.errors.reason }}</span>
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="reference_transaction_number">Nomor Transaksi Referensi <span class="text-gray-400">(opsional)</span></Label>
+                            <Input
+                                id="reference_transaction_number"
+                                v-model="formUpdate.reference_transaction_number"
+                                placeholder="TRX-20260410-0001"
+                                class="uppercase"
+                            />
+                            <span class="text-xs text-red-500" v-if="formUpdate.errors.reference_transaction_number">{{ formUpdate.errors.reference_transaction_number }}</span>
+                            <p class="text-xs text-gray-500">Isi jika stok keluar terkait transaksi tertentu supaya riwayatnya bisa dilacak.</p>
+                        </div>
                     </div>
 
                     <div class="space-y-2">

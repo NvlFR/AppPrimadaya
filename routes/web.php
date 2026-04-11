@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Status Pesanan
     Route::get('/orders', [TransactionController::class, 'orders'])->name('orders.index');
+    Route::patch('/orders/bulk-status', [TransactionController::class, 'bulkUpdateStatus'])->name('orders.bulk-status');
 
     // Route yang hanya bisa diakses Admin
     Route::middleware(['role:admin'])->group(function () {
@@ -78,6 +79,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/stocks/logs', [StockController::class, 'logs'])->name('stocks.logs');
         Route::post('/stocks', [StockController::class, 'store'])->name('stocks.store');
         Route::patch('/stocks/{stock}', [StockController::class, 'update'])->name('stocks.update');
+
+        // Bulk delete transaksi untuk admin
+        Route::delete('/transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 
         // Laporan
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

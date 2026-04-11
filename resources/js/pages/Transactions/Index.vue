@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, EyeIcon, PrinterIcon, Loader2 } from 'lucide-vue-next';
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { PlusIcon, EyeIcon, PrinterIcon, Loader2, TrashIcon, TimerReset, CheckCheck } from 'lucide-vue-next';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Transaction {
@@ -39,6 +41,56 @@ const props = defineProps<{
 }>();
 
 const { formatRupiah } = useFormatRupiah();
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.role === 'admin');
+const selectedTransactionIds = ref<number[]>([]);
+const isBulkDeleteDialogOpen = ref(false);
+
+const isTransactionSelected = (id: number) => selectedTransactionIds.value.includes(id);
+const toggleTransactionSelection = (id: number, checked: boolean | string) => {
+    const nextChecked = checked === true || checked === 'indeterminate';
+    if (nextChecked) {
+        if (!isTransactionSelected(id)) {
+            selectedTransactionIds.value = [...selectedTransactionIds.value, id];
+        }
+        return;
+    }
+
+    selectedTransactionIds.value = selectedTransactionIds.value.filter(transactionId => transactionId !== id);
+};
+
+const clearSelectedTransactions = () => {
+    selectedTransactionIds.value = [];
+};
+
+const openBulkDeleteDialog = () => {
+    if (selectedTransactionIds.value.length === 0) return;
+    isBulkDeleteDialogOpen.value = true;
+};
+
+const executeBulkDelete = () => {
+    if (selectedTransactionIds.value.length === 0) return;
+
+    router.delete(route('transactions.bulk-destroy'), {
+        data: {
+            transaction_ids: selectedTransactionIds.value,
+        },
+        preserveScroll: true,
+        onSuccess: () => {
+            isBulkDeleteDialogOpen.value = false;
+            clearSelectedTransactions();
+            router.get(route('transactions.index'), {
+                search: search.value,
+                status: statusFilter.value,
+                date_from: dateFromFilter.value,
+                date_to: dateToFilter.value,
+            }, {
+                preserveState: true,
+                replace: true,
+            });
+        },
+    });
+};
 
 // ============================================================
 // Filter States
@@ -56,6 +108,7 @@ const triggerSearch = () => {
         // Reset infinite scroll state saat filter berubah
         localData.value = [];
         currentPage.value = 1;
+        clearSelectedTransactions();
 
         router.get(route('transactions.index'), {
             search: search.value,
@@ -216,6 +269,28 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                 </div>
             </div>
 
+            <div v-if="isAdmin && selectedTransactionIds.length > 0" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-slate-900 text-white rounded-2xl px-4 py-3 shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center">
+                        <CheckCheck class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <p class="font-semibold">{{ selectedTransactionIds.length }} transaksi dipilih</p>
+                        <p class="text-xs text-slate-300">Admin bisa menghapus beberapa transaksi sekaligus.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <Button variant="outline" class="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white" @click="clearSelectedTransactions">
+                        <TimerReset class="mr-2 h-4 w-4" />
+                        Batal
+                    </Button>
+                    <Button variant="destructive" class="bg-red-600 hover:bg-red-700" @click="openBulkDeleteDialog">
+                        <TrashIcon class="mr-2 h-4 w-4" />
+                        Hapus Terpilih
+                    </Button>
+                </div>
+            </div>
+
             <!-- Summary Info -->
             <div v-if="transactions.total > 0" class="text-sm text-gray-500">
                 Menampilkan <span class="font-semibold text-gray-800">{{ localData.length }}</span> dari <span class="font-semibold text-gray-800">{{ transactions.total }}</span> transaksi
@@ -227,6 +302,9 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                     <table class="data-table">
                         <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-100 whitespace-nowrap">
                             <tr>
+                                <th v-if="isAdmin" class="px-5 py-3 w-12 text-center">
+                                    <span class="sr-only">Pilih transaksi</span>
+                                </th>
                                 <th class="px-5 py-3">No. Transaksi</th>
                                 <th class="px-5 py-3">Pelanggan</th>
                                 <th class="px-5 py-3">Kasir</th>
@@ -237,7 +315,14 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="item in localData" :key="item.id" class="hover:bg-gray-50 transition-colors">
+                            <tr v-for="item in localData" :key="item.id" class="hover:bg-gray-50 transition-colors"
+                                :class="isAdmin && isTransactionSelected(item.id) ? 'bg-blue-50/50' : ''">
+                                <td v-if="isAdmin" class="px-5 py-4 text-center align-middle">
+                                    <Checkbox
+                                        :model-value="isTransactionSelected(item.id)"
+                                        @update:model-value="checked => toggleTransactionSelection(item.id, checked)"
+                                    />
+                                </td>
                                 <td class="px-5 py-4">
                                     <p class="font-bold text-gray-900 font-mono text-xs">{{ item.transaction_number }}</p>
                                     <p class="text-xs text-gray-400 mt-0.5">{{ item.created_at }}</p>
@@ -273,7 +358,7 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
 
                             <!-- Empty state -->
                             <tr v-if="localData.length === 0">
-                                <td colspan="7" class="px-6 py-16 text-center text-gray-400">
+                                <td :colspan="isAdmin ? 8 : 7" class="px-6 py-16 text-center text-gray-400">
                                     <PrinterIcon class="h-10 w-10 mx-auto mb-3 text-gray-200" />
                                     <p class="font-medium text-gray-600">Tidak ada transaksi ditemukan.</p>
                                     <p class="text-sm mt-1">Coba sesuaikan filter pencarian di atas.</p>
@@ -300,6 +385,21 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                     — Semua data telah ditampilkan ({{ localData.length }} transaksi) —
                 </div>
             </div>
+
+            <Dialog :open="isBulkDeleteDialogOpen" @update:open="val => { if (!val) isBulkDeleteDialogOpen = false; }">
+                <DialogContent class="sm:max-w-[420px]">
+                    <DialogHeader>
+                        <DialogTitle>Hapus Transaksi Terpilih</DialogTitle>
+                        <DialogDescription>
+                            Aksi ini akan menghapus {{ selectedTransactionIds.length }} transaksi secara permanen beserta file terkait.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter class="gap-2 pt-2">
+                        <Button variant="outline" @click="isBulkDeleteDialogOpen = false">Batal</Button>
+                        <Button variant="destructive" @click="executeBulkDelete">Ya, Hapus</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     </AppLayout>
 </template>

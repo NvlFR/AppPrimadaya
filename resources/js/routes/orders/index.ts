@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\TransactionController::index
-* @see app/Http/Controllers/TransactionController.php:280
+* @see app/Http/Controllers/TransactionController.php:286
 * @route '/orders'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -80,8 +80,75 @@ indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 index.form = indexForm
 
+/**
+* @see \App\Http\Controllers\TransactionController::bulkStatus
+* @see app/Http/Controllers/TransactionController.php:330
+* @route '/orders/bulk-status'
+*/
+export const bulkStatus = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+    url: bulkStatus.url(options),
+    method: 'patch',
+})
+
+bulkStatus.definition = {
+    methods: ["patch"],
+    url: '/orders/bulk-status',
+} satisfies RouteDefinition<["patch"]>
+
+/**
+* @see \App\Http\Controllers\TransactionController::bulkStatus
+* @see app/Http/Controllers/TransactionController.php:330
+* @route '/orders/bulk-status'
+*/
+bulkStatus.url = (options?: RouteQueryOptions) => {
+    return bulkStatus.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\TransactionController::bulkStatus
+* @see app/Http/Controllers/TransactionController.php:330
+* @route '/orders/bulk-status'
+*/
+bulkStatus.patch = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+    url: bulkStatus.url(options),
+    method: 'patch',
+})
+
+/**
+* @see \App\Http\Controllers\TransactionController::bulkStatus
+* @see app/Http/Controllers/TransactionController.php:330
+* @route '/orders/bulk-status'
+*/
+const bulkStatusForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: bulkStatus.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\TransactionController::bulkStatus
+* @see app/Http/Controllers/TransactionController.php:330
+* @route '/orders/bulk-status'
+*/
+bulkStatusForm.patch = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: bulkStatus.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+bulkStatus.form = bulkStatusForm
+
 const orders = {
     index: Object.assign(index, index),
+    bulkStatus: Object.assign(bulkStatus, bulkStatus),
 }
 
 export default orders

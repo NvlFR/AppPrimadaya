@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -67,9 +68,48 @@ class DashboardController extends Controller
         // Total pengeluaran bulan ini
         $monthlyExpenses = Expense::where('expense_date', '>=', $thisMonth)->sum('amount');
 
+        // Revenue Growth today vs yesterday
+        $yesterday = Carbon::yesterday();
+        $yesterdayRevenue = Transaction::whereDate('created_at', $yesterday)
+            ->whereNotIn('status', ['pending'])
+            ->sum('total');
+
+        $revenueGrowth = 0;
+        if ($yesterdayRevenue > 0) {
+            $revenueGrowth = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
+        } else if ($todayRevenue > 0) {
+            $revenueGrowth = 100;
+        }
+
+        // Category Sales Pie Chart (for this month)
+        $categorySales = DB::table('transaction_items')
+            ->join('services', 'transaction_items.service_id', '=', 'services.id')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->where('transactions.created_at', '>=', $thisMonth)
+            ->whereNotIn('transactions.status', ['pending'])
+            ->select('services.category', \DB::raw('SUM(transaction_items.subtotal) as revenue'))
+            ->groupBy('services.category')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'label' => match ($item->category) {
+                        'print' => 'Print Dokumen',
+                        'banner' => 'Banner / Spanduk',
+                        'foto' => 'Cetak Foto',
+                        'fotocopy' => 'Fotocopy',
+                        'laminasi' => 'Laminasi / Jilid',
+                        default => ucfirst($item->category),
+                    },
+                    'category' => $item->category,
+                    'revenue' => (float) $item->revenue,
+                ];
+            });
+
         return Inertia::render('Dashboard/Index', [
             'stats' => [
                 'today_revenue'      => $todayRevenue,
+                'yesterday_revenue'  => $yesterdayRevenue,
+                'revenue_growth'     => round($revenueGrowth, 1),
                 'today_transactions' => $todayTransactions,
                 'monthly_revenue'    => $monthlyRevenue,
                 'monthly_expenses'   => $monthlyExpenses,
@@ -78,6 +118,7 @@ class DashboardController extends Controller
             ],
             'sales_chart'          => $salesChart,
             'recent_transactions'  => $recentTransactions,
+            'category_sales'       => $categorySales,
         ]);
     }
 }

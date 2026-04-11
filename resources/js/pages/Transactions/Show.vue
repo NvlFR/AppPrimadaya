@@ -12,6 +12,7 @@ import {
     DownloadIcon,
     PaperclipIcon
 } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface TransactionItem {
@@ -56,6 +57,9 @@ const formStatus = useForm({
 });
 
 const { formatRupiah } = useFormatRupiah();
+const customerMissing = computed(() => !props.transaction.customer);
+const customerDisplayName = computed(() => props.transaction.customer?.name ?? 'Data pelanggan tidak ditemukan');
+const customerDisplayPhone = computed(() => props.transaction.customer?.phone ?? '-');
 
 
 const getStatusColor = (status: string) => {
@@ -133,15 +137,25 @@ const printThermal = () => {
                         <div v-if="transaction.customer" class="grid grid-cols-2 gap-4">
                             <div>
                                 <p class="text-sm text-gray-500">Nama Pelanggan / Instansi</p>
-                                <p class="font-medium text-gray-900">{{ transaction.customer.name }}</p>
+                                <p class="font-medium text-gray-900">{{ customerDisplayName }}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500">No. Telepon / WhatsApp</p>
-                                <p class="font-medium text-gray-900">{{ transaction.customer.phone || '-' }}</p>
+                                <p class="font-medium text-gray-900">{{ customerDisplayPhone }}</p>
                             </div>
                         </div>
                         <div v-else class="flex items-center text-gray-500 italic text-sm">
-                            <AlertCircleIcon class="h-4 w-4 mr-2" /> Pelanggan Umum (Tanpa Data)
+                            <div class="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 not-italic">
+                                <div class="flex items-start gap-3">
+                                    <AlertCircleIcon class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-semibold text-amber-800">Data pelanggan tidak tersedia</p>
+                                        <p class="text-sm text-amber-700">
+                                            Transaksi ini tercatat tanpa pelanggan terhubung. Sistem menandainya sebagai pelanggan umum, tetapi data detail pelanggan tidak ditemukan.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::index
-* @see app/Http/Controllers/StockController.php:19
+* @see app/Http/Controllers/StockController.php:20
 * @route '/stocks'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 export const logs = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -97,7 +97,7 @@ logs.definition = {
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 logs.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ logs.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 logs.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -116,7 +116,7 @@ logs.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 logs.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -126,7 +126,7 @@ logs.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 const logsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -136,7 +136,7 @@ const logsForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 logsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -146,7 +146,7 @@ logsForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::logs
-* @see app/Http/Controllers/StockController.php:127
+* @see app/Http/Controllers/StockController.php:145
 * @route '/stocks/logs'
 */
 logsForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -163,7 +163,7 @@ logs.form = logsForm
 
 /**
 * @see \App\Http\Controllers\StockController::store
-* @see app/Http/Controllers/StockController.php:49
+* @see app/Http/Controllers/StockController.php:50
 * @route '/stocks'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -178,7 +178,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\StockController::store
-* @see app/Http/Controllers/StockController.php:49
+* @see app/Http/Controllers/StockController.php:50
 * @route '/stocks'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -187,7 +187,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StockController::store
-* @see app/Http/Controllers/StockController.php:49
+* @see app/Http/Controllers/StockController.php:50
 * @route '/stocks'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -197,7 +197,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\StockController::store
-* @see app/Http/Controllers/StockController.php:49
+* @see app/Http/Controllers/StockController.php:50
 * @route '/stocks'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -207,7 +207,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\StockController::store
-* @see app/Http/Controllers/StockController.php:49
+* @see app/Http/Controllers/StockController.php:50
 * @route '/stocks'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -219,7 +219,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\StockController::update
-* @see app/Http/Controllers/StockController.php:81
+* @see app/Http/Controllers/StockController.php:82
 * @route '/stocks/{stock}'
 */
 export const update = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -234,7 +234,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\StockController::update
-* @see app/Http/Controllers/StockController.php:81
+* @see app/Http/Controllers/StockController.php:82
 * @route '/stocks/{stock}'
 */
 update.url = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -267,7 +267,7 @@ update.url = (args: { stock: number | { id: number } } | [stock: number | { id: 
 
 /**
 * @see \App\Http\Controllers\StockController::update
-* @see app/Http/Controllers/StockController.php:81
+* @see app/Http/Controllers/StockController.php:82
 * @route '/stocks/{stock}'
 */
 update.patch = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -277,7 +277,7 @@ update.patch = (args: { stock: number | { id: number } } | [stock: number | { id
 
 /**
 * @see \App\Http\Controllers\StockController::update
-* @see app/Http/Controllers/StockController.php:81
+* @see app/Http/Controllers/StockController.php:82
 * @route '/stocks/{stock}'
 */
 const updateForm = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -292,7 +292,7 @@ const updateForm = (args: { stock: number | { id: number } } | [stock: number | 
 
 /**
 * @see \App\Http\Controllers\StockController::update
-* @see app/Http/Controllers/StockController.php:81
+* @see app/Http/Controllers/StockController.php:82
 * @route '/stocks/{stock}'
 */
 updateForm.patch = (args: { stock: number | { id: number } } | [stock: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

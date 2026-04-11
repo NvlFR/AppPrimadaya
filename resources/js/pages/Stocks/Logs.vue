@@ -22,6 +22,10 @@ interface StockLog {
     qty: number | string;
     qty_before: number | string;
     qty_after: number | string;
+    reason: string | null;
+    reason_label: string | null;
+    reference_number: string | null;
+    reference_url: string | null;
     notes: string | null;
     created_at: string;
 }
@@ -119,6 +123,8 @@ watch(selectedStockId, () => {
                                 <th class="px-6 py-3 text-center">Jumlah</th>
                                 <th class="px-6 py-3 text-center">Stok Sebelum</th>
                                 <th class="px-6 py-3 text-center">Stok Sesudah</th>
+                                <th class="px-6 py-3">Referensi</th>
+                                <th class="px-6 py-3">Alasan</th>
                                 <th class="px-6 py-3">Dicatat Oleh</th>
                                 <th class="px-6 py-3">Keterangan</th>
                             </tr>
@@ -154,6 +160,22 @@ watch(selectedStockId, () => {
                                 </td>
                                 <td class="px-6 py-4 text-center text-gray-500 text-sm font-mono">{{ log.qty_before }}</td>
                                 <td class="px-6 py-4 text-center text-gray-900 font-bold font-mono">{{ log.qty_after }}</td>
+                                <td class="px-6 py-4">
+                                    <Link
+                                        v-if="log.reference_url && log.reference_number"
+                                        :href="log.reference_url"
+                                        class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+                                    >
+                                        {{ log.reference_number }}
+                                    </Link>
+                                    <span v-else class="text-xs text-gray-300">-</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <Badge v-if="log.reason_label" variant="outline" class="border-orange-200 bg-orange-50 text-orange-700">
+                                        {{ log.reason_label }}
+                                    </Badge>
+                                    <span v-else class="text-xs text-gray-300">-</span>
+                                </td>
                                 <td class="px-6 py-4 text-gray-600 text-sm whitespace-nowrap">{{ log.user_name }}</td>
                                 <td class="px-6 py-4 text-gray-500 text-xs italic max-w-[200px] truncate">
                                     {{ log.notes || '-' }}
@@ -162,7 +184,7 @@ watch(selectedStockId, () => {
 
                             <!-- Empty state -->
                             <tr v-if="logs.data.length === 0">
-                                <td colspan="8" class="px-6 py-16 text-center">
+                                <td colspan="10" class="px-6 py-16 text-center">
                                     <HistoryIcon class="h-10 w-10 text-gray-200 mx-auto mb-3" />
                                     <p class="font-medium text-gray-500">Belum ada riwayat pergerakan stok.</p>
                                     <p class="text-sm text-gray-400 mt-1">Log akan muncul ketika ada perubahan stok masuk atau keluar.</p>

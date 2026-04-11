@@ -282,13 +282,37 @@ const changeAmount = computed(() => form.amount_paid - totalFinal.value);
 const isUnderpaid = computed(() =>
     form.payment_method === 'cash' && form.amount_paid > 0 && changeAmount.value < 0
 );
+const hasSelectedCustomer = computed(() => form.customer_id !== 'none');
+const isCartEmpty = computed(() => form.items.length === 0);
+const requiresCashAmount = computed(() => form.payment_method === 'cash');
+const isCashAmountMissing = computed(() => requiresCashAmount.value && Number(form.amount_paid) <= 0);
 
 const { formatRupiah } = useFormatRupiah();
+const totalItemCount = computed(() =>
+    form.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+);
+
+const cashQuickAmounts = [5000, 10000, 20000, 50000, 100000, 200000];
+
+const paymentMethodLabel = computed(() => {
+    switch (form.payment_method) {
+        case 'cash':
+            return 'Tunai';
+        case 'qris':
+            return 'QRIS';
+        case 'transfer':
+            return 'Transfer';
+        default:
+            return form.payment_method.toUpperCase();
+    }
+});
 
 // ============================================================
 // Fungsi Reset Kasir
 // ============================================================
 const isResetModalOpen = ref(false);
+const checkoutAttempted = ref(false);
+const checkoutWarnings = ref<string[]>([]);
 
 const resetKasir = () => {
     if (form.items.length > 0) {
@@ -320,18 +344,35 @@ const executeResetKasir = () => {
 // Dialog Konfirmasi Submit (Issue #8)
 // ============================================================
 const openConfirmDialog = () => {
-    if (form.items.length === 0) {
-        checkoutWarningTitle.value = 'Keranjang Masih Kosong';
-        checkoutWarningMessage.value = 'Pilih minimal satu layanan sebelum menyimpan transaksi.';
+    checkoutAttempted.value = true;
+
+    const issues: string[] = [];
+
+    if (!hasSelectedCustomer.value) {
+        issues.push('Pelanggan belum dipilih. Pilih pelanggan terlebih dahulu sebelum menyimpan transaksi.');
+    }
+
+    if (isCartEmpty.value) {
+        issues.push('Keranjang belanja masih kosong. Tambahkan minimal satu layanan.');
+    }
+
+    if (isCashAmountMissing.value) {
+        issues.push('Nominal dibayarkan belum diisi untuk pembayaran tunai.');
+    }
+
+    if (isUnderpaid.value) {
+        issues.push('Nominal pembayaran tunai masih kurang dari total tagihan.');
+    }
+
+    if (issues.length > 0) {
+        checkoutWarningTitle.value = 'Transaksi Belum Lengkap';
+        checkoutWarningMessage.value = '';
+        checkoutWarnings.value = issues;
         showCheckoutWarningDialog.value = true;
         return;
     }
-    if (form.payment_method === 'cash' && isUnderpaid.value) {
-        checkoutWarningTitle.value = 'Pembayaran Belum Cukup';
-        checkoutWarningMessage.value = 'Nominal pembayaran tunai masih kurang dari total tagihan.';
-        showCheckoutWarningDialog.value = true;
-        return;
-    }
+
+    checkoutWarnings.value = [];
     showConfirmDialog.value = true;
 };
 
@@ -347,6 +388,9 @@ const submitTransaction = () => {
     })).post(route('transactions.store'), {
         forceFormData: true,
         preserveScroll: true,
+        onError: () => {
+            checkoutAttempted.value = true;
+        },
     });
 };
 
@@ -372,6 +416,16 @@ const submitNewCustomer = () => {
         },
     });
 };
+
+const shouldShowCustomerError = computed(() =>
+    checkoutAttempted.value && !hasSelectedCustomer.value
+);
+const shouldShowCartError = computed(() =>
+    checkoutAttempted.value && isCartEmpty.value
+);
+const shouldShowPaymentError = computed(() =>
+    checkoutAttempted.value && (isCashAmountMissing.value || isUnderpaid.value)
+);
 </script>
 
 <template>
@@ -381,37 +435,64 @@ const submitNewCustomer = () => {
     ]">
     <Head title="Kasir & Transaksi Baru" />
 
-    <div class="mx-auto w-full max-w-[1440px] overflow-x-clip px-4 py-5 md:px-6 xl:px-8">
-        <div class="flex flex-col gap-3 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="flex items-center text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
-                    <ShoppingCart class="mr-3 h-6 w-6 text-primary" /> Kasir Baru
-                </h2>
-                <p class="mt-1 text-sm text-gray-500">Pilih pelanggan, susun layanan, lalu selesaikan pembayaran.</p>
+    <div class="relative mx-auto w-full max-w-[1440px] overflow-x-clip px-4 py-5 md:px-6 xl:px-8">
+        <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden">
+            <div class="absolute left-[-4rem] top-8 h-52 w-52 rounded-full bg-blue-200/25 blur-3xl"></div>
+            <div class="absolute right-[-3rem] top-16 h-64 w-64 rounded-full bg-sky-200/20 blur-3xl"></div>
+        </div>
+
+        <div class="relative flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:flex-row sm:items-end sm:justify-between">
+            <div class="space-y-3">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/80">Kasir / Transaksi</p>
+                    <h2 class="mt-2 flex items-center text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+                        <ShoppingCart class="mr-3 h-7 w-7 text-primary" /> Kasir Baru
+                    </h2>
+                    <p class="mt-1 max-w-2xl text-sm text-slate-500">Pilih pelanggan, susun layanan, lalu selesaikan pembayaran dengan alur yang cepat dan jelas.</p>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 shadow-sm">
+                        <User class="h-3.5 w-3.5 text-primary" />
+                        {{ selectedCustomerLabel }}
+                    </span>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium text-slate-600">
+                        <FileText class="h-3.5 w-3.5 text-slate-400" />
+                        {{ form.items.length }} item
+                    </span>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium text-slate-600">
+                        <ShoppingCart class="h-3.5 w-3.5 text-slate-400" />
+                        {{ formatRupiah(totalFinal) }}
+                    </span>
+                </div>
             </div>
-            <Button variant="outline" class="w-full text-gray-600 sm:w-auto" @click="resetKasir">
+            <Button variant="outline" class="w-full border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 sm:w-auto" @click="resetKasir">
                 <RefreshCw class="mr-2 h-4 w-4" /> Reset Kasir
             </Button>
         </div>
 
         <!-- Layout Kiri (Keranjang & Setup) - Kanan (Ringkasan & Bayar) -->
-        <div class="mt-5 grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div class="relative z-10 mt-5 grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
 
             <!-- KOLOM KIRI: Keranjang Belanja -->
             <div class="flex min-w-0 flex-col gap-5">
 
                 <!-- 1. Block Informasi Pelanggan -->
-                <Card class="min-w-0 rounded-lg border bg-white shadow-sm">
+                <Card class="min-w-0 rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm">
                     <CardHeader class="pb-4">
-                        <CardTitle class="text-lg flex items-center"><User class="mr-2 h-5 w-5 text-gray-400" /> Informasi Pelanggan</CardTitle>
+                        <CardTitle class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <User class="h-4 w-4" />
+                            </span>
+                            Informasi Pelanggan
+                        </CardTitle>
                     </CardHeader>
                     <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Combobox Async Pelanggan — Issue #25 -->
                         <!-- Pencarian asinkron: tidak load semua data saat halaman dibuka -->
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between">
-                                <Label>Pilih Pelanggan (Tetap)</Label>
-                                <Button
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <Label>Pilih Pelanggan (Tetap)</Label>
+                                    <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
@@ -426,7 +507,7 @@ const submitNewCustomer = () => {
                             <div ref="customerComboboxRef" class="relative">
                                 <button
                                     type="button"
-                                    class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background transition-colors focus:outline-none focus:ring-1 focus:ring-ring hover:bg-accent"
+                                    class="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/30 hover:bg-slate-50"
                                     :class="isCustomerDropdownOpen ? 'ring-1 ring-ring' : ''"
                                     @click="isCustomerDropdownOpen = !isCustomerDropdownOpen"
                                 >
@@ -447,20 +528,33 @@ const submitNewCustomer = () => {
                                     </div>
                                 </button>
 
+                                <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-500">
+                                    <span class="font-medium text-slate-700">{{ selectedCustomerLabel }}</span>
+                                    <span class="ml-2 text-slate-400">Cari pelanggan cepat, atau daftarkan baru jika belum ada.</span>
+                                </div>
+
+                                <div
+                                    v-if="shouldShowCustomerError || form.errors.customer_id"
+                                    class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                                >
+                                    <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>{{ form.errors.customer_id || 'Pelanggan wajib dipilih sebelum transaksi dapat disimpan.' }}</span>
+                                </div>
+
                                 <!-- Dropdown results -->
                                 <div
                                     v-if="isCustomerDropdownOpen"
-                                    class="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-lg"
+                                    class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
                                 >
                                     <!-- Input pencarian -->
-                                    <div class="p-2 border-b">
+                                    <div class="border-b border-slate-100 p-2">
                                         <div class="relative">
                                             <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <input
                                                 v-model="customerSearchQuery"
                                                 type="text"
                                                 placeholder="Ketik nama atau no. HP..."
-                                                class="w-full h-8 pl-8 pr-3 text-sm rounded border border-input bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                                                class="h-9 w-full rounded-lg border border-input bg-transparent pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/25"
                                                 autofocus
                                                 @keydown.escape="isCustomerDropdownOpen = false"
                                             />
@@ -472,7 +566,7 @@ const submitNewCustomer = () => {
                                         <!-- Opsi Pelanggan Umum selalu ada -->
                                         <button
                                             type="button"
-                                            class="w-full flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                                            class="w-full flex items-center px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                                             :class="form.customer_id === 'none' ? 'bg-primary/5 text-primary font-medium' : 'text-gray-600'"
                                             @click="clearCustomer"
                                         >
@@ -497,7 +591,7 @@ const submitNewCustomer = () => {
                                                 v-for="c in customerSearchResults"
                                                 :key="c.id"
                                                 type="button"
-                                                class="w-full flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                                                class="w-full flex items-center px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                                                 :class="form.customer_id === c.id.toString() ? 'bg-primary/5 text-primary font-medium' : ''"
                                                 @click="selectCustomer(c)"
                                             >
@@ -512,7 +606,7 @@ const submitNewCustomer = () => {
                                         <!-- Empty state (setelah mengetik tapi tidak ada hasil) -->
                                         <div
                                             v-else-if="customerSearchQuery.trim() && !isSearchingCustomer"
-                                            class="py-4 text-center text-xs text-gray-400"
+                                            class="py-5 text-center text-xs text-slate-400"
                                         >
                                             Pelanggan "{{ customerSearchQuery }}" tidak ditemukan.
                                         </div>
@@ -520,7 +614,7 @@ const submitNewCustomer = () => {
                                         <!-- Prompt awal sebelum mengetik -->
                                         <div
                                             v-else-if="!customerSearchQuery.trim()"
-                                            class="py-3 text-center text-xs text-gray-400"
+                                            class="py-5 text-center text-xs text-slate-400"
                                         >
                                             Ketik nama atau no. HP untuk mencari...
                                         </div>
@@ -538,14 +632,19 @@ const submitNewCustomer = () => {
                 </Card>
 
                 <!-- 2. Block Keranjang Belanja -->
-                <Card class="flex min-w-0 min-h-[420px] flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
-                    <CardHeader class="rounded-t-lg border-b bg-gray-50/80 pb-4">
+                <Card class="flex min-w-0 min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                    <CardHeader class="rounded-t-2xl border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white pb-4">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <CardTitle class="text-lg flex items-center"><FileText class="mr-2 h-5 w-5 text-gray-400" /> Keranjang Belanja</CardTitle>
+                            <CardTitle class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/5 text-slate-600">
+                                    <FileText class="h-4 w-4" />
+                                </span>
+                                Keranjang Belanja
+                            </CardTitle>
                             <div class="flex items-center gap-2 w-full md:w-[400px]">
                                 <div class="relative flex-1">
                                     <Select v-model="selectedServiceId">
-                                        <SelectTrigger class="bg-white" data-search-trigger>
+                                        <SelectTrigger class="h-10 rounded-xl border-slate-200 bg-white shadow-sm" data-search-trigger>
                                             <SelectValue placeholder="Pilih layanan (F2)..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -558,33 +657,50 @@ const submitNewCustomer = () => {
                                         F2
                                     </kbd>
                                 </div>
-                                <Button @click="() => addItem()" :disabled="!selectedServiceId" size="icon" class="shrink-0 bg-primary hover:bg-primary/90 text-white">
+                                <Button @click="() => addItem()" :disabled="!selectedServiceId" size="icon" class="shrink-0 rounded-xl bg-primary text-white shadow-sm hover:bg-primary/90">
                                     <Plus class="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
 
                         <!-- Layanan Favorit -->
-                        <div class="mt-4 flex flex-wrap gap-2">
+                        <div class="mt-4 flex flex-wrap items-center gap-2">
                             <span class="text-[10px] font-bold text-gray-400 uppercase flex items-center mr-2"><Zap class="w-3 h-3 mr-1" /> Favorit:</span>
                             <Button
                                 v-for="s in pinnedServices"
                                 :key="s.id"
                                 variant="outline"
                                 size="sm"
-                                class="h-8 text-xs bg-white border-dashed hover:border-primary hover:text-primary transition-all shadow-sm"
+                                class="h-8 rounded-full border-dashed bg-white text-xs shadow-sm transition-all hover:border-primary hover:text-primary"
                                 @click="addItem(s.id)"
                             >
                                 {{ s.name }}
                             </Button>
+                            <span class="ml-auto inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-500 shadow-sm">
+                                {{ totalItemCount }} qty
+                            </span>
+                        </div>
+
+                        <div
+                            v-if="shouldShowCartError || form.errors.items"
+                            class="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                        >
+                            <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span>{{ form.errors.items || 'Keranjang belanja masih kosong. Tambahkan minimal satu layanan.' }}</span>
                         </div>
                     </CardHeader>
 
                     <CardContent class="p-0 flex-1 relative overflow-auto">
-                        <div v-if="form.items.length === 0" class="absolute inset-0 flex flex-col justify-center items-center text-center p-8 text-gray-500">
-                            <ShoppingCart class="h-12 w-12 text-gray-200 mb-3" />
-                            <p class="font-medium text-gray-600">Keranjang masih kosong.</p>
-                            <p class="text-sm mt-1">Pilih layanan di atas untuk menambahkan item.</p>
+                        <div v-if="form.items.length === 0" class="absolute inset-0 flex flex-col items-center justify-center px-8 text-center text-slate-500">
+                            <div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-300 shadow-inner">
+                                <ShoppingCart class="h-9 w-9" />
+                            </div>
+                            <p class="text-base font-semibold text-slate-700">Keranjang masih kosong.</p>
+                            <p class="mt-1 max-w-sm text-sm leading-6 text-slate-500">Gunakan dropdown layanan atau tombol favorit untuk menambahkan item pertama.</p>
+                            <div class="mt-4 flex flex-wrap justify-center gap-2 text-[11px]">
+                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">Tekan <b>F2</b> untuk cari layanan</span>
+                                <span class="rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">Tambah item dengan satu klik</span>
+                            </div>
                         </div>
 
                         <!-- Tampilan Mobile (Card List) -->
@@ -737,30 +853,38 @@ const submitNewCustomer = () => {
 
             <!-- KOLOM KANAN: Pembayaran & Ringkasan -->
             <div class="min-w-0 xl:sticky xl:top-20">
-                <Card class="flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
+                <Card class="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.08)]">
                     <!-- Header Total -->
-                    <div class="bg-primary px-5 py-5 text-white">
-                        <span class="text-xs font-semibold uppercase tracking-wide text-white/80">Total Tagihan</span>
-                        <h2 class="mt-1 break-words text-2xl font-bold tracking-tight md:text-3xl">{{ formatRupiah(totalFinal) }}</h2>
+                    <div class="bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_100%)] px-5 py-5 text-white">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75">Total Tagihan</span>
+                                <h2 class="mt-1 break-words text-2xl font-bold tracking-tight md:text-3xl">{{ formatRupiah(totalFinal) }}</h2>
+                            </div>
+                            <div class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/80">
+                                {{ paymentMethodLabel }}
+                            </div>
+                        </div>
+                        <p class="mt-3 text-xs text-white/70">Panel pembayaran aktif. Pastikan total dan metode sudah sesuai sebelum menyimpan.</p>
                     </div>
 
                     <CardContent class="flex-1 space-y-5 p-5">
                         <!-- Ringkasan Rincian -->
-                        <div class="space-y-3 rounded-lg border bg-gray-50/70 p-4">
+                        <div class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                             <div class="flex justify-between items-center text-sm">
-                                <span class="text-gray-500">Subtotal Item ({{ form.items.length }})</span>
-                                <span class="font-medium text-gray-900">{{ formatRupiah(subtotal) }}</span>
+                                <span class="text-slate-500">Subtotal Item ({{ form.items.length }})</span>
+                                <span class="font-semibold text-slate-900">{{ formatRupiah(subtotal) }}</span>
                             </div>
 
                             <!-- Diskon dengan Toggle Persen / Flat (Issue #9) -->
                             <div class="space-y-2">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-500">Diskon</span>
+                                    <span class="text-sm text-slate-500">Diskon</span>
                                     <!-- Toggle persen / nominal -->
-                                    <div class="flex items-center rounded-md border border-gray-200 overflow-hidden text-xs">
+                                    <div class="flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-xs shadow-sm">
                                         <button
                                             type="button"
-                                            class="flex items-center px-2 py-1 gap-1 transition-colors"
+                                            class="flex items-center gap-1 px-2.5 py-1.5 transition-colors"
                                             :class="form.discount_type === 'percent' ? 'bg-primary text-white' : 'bg-white text-gray-500 hover:bg-gray-50'"
                                             @click="form.discount_type = 'percent'; form.discount_value = 0"
                                         >
@@ -768,7 +892,7 @@ const submitNewCustomer = () => {
                                         </button>
                                         <button
                                             type="button"
-                                            class="flex items-center px-2 py-1 gap-1 transition-colors"
+                                            class="flex items-center gap-1 px-2.5 py-1.5 transition-colors"
                                             :class="form.discount_type === 'flat' ? 'bg-primary text-white' : 'bg-white text-gray-500 hover:bg-gray-50'"
                                             @click="form.discount_type = 'flat'; form.discount_value = 0"
                                         >
@@ -778,10 +902,10 @@ const submitNewCustomer = () => {
                                 </div>
                                 <div class="relative">
                                     <div v-if="form.discount_type === 'flat'" class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 text-xs font-medium">Rp</div>
-                                    <Input
-                                        v-model="form.discount_value"
-                                        type="number"
-                                        class="h-8 text-right text-sm"
+                                        <Input
+                                            v-model="form.discount_value"
+                                            type="number"
+                                        class="h-9 rounded-xl text-right text-sm"
                                         :class="form.discount_type === 'flat' ? 'pl-8' : ''"
                                         :min="0"
                                         :max="form.discount_type === 'percent' ? 100 : subtotal"
@@ -791,7 +915,7 @@ const submitNewCustomer = () => {
                             </div>
 
                             <!-- Tampil potongan harga jika ada -->
-                            <div v-if="discountAmount > 0" class="flex justify-between items-center border-t border-dashed pt-3 text-sm text-green-600 font-medium">
+                            <div v-if="discountAmount > 0" class="flex justify-between items-center border-t border-dashed pt-3 text-sm font-medium text-emerald-600">
                                 <span>Potongan Harga</span>
                                 <span>- {{ formatRupiah(discountAmount) }}</span>
                             </div>
@@ -800,7 +924,7 @@ const submitNewCustomer = () => {
                         <!-- Pembayaran Form -->
                         <div class="space-y-4">
                             <div class="space-y-2">
-                                <Label class="text-gray-700 font-semibold" for="payment_method">Metode Pembayaran</Label>
+                                <Label class="font-semibold text-slate-700" for="payment_method">Metode Pembayaran</Label>
                                 <Select
                                     :model-value="form.payment_method"
                                     @update:model-value="(val) => { 
@@ -809,7 +933,7 @@ const submitNewCustomer = () => {
                                         form.amount_paid = val === 'cash' ? 0 : totalFinal; 
                                     }"
                                 >
-                                    <SelectTrigger class="h-10 bg-white">
+                                    <SelectTrigger class="h-11 rounded-xl border-slate-200 bg-white shadow-sm">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -821,19 +945,19 @@ const submitNewCustomer = () => {
                             </div>
 
                             <!-- Field Nominal Dibayarkan — Konsisten (Issue layout fix) -->
-                            <div class="space-y-3 pt-1">
-                                <Label class="text-gray-700 font-semibold">
-                                    Nominal Dibayarkan {{ form.payment_method === 'cash' ? '(Tunai)' : `(${form.payment_method.toUpperCase()})` }}
+                                <div class="space-y-3 pt-1">
+                                <Label class="font-semibold text-slate-700">
+                                    Nominal Dibayarkan {{ form.payment_method === 'cash' ? '(Tunai)' : `(${paymentMethodLabel})` }}
                                 </Label>
                                 <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500 font-medium">Rp</div>
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500 font-medium">Rp</div>
                                     <Input
                                         v-model="form.amount_paid"
                                         type="number"
-                                        class="h-12 pl-10 text-lg font-bold"
+                                        class="h-12 rounded-xl pl-10 text-lg font-bold shadow-sm"
                                         :class="{
                                             'focus-visible:ring-primary/50': form.payment_method === 'cash',
-                                            'bg-gray-100 opacity-80 cursor-not-allowed': form.payment_method !== 'cash'
+                                            'bg-slate-100 opacity-80 cursor-not-allowed': form.payment_method !== 'cash'
                                         }"
                                         :readonly="form.payment_method !== 'cash'"
                                         data-payment-input
@@ -844,43 +968,51 @@ const submitNewCustomer = () => {
                                 </div>
 
                                 <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
-                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-3 gap-2">
+                                <div v-if="form.payment_method === 'cash'" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <Button
-                                        v-for="nominal in [5000, 10000, 20000, 50000, 100000, 200000]"
+                                        v-for="nominal in cashQuickAmounts"
                                         :key="nominal"
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        class="h-9 text-xs font-medium hover:bg-primary/10 hover:border-primary/40"
+                                        class="h-9 rounded-xl text-xs font-medium hover:border-primary/40 hover:bg-primary/10"
                                         @click="form.amount_paid = nominal"
                                     >
                                         {{ formatRupiah(nominal).replace('Rp ', '') }}
                                     </Button>
                                 </div>
 
+                                <div
+                                    v-if="shouldShowPaymentError || form.errors.amount_paid"
+                                    class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                                >
+                                    <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>{{ form.errors.amount_paid || 'Nominal dibayarkan harus diisi saat pembayaran tunai.' }}</span>
+                                </div>
+
                                 <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
                                 <div
                                     v-if="form.payment_method === 'cash'"
-                                    class="flex justify-between items-center rounded-lg border p-3 transition-colors"
+                                    class="flex items-center justify-between rounded-2xl border p-3 transition-colors"
                                     :class="{
-                                        'bg-green-50 border-green-200': changeAmount >= 0 && form.amount_paid > 0,
-                                        'bg-red-50 border-red-200': isUnderpaid,
-                                        'bg-gray-50 border-gray-100': form.amount_paid === 0
+                                        'border-emerald-200 bg-emerald-50/80': changeAmount >= 0 && form.amount_paid > 0,
+                                        'border-red-200 bg-red-50/80': isUnderpaid,
+                                        'border-slate-200 bg-slate-50': form.amount_paid === 0
                                     }"
                                 >
                                     <span class="text-sm font-medium" :class="{
-                                        'text-green-700': changeAmount >= 0 && form.amount_paid > 0,
+                                        'text-emerald-700': changeAmount >= 0 && form.amount_paid > 0,
                                         'text-red-600': isUnderpaid,
-                                        'text-gray-500': form.amount_paid === 0
+                                        'text-slate-500': form.amount_paid === 0
                                     }">
                                         {{ isUnderpaid ? 'Kurang Bayar:' : 'Kembalian:' }}
                                     </span>
                                     <span
                                         class="text-2xl font-bold"
                                         :class="{
-                                            'text-green-600': changeAmount >= 0 && form.amount_paid > 0,
+                                            'text-emerald-600': changeAmount >= 0 && form.amount_paid > 0,
                                             'text-red-600': isUnderpaid,
-                                            'text-gray-400': form.amount_paid === 0
+                                            'text-slate-400': form.amount_paid === 0
                                         }"
                                     >
                                         {{ isUnderpaid ? formatRupiah(Math.abs(changeAmount)) : formatRupiah(changeAmount) }}
@@ -888,7 +1020,7 @@ const submitNewCustomer = () => {
                                 </div>
 
                                 <!-- Info non-cash -->
-                                <div v-if="form.payment_method !== 'cash'" class="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
+                                <div v-if="form.payment_method !== 'cash'" class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-sm text-blue-700">
                                     <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
                                     <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
                                 </div>
@@ -896,7 +1028,7 @@ const submitNewCustomer = () => {
                         </div>
 
                         <!-- Info Shortcut -->
-                        <div class="hidden lg:flex items-center gap-3 text-[10px] text-gray-400 border-t pt-4">
+                        <div class="hidden lg:flex items-center gap-3 border-t border-slate-200 pt-4 text-[10px] text-slate-400">
                             <span class="flex items-center gap-1"><Keyboard class="w-3 h-3" /> Shortcut:</span>
                             <span><b>F2</b>: Cari</span>
                             <span><b>F4</b>: Bayar</span>
@@ -905,11 +1037,11 @@ const submitNewCustomer = () => {
                     </CardContent>
 
                     <!-- Tombol Submit -->
-                    <div class="mt-auto border-t border-gray-100 bg-gray-50 p-5">
+                    <div class="mt-auto border-t border-slate-200 bg-slate-50 p-5">
                         <Button
                             @click="openConfirmDialog"
-                            class="h-12 w-full text-sm font-bold shadow-sm bg-primary hover:bg-primary/90 md:text-base"
-                            :disabled="form.items.length === 0 || form.processing || isUnderpaid"
+                            class="h-12 w-full rounded-xl bg-primary text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 md:text-base"
+                            :disabled="form.processing"
                         >
                             <div class="flex items-center justify-center gap-2">
                                 <Loader2 v-if="form.processing" class="h-5 w-5 animate-spin" />
@@ -936,9 +1068,16 @@ const submitNewCustomer = () => {
                     {{ checkoutWarningTitle }}
                 </DialogTitle>
                 <DialogDescription class="mt-1">
-                    {{ checkoutWarningMessage }}
+                    {{ checkoutWarningMessage || 'Lengkapi data berikut agar transaksi bisa dilanjutkan.' }}
                 </DialogDescription>
             </DialogHeader>
+
+            <div class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <div v-for="warning in checkoutWarnings" :key="warning" class="flex items-start gap-2">
+                    <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <span>{{ warning }}</span>
+                </div>
+            </div>
 
             <DialogFooter>
                 <Button @click="showCheckoutWarningDialog = false" class="w-full">

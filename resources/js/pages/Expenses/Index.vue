@@ -197,14 +197,20 @@ const getCategoryColor = (category: string) => {
             </div>
 
             <!-- Summary Highlight -->
-            <div class="bg-blue-600 rounded-xl p-6 text-white shadow-sm flex items-center justify-between border border-blue-700">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-white/20 p-3 rounded-full">
-                        <WalletIcon class="h-6 w-6 text-white" />
+            <div class="rounded-2xl border bg-white/90 p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-blue-50 p-3 rounded-full border border-blue-100">
+                            <WalletIcon class="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Total Estimasi Pengeluaran (Berdasarkan Filter)</p>
+                            <p class="text-3xl font-bold text-gray-900">{{ formatRupiah(total_filtered) }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-blue-100 text-sm font-medium">Total Estimasi Pengeluaran (Berdasarkan Filter)</p>
-                        <p class="text-3xl font-bold">{{ formatRupiah(total_filtered) }}</p>
+                    <div class="hidden sm:flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
+                        <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                        Ringkasan filter aktif
                     </div>
                 </div>
             </div>
@@ -219,11 +225,11 @@ const getCategoryColor = (category: string) => {
                 </select>
                 <div class="flex items-center space-x-2">
                     <span class="text-sm text-gray-500">Dari:</span>
-                    <Input type="date" v-model="dateFromFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" lang="id-ID" v-model="dateFromFilter" class="w-[140px] h-9 text-sm" />
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="text-sm text-gray-500">Sampai:</span>
-                    <Input type="date" v-model="dateToFilter" class="w-[140px] h-9 text-sm" />
+                    <Input type="date" lang="id-ID" v-model="dateToFilter" class="w-[140px] h-9 text-sm" />
                 </div>
                 <!-- Summary count -->
                 <p v-if="expenses.total > 0" class="ml-auto text-sm text-gray-500">

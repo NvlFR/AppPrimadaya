@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -105,7 +106,7 @@ class TransactionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_id' => ['required', 'exists:customers,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.service_id' => ['required', 'exists:services,id'],
             'items.*.paper_size_id' => ['nullable', 'exists:paper_sizes,id'],
@@ -116,7 +117,7 @@ class TransactionController extends Controller
             'discount_type' => ['nullable', 'in:percent,flat'],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['required', 'in:cash,transfer,qris'],
-            'amount_paid' => ['required', 'numeric', 'min:0'],
+            'amount_paid' => ['required_if:payment_method,cash', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -142,6 +143,11 @@ class TransactionController extends Controller
                     }
 
                     $total = $subtotal - $discountAmount;
+                    if ($request->payment_method === 'cash' && $request->amount_paid < $total) {
+                        throw ValidationException::withMessages([
+                            'amount_paid' => 'Nominal pembayaran tunai harus sama atau lebih besar dari total tagihan.',
+                        ]);
+                    }
                     $changeAmount = max(0, $request->amount_paid - $total);
 
                     // Generate nomor transaksi unik
@@ -279,6 +285,9 @@ class TransactionController extends Controller
      */
     public function orders(Request $request): Response
     {
+        $perPage = (int) $request->integer('per_page', 12);
+        $perPage = in_array($perPage, [12, 24, 48], true) ? $perPage : 12;
+
         // Hanya muat kolom yang dibutuhkan untuk daftar pesanan
         $orders = Transaction::select(
             'transactions.id',
@@ -292,7 +301,7 @@ class TransactionController extends Controller
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->search, fn ($q) => $q->where('transaction_number', 'like', "%{$request->search}%"))
             ->latest()
-            ->paginate(20)
+            ->paginate($perPage)
             ->withQueryString()
             ->through(fn ($trx) => [
             'id' => $trx->id,
@@ -310,9 +319,45 @@ class TransactionController extends Controller
 
         return Inertia::render('Orders/Index', [
             'orders' => array_merge($orders->toArray(), ['status_counts' => $statusCounts]),
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search', 'status', 'per_page']),
             'status_options' => Transaction::STATUS_LABELS,
         ]);
+    }
+
+    /**
+     * Memperbarui status banyak pesanan sekaligus.
+     */
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'transaction_ids' => ['required', 'array', 'min:1'],
+            'transaction_ids.*' => ['integer', 'exists:transactions,id'],
+            'status' => ['required', 'in:pending,diproses,selesai,diambil'],
+        ]);
+
+        Transaction::whereIn('id', $validated['transaction_ids'])
+            ->update(['status' => $validated['status']]);
+
+        return back()->with('success', 'Status pesanan berhasil diperbarui secara massal.');
+    }
+
+    /**
+     * Menghapus banyak transaksi sekaligus untuk admin.
+     */
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'transaction_ids' => ['required', 'array', 'min:1'],
+            'transaction_ids.*' => ['integer', 'exists:transactions,id'],
+        ]);
+
+        $transactions = Transaction::whereIn('id', $validated['transaction_ids'])->get();
+
+        foreach ($transactions as $transaction) {
+            $transaction->forceDelete();
+        }
+
+        return back()->with('success', count($transactions) . ' transaksi berhasil dihapus.');
     }
 
     /**

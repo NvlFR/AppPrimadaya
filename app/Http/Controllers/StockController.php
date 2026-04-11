@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Stock;
 use App\Models\StockLog;
+use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -81,13 +82,16 @@ class StockController extends Controller
     public function update(Request $request, Stock $stock): RedirectResponse
     {
         $request->validate([
-            'type'  => ['required', 'in:masuk,keluar'],
-            'qty'   => ['required', 'numeric', 'min:0.01'],
+            'type' => ['required', 'in:masuk,keluar'],
+            'qty' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['nullable', 'required_if:type,keluar', 'in:rusak,kadaluarsa,salah_input,koreksi,lainnya'],
+            'reference_transaction_number' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
         ], [
             'type.required' => 'Jenis perubahan stok wajib dipilih.',
-            'qty.required'  => 'Jumlah stok wajib diisi.',
-            'qty.min'       => 'Jumlah stok harus lebih dari 0.',
+            'qty.required' => 'Jumlah stok wajib diisi.',
+            'qty.min' => 'Jumlah stok harus lebih dari 0.',
+            'reason.required_if' => 'Alasan stok keluar wajib dipilih.',
         ]);
 
         // Validasi stok keluar dilakukan SEBELUM transaction agar redirect bisa berfungsi
@@ -95,7 +99,18 @@ class StockController extends Controller
             return back()->withErrors(['qty' => 'Jumlah keluar melebihi stok yang tersedia (' . $stock->current_qty . ' ' . $stock->unit . ').' ])->withInput();
         }
 
-        DB::transaction(function () use ($request, $stock) {
+        $referenceTransaction = null;
+        if ($request->filled('reference_transaction_number')) {
+            $referenceTransaction = Transaction::where('transaction_number', $request->reference_transaction_number)->first();
+
+            if (! $referenceTransaction) {
+                return back()
+                    ->withErrors(['reference_transaction_number' => 'Nomor transaksi referensi tidak ditemukan.'])
+                    ->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($request, $stock, $referenceTransaction) {
             $qtyBefore = $stock->current_qty;
 
             // Hitung qty baru berdasarkan tipe perubahan
@@ -114,6 +129,9 @@ class StockController extends Controller
                 'qty'        => $request->qty,
                 'qty_before' => $qtyBefore,
                 'qty_after'  => $qtyAfter,
+                'reference_type' => $referenceTransaction?->getMorphClass(),
+                'reference_id' => $referenceTransaction?->id,
+                'reason'     => $request->reason,
                 'notes'      => $request->notes,
             ]);
         });
@@ -126,7 +144,7 @@ class StockController extends Controller
      */
     public function logs(Request $request): Response
     {
-        $logs = StockLog::with(['stock', 'user'])
+        $logs = StockLog::with(['stock', 'user', 'reference'])
             ->when($request->stock_id, fn ($q) => $q->where('stock_id', $request->stock_id))
             ->latest()
             ->paginate(20)
@@ -139,6 +157,10 @@ class StockController extends Controller
                 'qty'         => $log->qty,
                 'qty_before'  => $log->qty_before,
                 'qty_after'   => $log->qty_after,
+                'reason'      => $log->reason,
+                'reason_label' => $log->reason_label,
+                'reference_number' => $log->reference instanceof Transaction ? $log->reference->transaction_number : null,
+                'reference_url' => $log->reference instanceof Transaction ? route('transactions.show', $log->reference) : null,
                 'notes'       => $log->notes,
                 'created_at'  => $log->created_at->format('d/m/Y H:i'),
             ]);

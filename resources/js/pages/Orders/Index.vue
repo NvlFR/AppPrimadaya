@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Eye, Clock, CheckCircle2, Package, ArrowRight } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Search, Filter, Eye, Clock, CheckCircle2, Package, ArrowRight, CheckCheck, TimerReset } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Order {
@@ -28,22 +30,84 @@ const props = defineProps<{
         // Field tambahan dari array_merge di controller — jumlah order per status
         status_counts?: Record<string, number>;
     };
-    filters: { search?: string; status?: string };
+    filters: { search?: string; status?: string; per_page?: string };
     status_options: Record<string, string>;
 }>();
 
 const search = ref(props.filters.search || '');
 const statusFilter = ref(props.filters.status || '');
+const perPageFilter = ref(props.filters.per_page || '12');
+
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.role === 'admin');
+const selectedOrderIds = ref<number[]>([]);
+const isBulkStatusDialogOpen = ref(false);
+const bulkStatusTarget = ref<'diproses' | 'selesai' | null>(null);
+
+const isOrderSelected = (id: number) => selectedOrderIds.value.includes(id);
+const toggleOrderSelection = (id: number, checked: boolean | string) => {
+    const nextChecked = checked === true || checked === 'indeterminate';
+    if (nextChecked) {
+        if (!isOrderSelected(id)) {
+            selectedOrderIds.value = [...selectedOrderIds.value, id];
+        }
+        return;
+    }
+
+    selectedOrderIds.value = selectedOrderIds.value.filter(orderId => orderId !== id);
+};
+
+const clearSelectedOrders = () => {
+    selectedOrderIds.value = [];
+};
+
+const openBulkStatusDialog = (status: 'diproses' | 'selesai') => {
+    if (selectedOrderIds.value.length === 0) return;
+    bulkStatusTarget.value = status;
+    isBulkStatusDialogOpen.value = true;
+};
+
+const executeBulkStatusUpdate = () => {
+    if (!bulkStatusTarget.value || selectedOrderIds.value.length === 0) return;
+
+    router.patch(route('orders.bulk-status'), {
+        transaction_ids: selectedOrderIds.value,
+        status: bulkStatusTarget.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            isBulkStatusDialogOpen.value = false;
+            bulkStatusTarget.value = null;
+            clearSelectedOrders();
+            router.get(route('orders.index'), {
+                search: search.value,
+                status: statusFilter.value,
+                per_page: perPageFilter.value,
+            }, {
+                preserveState: true,
+                replace: true,
+            });
+        },
+    });
+};
 
 let searchTimeout: any;
-watch([search, statusFilter], () => {
+watch([search, statusFilter, perPageFilter], () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        router.get(route('orders.index'), { search: search.value, status: statusFilter.value }, {
+        router.get(route('orders.index'), {
+            search: search.value,
+            status: statusFilter.value,
+            per_page: perPageFilter.value,
+        }, {
             preserveState: true,
             replace: true,
         });
     }, 300);
+});
+
+watch([search, statusFilter, perPageFilter], () => {
+    clearSelectedOrders();
 });
 
 const getStatusIcon = (status: string) => {
@@ -98,6 +162,32 @@ const { formatRupiah } = useFormatRupiah();
                 </div>
             </div>
 
+            <div v-if="selectedOrderIds.length > 0" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-slate-900 text-white rounded-2xl px-4 py-3 shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center">
+                        <CheckCheck class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <p class="font-semibold">{{ selectedOrderIds.length }} pesanan dipilih</p>
+                        <p class="text-xs text-slate-300">Gunakan aksi massal untuk mempercepat pemrosesan.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <Button variant="outline" class="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white" @click="clearSelectedOrders">
+                        <TimerReset class="mr-2 h-4 w-4" />
+                        Batal
+                    </Button>
+                    <Button class="bg-blue-600 hover:bg-blue-700" @click="openBulkStatusDialog('diproses')">
+                        <Clock class="mr-2 h-4 w-4" />
+                        Tandai Diproses
+                    </Button>
+                    <Button class="bg-emerald-600 hover:bg-emerald-700" @click="openBulkStatusDialog('selesai')">
+                        <CheckCircle2 class="mr-2 h-4 w-4" />
+                        Tandai Selesai
+                    </Button>
+                </div>
+            </div>
+
             <!-- Filters -->
             <div class="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border shadow-sm items-center">
                 <div class="relative flex-1 w-full">
@@ -113,16 +203,31 @@ const { formatRupiah } = useFormatRupiah();
                         </option>
                     </select>
                 </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <Filter class="h-4 w-4 text-gray-400" />
+                    <select v-model="perPageFilter" class="flex h-10 w-full sm:w-[160px] rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                        <option value="12">Tampilkan 12</option>
+                        <option value="24">Tampilkan 24</option>
+                        <option value="48">Tampilkan 48</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Order Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div v-for="order in orders.data" :key="order.id" class="group relative bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                <div v-for="order in orders.data" :key="order.id" class="group relative bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                    :class="isOrderSelected(order.id) ? 'ring-2 ring-primary border-primary' : ''">
                     <!-- Progress Bar (Simulation based on status) -->
                     <div class="absolute top-0 left-0 h-1 bg-primary" :style="{ width: order.status === 'selesai' || order.status === 'diambil' ? '100%' : '50%' }"></div>
                     
                     <div class="p-6 space-y-4">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start gap-4">
+                            <Checkbox
+                                v-if="isAdmin"
+                                :model-value="isOrderSelected(order.id)"
+                                @update:model-value="checked => toggleOrderSelection(order.id, checked)"
+                                class="mt-1"
+                            />
                             <span class="text-[10px] font-black text-gray-300 tracking-widest uppercase">{{ order.transaction_number }}</span>
                             <Badge :class="getStatusColor(order.status)" class="rounded-full px-3 py-0.5 font-bold shadow-sm">
                                 {{ order.status_label }}
@@ -172,5 +277,24 @@ const { formatRupiah } = useFormatRupiah();
                 </div>
             </div>
         </div>
+
+        <Dialog :open="isBulkStatusDialogOpen" @update:open="val => { if (!val) isBulkStatusDialogOpen = false; }">
+            <DialogContent class="sm:max-w-[420px]">
+                <DialogHeader>
+                    <DialogTitle>
+                        {{ bulkStatusTarget === 'selesai' ? 'Tandai Pesanan Selesai' : 'Tandai Pesanan Diproses' }}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Aksi ini akan memperbarui {{ selectedOrderIds.length }} pesanan yang dipilih.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 pt-2">
+                    <Button variant="outline" @click="isBulkStatusDialogOpen = false">Batal</Button>
+                    <Button @click="executeBulkStatusUpdate" :class="bulkStatusTarget === 'selesai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'">
+                        Lanjutkan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
