@@ -17,6 +17,7 @@ interface Service {
     base_price: string | number;
     unit: string;
     has_matrix_pricing: boolean;
+    is_per_meter: boolean;
     is_active: boolean;
     description: string;
     prices_count: number;
@@ -61,8 +62,20 @@ const form = useForm({
     base_price: 0,
     unit: 'lembar',
     has_matrix_pricing: false,
+    is_per_meter: false,
     is_active: true,
     description: '',
+});
+
+// Auto-set is_per_meter & unit saat kategori Banner dipilih
+watch(() => form.category, (val) => {
+    if (val === 'banner') {
+        form.is_per_meter = true;
+        if (form.unit === 'lembar') form.unit = 'meter';
+    } else {
+        form.is_per_meter = false;
+        if (form.unit === 'meter') form.unit = 'lembar';
+    }
 });
 
 const openCreateModal = () => {
@@ -79,6 +92,7 @@ const openEditModal = (service: Service) => {
     form.base_price = Number(service.base_price);
     form.unit = service.unit;
     form.has_matrix_pricing = !!service.has_matrix_pricing;
+    form.is_per_meter = !!service.is_per_meter;
     form.is_active = !!service.is_active;
     form.description = service.description || '';
     isModalOpen.value = true;
@@ -358,7 +372,18 @@ const { formatRupiah } = useFormatRupiah();
                         <textarea id="description" v-model="form.description" class="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600" placeholder="Keterangan singkat tentang layanan ini"></textarea>
                     </div>
 
+                    <!-- Callout otomatis untuk banner -->
+                    <div v-if="form.category === 'banner'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-xs text-indigo-700 flex items-start gap-2">
+                        <span class="text-base leading-none">📐</span>
+                        <span>Kategori <b>Banner / Spanduk</b> otomatis mengaktifkan penghitungan harga per m² (Lebar × Tinggi).</span>
+                    </div>
+
                     <div class="flex items-center space-x-2 pt-2">
+                        <input type="checkbox" id="is_per_meter" v-model="form.is_per_meter" class="rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        <Label for="is_per_meter" class="font-normal cursor-pointer">Harga Per Meter² (input Lebar × Tinggi di kasir)</Label>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
                         <input type="checkbox" id="matrix_pricing" v-model="form.has_matrix_pricing" class="rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                         <Label for="matrix_pricing" class="font-normal cursor-pointer">Gunakan Pricing Matrix (Harga beda per ukuran/warna)</Label>
                     </div>

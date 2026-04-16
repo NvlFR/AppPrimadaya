@@ -30,6 +30,7 @@ class ServiceController extends Controller
                 'base_price'         => $service->base_price,
                 'unit'               => $service->unit,
                 'has_matrix_pricing' => $service->has_matrix_pricing,
+                'is_per_meter'       => $service->is_per_meter,
                 'is_active'          => $service->is_active,
                 'description'        => $service->description,
                 'prices_count'       => $service->prices->count(),
@@ -55,11 +56,12 @@ class ServiceController extends Controller
             'base_price'         => ['required', 'numeric', 'min:0'],
             'unit'               => ['required', 'string', 'max:50'],
             'has_matrix_pricing' => ['boolean'],
+            'is_per_meter'       => ['boolean'],
             'is_active'          => ['boolean'],
             'description'        => ['nullable', 'string'],
         ], [
-            'name.required'     => 'Nama layanan wajib diisi.',
-            'category.required' => 'Kategori layanan wajib dipilih.',
+            'name.required'       => 'Nama layanan wajib diisi.',
+            'category.required'   => 'Kategori layanan wajib dipilih.',
             'base_price.required' => 'Harga dasar wajib diisi.',
         ]);
 
@@ -79,6 +81,7 @@ class ServiceController extends Controller
             'base_price'         => ['required', 'numeric', 'min:0'],
             'unit'               => ['required', 'string', 'max:50'],
             'has_matrix_pricing' => ['boolean'],
+            'is_per_meter'       => ['boolean'],
             'is_active'          => ['boolean'],
             'description'        => ['nullable', 'string'],
         ]);

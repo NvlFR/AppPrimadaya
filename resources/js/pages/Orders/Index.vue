@@ -263,19 +263,47 @@ const { formatRupiah } = useFormatRupiah();
             </div>
 
             <!-- Pagination -->
-            <div class="flex justify-center mt-8" v-if="orders.last_page > 1">
-                <div class="flex items-center gap-2 bg-white p-2 rounded-full border shadow-sm">
-                    <Button 
-                        v-for="link in orders.links" 
-                        :key="link.label"
-                        variant="ghost"
+            <div class="mt-8" v-if="orders.last_page > 1">
+                <!-- Mobile: Prev | Hal X / Y | Next -->
+                <div class="flex items-center justify-between gap-3 md:hidden">
+                    <Button
+                        variant="outline"
                         size="sm"
-                        class="h-8 min-w-[32px] rounded-full"
-                        :class="link.active ? 'bg-primary text-white hover:bg-primary hover:text-white' : ''"
-                        @click="link.url ? router.get(link.url) : null"
-                        :disabled="!link.url"
-                        v-html="link.label"
-                    />
+                        class="h-10 rounded-xl flex-1"
+                        :disabled="!orders.links[0]?.url"
+                        @click="orders.links[0]?.url && router.get(orders.links[0].url)"
+                    >
+                        ← Sebelumnya
+                    </Button>
+                    <span class="shrink-0 text-sm font-semibold text-gray-600 whitespace-nowrap">
+                        {{ orders.current_page }} / {{ orders.last_page }}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="h-10 rounded-xl flex-1"
+                        :disabled="!orders.links[orders.links.length - 1]?.url"
+                        @click="orders.links[orders.links.length - 1]?.url && router.get(orders.links[orders.links.length - 1].url)"
+                    >
+                        Berikutnya →
+                    </Button>
+                </div>
+
+                <!-- Desktop: Full numbered pagination -->
+                <div class="hidden md:flex justify-center">
+                    <div class="flex items-center gap-1 bg-white p-2 rounded-full border shadow-sm flex-wrap justify-center">
+                        <Button
+                            v-for="link in orders.links"
+                            :key="link.label"
+                            variant="ghost"
+                            size="sm"
+                            class="h-8 min-w-[32px] rounded-full"
+                            :class="link.active ? 'bg-primary text-white hover:bg-primary hover:text-white' : ''"
+                            @click="link.url ? router.get(link.url) : null"
+                            :disabled="!link.url"
+                            v-html="link.label"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
