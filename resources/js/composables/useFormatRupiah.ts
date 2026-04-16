@@ -7,6 +7,7 @@ const formatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
+    maximumFractionDigits: 0, // Pastikan tidak ada desimal (contoh: Rp 154.094.162,4 → Rp 154.094.162)
 });
 
 export function useFormatRupiah() {

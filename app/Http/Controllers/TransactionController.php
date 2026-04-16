@@ -81,6 +81,7 @@ class TransactionController extends Controller
                 'base_price' => $s->base_price,
                 'unit' => $s->unit,
                 'has_matrix_pricing' => $s->has_matrix_pricing,
+                'is_per_meter' => (bool) $s->is_per_meter,
                 'is_pinned' => (bool) $s->is_pinned,
                 'prices' => $s->prices->map(fn ($p) => [
                     'paper_size_id' => $p->paper_size_id,
@@ -113,6 +114,8 @@ class TransactionController extends Controller
             'items.*.print_type' => ['required', 'in:color,bw,na'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.width' => ['nullable', 'numeric', 'min:0.1'],
+            'items.*.height' => ['nullable', 'numeric', 'min:0.1'],
             'items.*.item_notes' => ['nullable', 'string'],
             'discount_type' => ['nullable', 'in:percent,flat'],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
@@ -126,8 +129,28 @@ class TransactionController extends Controller
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             try {
                 $transaction = DB::transaction(function () use ($request) {
-                    // Hitung subtotal dari semua item
-                    $subtotal = collect($request->items)->sum(fn ($item) => $item['unit_price'] * $item['qty']);
+                    $serviceIds = collect($request->items)->pluck('service_id')->filter()->unique();
+                    $services = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+
+                    $resolvedItems = collect($request->items)->map(function ($itemData) use ($services) {
+                        $service = $services->get($itemData['service_id']);
+                        $qty = max(1, (int) $itemData['qty']);
+                        $unitPrice = (float) $itemData['unit_price'];
+
+                        if ($service?->is_per_meter) {
+                            $width = max(0.1, (float) ($itemData['width'] ?? 0.1));
+                            $height = max(0.1, (float) ($itemData['height'] ?? 0.1));
+                            $unitPrice = (float) $service->base_price * $width * $height;
+                        }
+
+                        $itemData['qty'] = $qty;
+                        $itemData['unit_price'] = $unitPrice;
+
+                        return $itemData;
+                    });
+
+                    // Hitung subtotal dari semua item berdasarkan harga final yang sudah dinormalisasi
+                    $subtotal = $resolvedItems->sum(fn ($item) => $item['unit_price'] * $item['qty']);
 
                     // Hitung diskon — mendukung persen dan flat nominal
                     $discountType = $request->discount_type ?? 'percent';
@@ -169,14 +192,11 @@ class TransactionController extends Controller
                         'notes' => $request->notes,
                     ]);
 
-                    // Pre-load semua service & paper_size yang dibutuhkan agar tidak terjadi N+1 query dalam loop
-                    $serviceIds = collect($request->items)->pluck('service_id')->filter()->unique();
                     $paperSizeIds = collect($request->items)->pluck('paper_size_id')->filter()->unique();
-                    $services = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
                     $paperSizes = PaperSize::whereIn('id', $paperSizeIds)->get()->keyBy('id');
 
                     // Buat semua item transaksi
-                    foreach ($request->items as $itemData) {
+                    foreach ($resolvedItems as $itemData) {
                         $service = $services->get($itemData['service_id']);
                         $paperSize = isset($itemData['paper_size_id']) ? $paperSizes->get($itemData['paper_size_id']) : null;
 

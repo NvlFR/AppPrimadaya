@@ -272,18 +272,20 @@ const executeDeleteCustomer = () => {
                                 </Badge>
                             </td>
                             <td class="px-6 py-4 text-gray-500">{{ item.created_at }}</td>
-                            <td class="px-6 py-4 text-right space-x-2">
-                                <Link :href="route('customers.show', item.id)">
-                                    <Button variant="outline" size="sm" class="h-8 shadow-sm text-blue-600 border-blue-200 hover:bg-blue-50">
-                                        <EyeIcon class="h-3 w-3 mr-1" /> Detail
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <Link :href="route('customers.show', item.id)">
+                                        <Button variant="outline" size="sm" class="h-8 shadow-sm text-blue-600 border-blue-200 hover:bg-blue-50">
+                                            <EyeIcon class="h-3 w-3 mr-1" /> Detail
+                                        </Button>
+                                    </Link>
+                                    <Button variant="outline" size="icon" class="h-8 w-8 shadow-sm" @click="openEditModal(item)">
+                                        <PencilIcon class="h-3.5 w-3.5" />
                                     </Button>
-                                </Link>
-                                <Button variant="outline" size="sm" class="h-8 shadow-sm" @click="openEditModal(item)">
-                                    <PencilIcon class="h-3 w-3" />
-                                </Button>
-                                <Button variant="destructive" size="sm" class="h-8 shadow-sm" @click="confirmDeleteCustomer(item.id)">
-                                    <TrashIcon class="h-3 w-3" />
-                                </Button>
+                                    <Button variant="destructive" size="icon" class="h-8 w-8 shadow-sm" @click="confirmDeleteCustomer(item.id)">
+                                        <TrashIcon class="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="localData.length === 0 && !isLoadingMore">

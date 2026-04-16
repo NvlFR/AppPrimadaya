@@ -131,6 +131,9 @@ const form = useForm({
         unit_price: number;
         item_notes: string;
         file: File | null;
+        // Dimensi untuk layanan per-meter (contoh: Spanduk)
+        width: number | null;
+        height: number | null;
     }>,
     discount_type: 'percent' as 'percent' | 'flat',
     discount_value: 0,
@@ -224,17 +227,76 @@ const addItem = (serviceId?: number) => {
     const service = props.services.find(s => s.id === idToAdd);
     if (!service) return;
 
+    const isPerMeter = service.is_per_meter;
+    // Harga awal: per-meter = base_price × 1m × 1m, non-meter = base_price langsung
+    const initialPrice = parseFloat(service.base_price);
+
     form.items.push({
         service_id: service.id.toString(),
         paper_size_id: null,
         print_type: service.has_matrix_pricing ? 'bw' : 'na',
         qty: 1,
-        unit_price: service.base_price,
+        unit_price: initialPrice,
         item_notes: '',
         file: null,
+        width: isPerMeter ? 1 : null,
+        height: isPerMeter ? 1 : null,
     });
 
     selectedServiceId.value = ''; // reset dropdown
+};
+
+const findServiceByItem = (item: { service_id: string }) =>
+    props.services.find(service => service.id === parseInt(item.service_id));
+
+const normalizeQty = (item: { qty: number }) => {
+    item.qty = Math.max(1, Number(item.qty) || 1);
+};
+
+const getItemArea = (item: { width: number | null; height: number | null }) => {
+    const width = Number(item.width) || 0;
+    const height = Number(item.height) || 0;
+
+    return width * height;
+};
+
+const getItemUnitPrice = (item: {
+    service_id: string;
+    unit_price: number;
+    width: number | null;
+    height: number | null;
+}) => {
+    const service = findServiceByItem(item);
+
+    if (service?.is_per_meter) {
+        return parseFloat(service.base_price) * getItemArea(item);
+    }
+
+    return Number(item.unit_price) || 0;
+};
+
+const getItemSubtotal = (item: {
+    service_id: string;
+    unit_price: number;
+    qty: number;
+    width: number | null;
+    height: number | null;
+}) => getItemUnitPrice(item) * Math.max(1, Number(item.qty) || 1);
+
+/**
+ * Menghitung ulang unit_price berdasarkan dimensi (lebar × tinggi) untuk layanan per-meter.
+ * Dipanggil setiap kali input dimensi berubah.
+ */
+const updateDimensions = (index: number) => {
+    const item = form.items[index];
+    const service = props.services.find(s => s.id === parseInt(item.service_id));
+    if (service?.is_per_meter) {
+        const w = Math.max(0.1, Number(item.width) || 0.1);
+        const h = Math.max(0.1, Number(item.height) || 0.1);
+        item.width = w;
+        item.height = h;
+        item.unit_price = parseFloat(service.base_price) * w * h;
+    }
 };
 
 // ============================================================
@@ -280,7 +342,7 @@ const updateFormattedItemPrice = (index: number, value: string | number) => {
 // Perhitungan Total Otomatis
 // ============================================================
 const subtotal = computed(() =>
-    form.items.reduce((sum, item) => sum + (item.unit_price * item.qty), 0)
+    form.items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
 );
 
 // Perhitungan diskon — mendukung persen & flat nominal (Issue #9)
@@ -401,6 +463,11 @@ const submitTransaction = () => {
     form.transform((data) => ({
         ...data,
         customer_id: data.customer_id === 'none' ? '' : data.customer_id,
+        items: data.items.map((item) => ({
+            ...item,
+            qty: Math.max(1, Number(item.qty) || 1),
+            unit_price: getItemUnitPrice(item),
+        })),
         // Kirim discount_amount yang dihitung agar backend tidak perlu hitung ulang
         discount_amount: discountAmount.value,
     })).post(route('transactions.store'), {
@@ -489,7 +556,7 @@ const shouldShowPaymentError = computed(() =>
         </div>
 
         <!-- Layout Kiri (Keranjang & Setup) - Kanan (Ringkasan & Bayar) -->
-        <div class="relative z-10 mt-5 grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div class="relative z-10 mt-5 grid min-w-0 grid-cols-1 items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_400px]">
 
             <!-- KOLOM KIRI: Keranjang Belanja -->
             <div class="flex min-w-0 flex-col gap-5">
@@ -747,8 +814,17 @@ const shouldShowPaymentError = computed(() =>
 
                                 <div class="flex items-center justify-between gap-4">
                                     <div class="w-1/3">
-                                        <Label class="text-[10px] text-gray-400 uppercase">Harga</Label>
+                                        <Label class="text-[10px] text-gray-400 uppercase">
+                                            {{ findServiceByItem(item)?.is_per_meter ? 'Harga /meter' : 'Harga' }}
+                                        </Label>
+                                        <div
+                                            v-if="findServiceByItem(item)?.is_per_meter"
+                                            class="mt-0.5 flex h-9 items-center justify-end rounded-md border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800"
+                                        >
+                                            {{ formatRupiah(findServiceByItem(item)?.base_price || 0) }}
+                                        </div>
                                         <Input
+                                            v-else
                                             :model-value="formatAngka(item.unit_price)"
                                             type="text"
                                             inputmode="numeric"
@@ -758,11 +834,11 @@ const shouldShowPaymentError = computed(() =>
                                     </div>
                                     <div class="w-1/4">
                                         <Label class="text-[10px] text-gray-400 uppercase">Qty</Label>
-                                        <Input v-model="item.qty" type="number" class="h-9 text-center bg-white mt-0.5" />
+                                        <Input v-model.number="item.qty" type="number" min="1" class="h-9 text-center bg-white mt-0.5" @update:model-value="() => normalizeQty(item)" />
                                     </div>
                                     <div class="flex-1 text-right pt-4">
                                         <p class="text-xs text-gray-500">Subtotal</p>
-                                        <p class="font-bold text-gray-900">{{ formatRupiah(item.unit_price * item.qty) }}</p>
+                                        <p class="font-bold text-gray-900">{{ formatRupiah(getItemSubtotal(item)) }}</p>
                                     </div>
                                 </div>
 
@@ -782,93 +858,169 @@ const shouldShowPaymentError = computed(() =>
                         </div>
 
                         <!-- Desktop POS Item List -->
-                        <div v-if="form.items.length > 0" class="hidden max-w-full overflow-hidden p-4 md:block">
-                            <div class="space-y-3">
-                                <div
-                                    v-for="(item, index) in form.items"
-                                    :key="index"
-                                    class="min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-blue-50/20"
-                                >
-                                    <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
-                                        <div class="min-w-0 space-y-3 lg:col-span-12 2xl:col-span-5">
-                                            <div class="flex items-start justify-between gap-3">
-                                                <div class="min-w-0">
-                                                    <p class="truncate text-base font-semibold text-gray-900">
-                                                        {{ services.find(s => s.id == item.service_id)?.name }}
-                                                    </p>
-                                                    <p class="mt-0.5 text-xs text-gray-400">Item #{{ index + 1 }}</p>
-                                                </div>
-                                                <div class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary 2xl:hidden">
-                                                    {{ formatRupiah(item.unit_price * item.qty) }}
-                                                </div>
-                                            </div>
-
-                                            <Input v-model="item.item_notes" placeholder="Catatan item, contoh: pakai spiral" class="h-9 bg-white text-xs" />
-
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <input type="file" :id="`file-${index}`" class="hidden" @change="(e: any) => item.file = e.target.files[0]">
-                                                <label
-                                                    :for="`file-${index}`"
-                                                    class="inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold uppercase text-blue-700 transition-colors hover:bg-blue-100"
-                                                >
-                                                    <Plus class="h-3 w-3 shrink-0 text-blue-600" />
-                                                    <span class="truncate">{{ item.file ? item.file.name : 'Upload File' }}</span>
-                                                </label>
-                                                <Button v-if="item.file" variant="ghost" size="icon" @click="item.file = null" class="h-7 w-7 text-red-500">
-                                                    <Trash2 class="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        <div class="min-w-0 space-y-2 lg:col-span-4 2xl:col-span-2">
-                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Ukuran / Tipe</Label>
-                                            <div v-if="services.find(s => s.id == item.service_id)?.has_matrix_pricing" class="grid min-w-0 grid-cols-2 gap-2 2xl:grid-cols-1">
-                                                <Select v-model="item.paper_size_id" @update:modelValue="updateItemPrice(index)">
-                                                    <SelectTrigger class="h-9 bg-white text-xs"><SelectValue placeholder="Ukuran" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem v-for="ps in paper_sizes" :key="ps.id" :value="ps.id.toString()">Kertas {{ ps.name }}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select v-model="item.print_type" @update:modelValue="updateItemPrice(index)">
-                                                    <SelectTrigger class="h-9 bg-white text-xs"><SelectValue placeholder="Warna/BW" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="color">Warna Full</SelectItem>
-                                                        <SelectItem value="bw">Hitam Putih</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div v-else class="rounded-md border border-dashed bg-gray-50 px-3 py-2 text-xs text-gray-400">Standar</div>
-                                        </div>
-
-                                        <div class="min-w-0 space-y-2 lg:col-span-3 2xl:col-span-2">
-                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Harga</Label>
-                                            <Input
-                                                :model-value="formatAngka(item.unit_price)"
-                                                type="text"
-                                                inputmode="numeric"
-                                                class="h-9 bg-white text-right font-medium"
-                                                @update:model-value="value => updateFormattedItemPrice(index, value)"
-                                            />
-                                        </div>
-
-                                        <div class="min-w-0 space-y-2 lg:col-span-2 2xl:col-span-1">
-                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Qty</Label>
-                                            <Input v-model="item.qty" type="number" class="h-9 bg-white text-center font-medium" min="1" />
-                                        </div>
-
-                                        <div class="hidden min-w-0 space-y-2 text-right 2xl:col-span-1 2xl:block">
-                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Subtotal</Label>
-                                            <div class="rounded-md bg-gray-50 px-3 py-2 text-sm font-bold text-gray-900">
-                                                {{ formatRupiah(item.unit_price * item.qty) }}
-                                            </div>
-                                        </div>
-
-                                        <div class="flex justify-end lg:col-span-3 lg:pt-6 2xl:col-span-1">
-                                            <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-9 w-9 text-red-500 hover:bg-red-50">
-                                                <Trash2 class="h-4 w-4" />
-                                            </Button>
+                        <div v-if="form.items.length > 0" class="hidden min-w-0 flex-col gap-3 p-4 md:flex">
+                            <div
+                                v-for="(item, index) in form.items"
+                                :key="index"
+                                class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
+                            >
+                                <!-- Baris 1: Header item — nama + badge subtotal + tombol hapus -->
+                                <div class="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/60 px-4 py-2.5">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                                                {{ index + 1 }}
+                                            </span>
+                                            <p class="truncate text-sm font-semibold text-gray-900">
+                                                {{ services.find(s => s.id == item.service_id)?.name }}
+                                            </p>
+                                            <span class="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+                                                {{ formatRupiah(getItemSubtotal(item)) }}
+                                            </span>
                                         </div>
                                     </div>
+                                    <Button @click="confirmRemoveItem(index)" variant="ghost" size="icon" class="h-7 w-7 shrink-0 text-red-400 hover:bg-red-50 hover:text-red-600">
+                                        <Trash2 class="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+
+                                <!-- Baris 2: Catatan + upload file -->
+                                <div class="flex items-center gap-3 px-4 pt-3">
+                                    <div class="flex-1 min-w-0">
+                                        <Input v-model="item.item_notes" placeholder="Catatan item, contoh: pakai spiral" class="h-8 bg-white text-xs" />
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-1.5">
+                                        <input type="file" :id="`file-${index}`" class="hidden" @change="(e: any) => item.file = e.target.files[0]">
+                                        <label
+                                            :for="`file-${index}`"
+                                            class="inline-flex cursor-pointer items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-semibold uppercase text-blue-700 transition-colors hover:bg-blue-100"
+                                        >
+                                            <Plus class="h-3 w-3 text-blue-600" />
+                                            <span class="max-w-[120px] truncate">{{ item.file ? item.file.name : 'Upload File' }}</span>
+                                        </label>
+                                        <Button v-if="item.file" variant="ghost" size="icon" @click="item.file = null" class="h-7 w-7 text-red-500">
+                                            <Trash2 class="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Baris 3: Kontrol harga (flex-wrap agar tidak overflow) -->
+                                <div class="flex flex-wrap items-end gap-3 px-4 pb-4 pt-3">
+
+                                    <!-- ===== MATRIX PRICING (Fotocopy/Print): Pilih Ukuran & Tipe ===== -->
+                                    <template v-if="services.find(s => s.id == item.service_id)?.has_matrix_pricing">
+                                        <div class="space-y-1">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Ukuran Kertas</Label>
+                                            <Select v-model="item.paper_size_id" @update:modelValue="updateItemPrice(index)">
+                                                <SelectTrigger class="h-9 w-[130px] bg-white text-xs"><SelectValue placeholder="Pilih Ukuran" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem v-for="ps in paper_sizes" :key="ps.id" :value="ps.id.toString()">Kertas {{ ps.name }}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Tipe Cetak</Label>
+                                            <Select v-model="item.print_type" @update:modelValue="updateItemPrice(index)">
+                                                <SelectTrigger class="h-9 w-[120px] bg-white text-xs"><SelectValue placeholder="Warna/BW" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="color">Warna Full</SelectItem>
+                                                    <SelectItem value="bw">Hitam Putih</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </template>
+
+                                    <!-- ===== PER METER (Spanduk): Input Lebar × Tinggi ===== -->
+                                    <template v-else-if="services.find(s => s.id == item.service_id)?.is_per_meter">
+                                        <div class="flex items-end gap-2">
+                                            <div class="space-y-1">
+                                                <Label class="text-[10px] font-bold uppercase text-gray-400">Lebar (m)</Label>
+                                                <Input
+                                                    v-model.number="item.width"
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0.1"
+                                                    class="h-9 w-[80px] bg-white text-center font-medium"
+                                                    @input="updateDimensions(index)"
+                                                />
+                                            </div>
+                                            <span class="mb-2 font-bold text-gray-400">×</span>
+                                            <div class="space-y-1">
+                                                <Label class="text-[10px] font-bold uppercase text-gray-400">Tinggi (m)</Label>
+                                                <Input
+                                                    v-model.number="item.height"
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0.1"
+                                                    class="h-9 w-[80px] bg-white text-center font-medium"
+                                                    @input="updateDimensions(index)"
+                                                />
+                                            </div>
+                                            <div class="space-y-1">
+                                                <Label class="text-[10px] font-bold uppercase text-gray-400">= Luas (m²)</Label>
+                                                <div class="flex h-9 w-[75px] items-center justify-center rounded-md border border-dashed bg-indigo-50 text-sm font-bold text-indigo-700">
+                                                    {{ getItemArea(item).toFixed(2) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Tarif /meter</Label>
+                                            <div class="flex h-9 items-center rounded-md border border-dashed bg-gray-50 px-3 text-xs text-gray-500">
+                                                {{ formatRupiah(services.find(s => s.id == item.service_id)?.base_price || 0) }}
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- ===== SERVICE STANDAR (non-matrix, non-meter) ===== -->
+                                    <template v-else>
+                                        <div class="space-y-1">
+                                            <Label class="text-[10px] font-bold uppercase text-gray-400">Tipe</Label>
+                                            <div class="flex h-9 items-center rounded-md border border-dashed bg-gray-50 px-3 text-xs text-gray-400">Standar</div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Divider vertikal -->
+                                    <div class="hidden h-9 w-px self-end bg-gray-200 lg:block"></div>
+
+                                    <!-- Harga (editable untuk non-spanduk, read-only untuk spanduk) -->
+                                    <div class="space-y-1">
+                                        <Label class="text-[10px] font-bold uppercase text-gray-400">
+                                            {{ services.find(s => s.id == item.service_id)?.is_per_meter ? 'Harga per desain' : 'Harga Satuan' }}
+                                        </Label>
+                                        <div v-if="services.find(s => s.id == item.service_id)?.is_per_meter"
+                                            class="flex h-9 w-[130px] items-center justify-end rounded-md border border-indigo-200 bg-indigo-50 px-3 text-sm font-bold text-indigo-800">
+                                            {{ formatRupiah(getItemUnitPrice(item)) }}
+                                        </div>
+                                        <Input
+                                            v-else
+                                            :model-value="formatAngka(item.unit_price)"
+                                            type="text"
+                                            inputmode="numeric"
+                                            class="h-9 w-[120px] bg-white text-right font-medium"
+                                            @update:model-value="value => updateFormattedItemPrice(index, value)"
+                                        />
+                                    </div>
+
+                                    <!-- Qty -->
+                                    <div class="space-y-1">
+                                        <Label class="text-[10px] font-bold uppercase text-gray-400">Qty</Label>
+                                        <Input
+                                            v-model.number="item.qty"
+                                            type="number"
+                                            class="h-9 w-[70px] bg-white text-center font-medium"
+                                            min="1"
+                                            @update:model-value="() => normalizeQty(item)"
+                                        />
+                                    </div>
+
+                                    <!-- Subtotal (auto-hitung) -->
+                                    <div class="space-y-1">
+                                        <Label class="text-[10px] font-bold uppercase text-gray-400">Subtotal</Label>
+                                        <div class="flex h-9 min-w-[120px] items-center justify-end rounded-md bg-primary/10 px-3 text-sm font-bold text-primary">
+                                            {{ formatRupiah(getItemSubtotal(item)) }}
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -877,7 +1029,7 @@ const shouldShowPaymentError = computed(() =>
             </div>
 
             <!-- KOLOM KANAN: Pembayaran & Ringkasan -->
-            <div class="min-w-0 xl:sticky xl:top-20">
+            <div class="min-w-0 2xl:sticky 2xl:top-20">
                 <Card class="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.08)]">
                     <!-- Header Total -->
                     <div class="bg-[linear-gradient(135deg,#2563eb_0%,#1d4ed8_100%)] px-5 py-5 text-white">

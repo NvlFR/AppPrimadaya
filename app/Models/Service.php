@@ -17,6 +17,7 @@ class Service extends Model
         'unit',
         'has_matrix_pricing',
         'is_active',
+        'is_per_meter',
         'description',
     ];
 
@@ -26,6 +27,7 @@ class Service extends Model
             'base_price' => 'decimal:2',
             'has_matrix_pricing' => 'boolean',
             'is_active' => 'boolean',
+            'is_per_meter' => 'boolean',
         ];
     }
 
