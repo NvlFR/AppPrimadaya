@@ -1,3 +1,4 @@
+/// <reference types="vite-plugin-pwa/client" />
 import type { Auth } from '@/types/auth';
 
 // Extend ImportMeta interface for Vite...

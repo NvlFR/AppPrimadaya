@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon } from 'lucide-vue-next';
+import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon, CheckCircle } from 'lucide-vue-next';
 import VueApexCharts from 'vue3-apexcharts';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 const props = defineProps<{
@@ -35,6 +35,14 @@ const props = defineProps<{
         transaction_number: string;
         customer_name: string;
         total: number;
+        status: string;
+        status_label: string;
+        created_at: string;
+    }>;
+    active_orders: Array<{
+        id: number;
+        transaction_number: string;
+        customer_name: string;
         status: string;
         status_label: string;
         created_at: string;
@@ -142,6 +150,34 @@ const openCreateModal = () => {
     // form.reset();
     // isModalOpen.value = true;
 };
+
+// ========= QUEUE LOGIC =========
+const activeQueueTab = ref<'semua' | 'pending' | 'diproses' | 'selesai'>('semua');
+
+const filteredQueue = computed(() => {
+    let filtered = props.active_orders;
+    if (activeQueueTab.value !== 'semua') {
+        filtered = props.active_orders.filter(trx => trx.status === activeQueueTab.value);
+    }
+    return filtered;
+});
+
+const displayedQueue = computed(() => {
+    return filteredQueue.value.slice(0, 10);
+});
+
+const remainingQueueCount = computed(() => {
+    return filteredQueue.value.length > 10 ? filteredQueue.value.length - 10 : 0;
+});
+
+const updateOrderStatus = (id: number, newStatus: string) => {
+    router.patch(route('transactions.status', id), {
+        status: newStatus
+    }, {
+        preserveScroll: true,
+    });
+};
+// ===============================
 </script>
 
 <template>
@@ -178,7 +214,9 @@ const openCreateModal = () => {
                         </div>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <div class="text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.today_revenue) }}</div>
+                        <div class="text-2xl font-bold leading-tight text-gray-900">
+                            <span>{{ formatRupiah(stats.today_revenue) }}</span>
+                        </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-xs text-muted-foreground">
                                 <span class="text-green-600 font-medium">{{ stats.today_transactions }}</span> transaksi berhasil
@@ -206,7 +244,7 @@ const openCreateModal = () => {
                     </CardContent>
                 </Card>
 
-                <Card class="hover:shadow-md transition-shadow border">
+                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium text-gray-500">Omset Bulan Ini</CardTitle>
                         <div class="h-8 w-8 bg-green-50 flex items-center justify-center rounded-lg text-green-600">
@@ -221,7 +259,7 @@ const openCreateModal = () => {
                     </CardContent>
                 </Card>
 
-                <Card class="hover:shadow-md transition-shadow border">
+                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium text-gray-500">Pengeluaran Bulan Ini</CardTitle>
                         <div class="h-8 w-8 bg-red-50 flex items-center justify-center rounded-lg text-red-600">
@@ -236,7 +274,7 @@ const openCreateModal = () => {
                     </CardContent>
                 </Card>
 
-                <Card class="hover:shadow-md transition-shadow border" :class="netProfitTone">
+                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border" :class="netProfitTone">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Laba Bersih</CardTitle>
                         <div class="h-8 w-8 rounded-lg flex items-center justify-center bg-white/70">
@@ -254,9 +292,9 @@ const openCreateModal = () => {
                 </Card>
             </div>
 
-            <div class="grid gap-6 lg:grid-cols-7">
+            <div class="grid gap-6" :class="$page.props.auth.role === 'admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-2'">
                 <!-- Chart Section -->
-                <Card class="lg:col-span-4 hover:shadow-md transition-shadow border">
+                <Card v-if="$page.props.auth.role === 'admin'" class="lg:col-span-4 hover:shadow-md transition-shadow border">
                     <CardHeader>
                         <CardTitle class="text-lg text-gray-800">Grafik Penjualan 7 Hari Terakhir</CardTitle>
                     </CardHeader>
@@ -272,7 +310,7 @@ const openCreateModal = () => {
                     </CardContent>
                 </Card>
 
-                <Card class="lg:col-span-3 hover:shadow-md transition-shadow border">
+                <Card v-if="$page.props.auth.role === 'admin'" class="lg:col-span-3 hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between pb-2">
                         <CardTitle class="text-lg text-gray-800">Distribusi Omzet</CardTitle>
                         <PieChart class="h-4 w-4 text-gray-400" />
@@ -290,11 +328,82 @@ const openCreateModal = () => {
                     </CardContent>
                 </Card>
 
+                <!-- Antrian & Pesanan Aktif -->
+                <Card class="hover:shadow-md transition-shadow border" :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'">
+                    <CardHeader class="flex flex-col space-y-2 pb-2">
+                        <div class="flex items-center justify-between w-full">
+                            <CardTitle class="text-lg text-gray-800">Antrian Aktif</CardTitle>
+                            <Button as-child variant="outline" size="sm" class="h-8 text-xs">
+                                <Link :href="route('transactions.index')">Kelola</Link>
+                            </Button>
+                        </div>
+                        
+                        <!-- Tabs -->
+                        <div class="flex gap-2 border-b mt-2 overflow-x-auto pb-1 no-scrollbar">
+                            <button @click="activeQueueTab = 'semua'" :class="activeQueueTab === 'semua' ? 'border-primary text-primary font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Semua</button>
+                            <button @click="activeQueueTab = 'pending'" :class="activeQueueTab === 'pending' ? 'border-yellow-500 text-yellow-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Pending</button>
+                            <button @click="activeQueueTab = 'diproses'" :class="activeQueueTab === 'diproses' ? 'border-blue-500 text-blue-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Diproses</button>
+                            <button @click="activeQueueTab = 'selesai'" :class="activeQueueTab === 'selesai' ? 'border-green-500 text-green-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Selesai</button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-3 mt-2">
+                            <div v-if="displayedQueue.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                                Tidak ada antrian berjalan saat ini.
+                            </div>
+
+                            <div v-for="(trx, index) in displayedQueue" :key="trx.id" class="flex flex-col sm:flex-row sm:items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border" :class="{ 'border-l-4 border-l-yellow-400': trx.status === 'pending', 'border-gray-100': trx.status !== 'pending' }">
+                                <div class="flex justify-between items-start sm:items-center w-full">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <div class="h-8 w-8 text-xs font-bold bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm text-gray-600 shrink-0">
+                                            #{{ index + 1 }}
+                                        </div>
+                                        <div class="space-y-0.5">
+                                            <p class="text-sm font-bold leading-none text-gray-900">{{ trx.customer_name }}</p>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[10px] text-gray-400 font-mono">{{ trx.transaction_number }}</span>
+                                                <span class="text-[10px] text-gray-400">• {{ trx.created_at }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Badges & Action -->
+                                    <div class="flex items-center justify-end gap-2 sm:gap-3 mt-2 sm:mt-0 shrink-0">
+                                        <span class="inline-flex justify-center text-[10px] items-center px-1 py-0.5 rounded-full border border-gray-200 font-medium w-[72px] shrink-0"
+                                            :class="getStatusColor(trx.status)">
+                                            {{ trx.status_label }}
+                                        </span>
+                                        
+                                        <!-- Actions -->
+                                        <template v-if="trx.status === 'pending'">
+                                            <Button @click="updateOrderStatus(trx.id, 'diproses')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-blue-600 border-blue-200 hover:bg-blue-50">Proses</Button>
+                                        </template>
+                                        <template v-else-if="trx.status === 'diproses'">
+                                            <Button @click="updateOrderStatus(trx.id, 'selesai')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-green-600 border-green-200 hover:bg-green-50">Selesai</Button>
+                                        </template>
+                                        <template v-else-if="trx.status === 'selesai'">
+                                            <Button @click="updateOrderStatus(trx.id, 'diambil')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-gray-600 border-gray-200 hover:bg-gray-50">Diambil</Button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="remainingQueueCount > 0" class="text-center pt-2">
+                                <Link :href="route('transactions.index', { status: activeQueueTab !== 'semua' ? activeQueueTab : '' })" class="text-xs text-gray-500 hover:text-primary transition-colors">
+                                    + {{ remainingQueueCount }} antrian lainnya. Lihat semua.
+                                </Link>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <!-- Recent Transactions Table -->
-                <Card class="lg:col-span-7 hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row justify-between items-center pb-2">
+                <Card :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'" class="hover:shadow-md transition-shadow border">
+                    <CardHeader class="flex flex-row justify-between items-center pb-2 w-full">
                         <CardTitle class="text-lg text-gray-800">Transaksi Terbaru</CardTitle>
-                        <Link :href="route('transactions.index')" class="text-sm text-primary hover:underline font-medium">Lihat Semua</Link>
+                        <Button as-child variant="outline" size="sm" class="h-8 text-xs">
+                            <Link :href="route('transactions.index')">Lihat Semua</Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-4">
@@ -309,17 +418,19 @@ const openCreateModal = () => {
                                 <div class="space-y-1 flex-1">
                                     <p class="text-sm font-semibold leading-none text-gray-900">{{ trx.customer_name }}</p>
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <p class="text-xs text-gray-500">
+                                        <p class="text-xs text-gray-500 font-mono">
                                             {{ trx.transaction_number }}
                                         </p>
-                                        <span class="inline-flex text-[10px] items-center px-2 py-0.5 rounded-full border border-gray-200 font-medium"
-                                            :class="getStatusColor(trx.status)">
-                                            {{ trx.status_label }}
-                                        </span>
                                     </div>
                                 </div>
-                                <div class="ml-auto font-bold text-sm text-gray-900">
-                                    {{ formatRupiah(trx.total) }}
+                                <div class="ml-auto flex flex-col items-end gap-1.5 shrink-0">
+                                    <div class="font-bold text-sm text-gray-900">
+                                        {{ formatRupiah(trx.total) }}
+                                    </div>
+                                    <span class="inline-flex justify-center text-[10px] items-center px-1 py-0.5 rounded-full border border-gray-200 font-medium w-[72px]"
+                                        :class="getStatusColor(trx.status)">
+                                        {{ trx.status_label }}
+                                    </span>
                                 </div>
                             </div>
                         </div>

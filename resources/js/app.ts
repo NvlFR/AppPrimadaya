@@ -9,6 +9,12 @@ import { route } from 'ziggy-js';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+if (typeof window !== 'undefined') {
+    import('virtual:pwa-register').then(({ registerSW }) => {
+        registerSW({ immediate: true });
+    }).catch(() => {});
+}
+
 // Pastikan fungsi route dikenali di context global (terutama di <script setup> tanpa perlu import manual)
 if (typeof globalThis !== 'undefined') {
     (globalThis as any).route = route;
