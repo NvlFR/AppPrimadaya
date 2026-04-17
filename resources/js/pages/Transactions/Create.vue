@@ -298,10 +298,8 @@ const updateDimensions = (index: number) => {
     const item = form.items[index];
     const service = props.services.find(s => s.id === parseInt(item.service_id));
     if (service?.is_per_meter) {
-        const w = Math.max(0.1, Number(item.width) || 0.1);
-        const h = Math.max(0.1, Number(item.height) || 0.1);
-        item.width = w;
-        item.height = h;
+        const w = Number(item.width) || 0;
+        const h = Number(item.height) || 0;
         item.unit_price = parseFloat(service.base_price) * w * h;
     }
 };
@@ -964,7 +962,7 @@ const shouldShowPaymentError = computed(() =>
                                                     v-model.number="item.width"
                                                     type="number"
                                                     step="0.1"
-                                                    min="0.1"
+                                                    min="0.5"
                                                     class="h-9 w-[80px] bg-white text-center font-medium"
                                                     @input="updateDimensions(index)"
                                                 />
@@ -976,7 +974,7 @@ const shouldShowPaymentError = computed(() =>
                                                     v-model.number="item.height"
                                                     type="number"
                                                     step="0.1"
-                                                    min="0.1"
+                                                    min="0.5"
                                                     class="h-9 w-[80px] bg-white text-center font-medium"
                                                     @input="updateDimensions(index)"
                                                 />
