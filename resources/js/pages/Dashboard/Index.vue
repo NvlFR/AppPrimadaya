@@ -5,8 +5,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon, CheckCircle } from 'lucide-vue-next';
-import VueApexCharts from 'vue3-apexcharts';
-import { computed, ref } from 'vue';
+import { computed, ref, defineAsyncComponent } from 'vue';
+
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'));
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 const props = defineProps<{
@@ -292,7 +293,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                 </Card>
             </div>
 
-            <div class="grid gap-6" :class="$page.props.auth.role === 'admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-2'">
+            <div class="grid gap-6 items-stretch" :class="$page.props.auth.role === 'admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-2'">
                 <!-- Chart Section -->
                 <Card v-if="$page.props.auth.role === 'admin'" class="lg:col-span-4 hover:shadow-md transition-shadow border">
                     <CardHeader>
@@ -329,7 +330,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                 </Card>
 
                 <!-- Antrian & Pesanan Aktif -->
-                <Card class="hover:shadow-md transition-shadow border" :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'">
+                <Card class="hover:shadow-md transition-shadow border h-full" :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'">
                     <CardHeader class="flex flex-col space-y-2 pb-2">
                         <div class="flex items-center justify-between w-full">
                             <CardTitle class="text-lg text-gray-800">Antrian Aktif</CardTitle>
@@ -346,8 +347,9 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                             <button @click="activeQueueTab = 'selesai'" :class="activeQueueTab === 'selesai' ? 'border-green-500 text-green-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Selesai</button>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div class="space-y-3 mt-2">
+                    <CardContent class="p-0">
+                        <div class="overflow-y-auto max-h-[480px] px-6 pb-6">
+                            <div class="space-y-3 mt-2">
                             <div v-if="displayedQueue.length === 0" class="text-center py-8 text-gray-500 text-sm">
                                 Tidak ada antrian berjalan saat ini.
                             </div>
@@ -393,20 +395,22 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                                     + {{ remainingQueueCount }} antrian lainnya. Lihat semua.
                                 </Link>
                             </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 <!-- Recent Transactions Table -->
-                <Card :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'" class="hover:shadow-md transition-shadow border">
+                <Card :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'" class="hover:shadow-md transition-shadow border h-full">
                     <CardHeader class="flex flex-row justify-between items-center pb-2 w-full">
                         <CardTitle class="text-lg text-gray-800">Transaksi Terbaru</CardTitle>
                         <Button as-child variant="outline" size="sm" class="h-8 text-xs">
                             <Link :href="route('transactions.index')">Lihat Semua</Link>
                         </Button>
                     </CardHeader>
-                    <CardContent>
-                        <div class="space-y-4">
+                    <CardContent class="p-0">
+                        <div class="overflow-y-auto max-h-[480px] px-6 pb-6">
+                            <div class="space-y-4">
                             <div v-if="recent_transactions.length === 0" class="text-center py-8 text-gray-500 text-sm">
                                 Belum ada transaksi hari ini.
                             </div>
@@ -432,6 +436,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                                         {{ trx.status_label }}
                                     </span>
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </CardContent>

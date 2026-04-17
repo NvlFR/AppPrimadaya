@@ -47,6 +47,55 @@ export default defineConfig({
                     }
                 ]
             },
+            workbox: {
+                // Hanya precache file kecil: HTML, ikon, manifest
+                // JS/CSS besar ditangani via runtimeCaching di bawah
+                globPatterns: ['**/*.{ico,png,svg,webmanifest}'],
+                maximumFileSizeToCacheInBytes: 150 * 1024, // Maks 150 KB per file saat precache
+
+                runtimeCaching: [
+                    {
+                        // JS chunks: CacheFirst karena nama file sudah di-hash
+                        urlPattern: /\/build\/assets\/.*\.js$/,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'js-chunks-v1',
+                            expiration: {
+                                maxEntries: 60,
+                                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
+                            },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        // CSS: CacheFirst karena sudah di-hash
+                        urlPattern: /\/build\/assets\/.*\.css$/,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'css-chunks-v1',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
+                            },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        // Halaman Inertia: NetworkFirst agar data selalu fresh
+                        urlPattern: ({ request }) => request.mode === 'navigate',
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'pages-v1',
+                            networkTimeoutSeconds: 8,
+                            expiration: {
+                                maxEntries: 20,
+                                maxAgeSeconds: 24 * 60 * 60, // 1 hari (offline fallback)
+                            },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                ],
+            },
             devOptions: {
                 enabled: false,
             }
@@ -57,6 +106,38 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    build: {
+        // Suppress warning untuk chunk besar yang memang lazy (ApexCharts)
+        chunkSizeWarningLimit: 600,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return;
+
+                    // Chart library — hanya dimuat lazy di halaman Dashboard Admin
+                    if (id.includes('apexcharts') || id.includes('vue3-apexcharts')) {
+                        return 'vendor-charts';
+                    }
+                    // Icon library — shared, beri chunk tersendiri untuk cache efisien
+                    if (id.includes('lucide-vue-next')) {
+                        return 'vendor-icons';
+                    }
+                    // Shadcn UI primitives (Reka-UI + floating-ui)
+                    if (id.includes('reka-ui') || id.includes('@floating-ui')) {
+                        return 'vendor-ui';
+                    }
+                    // VueUse utilities
+                    if (id.includes('@vueuse/core') || id.includes('@vueuse/shared')) {
+                        return 'vendor-vueuse';
+                    }
+                    // Inertia + Ziggy: core routing layer, stable → cache tersendiri
+                    if (id.includes('@inertiajs') || id.includes('ziggy-js')) {
+                        return 'vendor-core';
+                    }
+                },
+            },
+        },
+    },
     server: {
         host: true,
         hmr: {

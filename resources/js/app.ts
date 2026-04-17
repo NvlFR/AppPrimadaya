@@ -1,11 +1,12 @@
 import { createInertiaApp } from '@inertiajs/vue3';
-import { createApp, createSSRApp, h } from 'vue';
-import { initializeTheme } from '@/composables/useAppearance';
+import { createApp, createSSRApp, defineAsyncComponent, h } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import AuthLayout from '@/layouts/AuthLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { ZiggyVue } from 'ziggy-js';
 import { route } from 'ziggy-js';
+
+// Layout non-kritis dimuat lazy — tidak masuk main bundle
+const AuthLayout = defineAsyncComponent(() => import('@/layouts/AuthLayout.vue'));
+const SettingsLayout = defineAsyncComponent(() => import('@/layouts/settings/Layout.vue'));
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
