@@ -48,7 +48,7 @@ class DashboardController extends Controller
         
         $activeOrders = Transaction::with(['customer'])
             ->whereIn('status', ['pending', 'diproses', 'selesai'])
-            ->orderByRaw("FIELD(status, 'pending', 'diproses', 'selesai')")
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 1 WHEN status = 'diproses' THEN 2 WHEN status = 'selesai' THEN 3 ELSE 4 END")
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn ($trx) => [
