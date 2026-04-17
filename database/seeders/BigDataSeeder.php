@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
+use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Faker\Factory as Faker;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class BigDataSeeder extends Seeder
 {
@@ -17,10 +16,10 @@ class BigDataSeeder extends Seeder
     public function run(): void
     {
         $faker = Faker::create('id_ID'); // Pakai locale Indonesia
-        
+
         // 1. Matikan pengecekan foreign key biar kencang
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
+
         // Bersihkan data lama (opsional, tapi seeder ini untuk demo data banyak)
         $this->command->info('Membersihkan data lama...');
         DB::table('transaction_items')->truncate();
@@ -55,13 +54,13 @@ class BigDataSeeder extends Seeder
         for ($i = 0; $i < 10000; $i++) {
             $customers[] = [
                 'name' => $faker->name,
-                'phone' => '08' . $faker->numerify('##########'),
+                'phone' => '08'.$faker->numerify('##########'),
                 'address' => $faker->address,
                 'notes' => $faker->boolean(20) ? $faker->sentence : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-            
+
             if (count($customers) >= 1000) {
                 DB::table('customers')->insert($customers);
                 $customers = [];
@@ -71,27 +70,27 @@ class BigDataSeeder extends Seeder
 
         // --- 2. SEED TRANSACTIONS & ITEMS (500,000 Transactions + approx 1M Items) --- //
         $this->command->info('Seeding 300,000 transactions and items (this might take a few minutes)...');
-        
+
         $startDate = Carbon::now()->subMonths(12);
-        
+
         // Kita loop per bulan biar nggak lemot memorynya
         for ($m = 0; $m < 12; $m++) {
             $monthDate = (clone $startDate)->addMonths($m);
-            $this->command->info("Processing month: " . $monthDate->format('F Y'));
-            
+            $this->command->info('Processing month: '.$monthDate->format('F Y'));
+
             $transactionsBatch = [];
             $itemsBatch = [];
-            
+
             // Loop harian (rata-rata 800 - 1000 transaksi per hari untuk dapet total ~300k setahun)
             $daysInMonth = $monthDate->daysInMonth;
             for ($d = 1; $d <= $daysInMonth; $d++) {
                 $currentDate = (clone $monthDate)->day($d);
                 $dailyCount = rand(800, 1000);
-                
+
                 for ($index = 1; $index <= $dailyCount; $index++) {
-                    $trxNumber = "TRX-" . $currentDate->format('Ymd') . "-" . str_pad($index, 4, '0', STR_PAD_LEFT);
+                    $trxNumber = 'TRX-'.$currentDate->format('Ymd').'-'.str_pad($index, 4, '0', STR_PAD_LEFT);
                     $subtotal = 0;
-                    
+
                     // Create items first to calculate transaction total
                     $itemsInTransaction = rand(1, 3);
                     $tempItems = [];
@@ -100,7 +99,7 @@ class BigDataSeeder extends Seeder
                         $uPrice = rand(1000, 50000);
                         $iSubtotal = $qty * $uPrice;
                         $subtotal += $iSubtotal;
-                        
+
                         $tempItems[] = [
                             'service_id' => $faker->randomElement($serviceIds),
                             'service_name' => $faker->words(3, true),
@@ -118,7 +117,7 @@ class BigDataSeeder extends Seeder
                     $discountPercent = $faker->boolean(10) ? rand(5, 20) : 0;
                     $discountAmount = $subtotal * ($discountPercent / 100);
                     $total = $subtotal - $discountAmount;
-                    
+
                     $transactionsBatch[] = [
                         'transaction_number' => $trxNumber,
                         'customer_id' => $faker->boolean(70) ? $faker->randomElement($customerIds) : null,
@@ -140,7 +139,7 @@ class BigDataSeeder extends Seeder
                     // Tapi karena kita insert raw, kita harus insert transaction dulu baru dapet ID-nya
                     // Untuk kecepatan, kita insert batch per hari saja
                 }
-                
+
                 // --- Insert Batch Harian --- //
                 if (count($transactionsBatch) > 0) {
                     // Pakai insertGetId untuk batch itu susah, jadi kita insert per hari saja
@@ -152,7 +151,7 @@ class BigDataSeeder extends Seeder
                             $itemsBatch[] = $item;
                         }
                     }
-                    
+
                     if (count($itemsBatch) > 2000) {
                         DB::table('transaction_items')->insert($itemsBatch);
                         $itemsBatch = [];
@@ -186,7 +185,7 @@ class BigDataSeeder extends Seeder
         // --- 4. SEED STOCK LOGS (100,000) --- //
         $this->command->info('Seeding 100,000 stock logs...');
         $stockIds = DB::table('stocks')->pluck('id')->toArray();
-        if (!empty($stockIds)) {
+        if (! empty($stockIds)) {
             $logs = [];
             for ($i = 0; $i < 100000; $i++) {
                 $lDate = Carbon::now()->subDays(rand(0, 365));

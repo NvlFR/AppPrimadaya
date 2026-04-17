@@ -11,7 +11,7 @@ class RoleMiddleware
     /**
      * Memvalidasi apakah pengguna memiliki role yang diizinkan untuk mengakses route.
      *
-     * @param array<string, mixed> $roles Role yang diizinkan (contoh: 'admin', 'kasir')
+     * @param  array<string, mixed>  $roles  Role yang diizinkan (contoh: 'admin', 'kasir')
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {

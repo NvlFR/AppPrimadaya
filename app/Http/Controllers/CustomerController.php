@@ -19,23 +19,23 @@ class CustomerController extends Controller
         $customers = Customer::withCount('transactions')
             ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%");
+                    ->orWhere('phone', 'like', "%{$request->search}%");
             }))
             ->latest()
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($customer) => [
-                'id'                 => $customer->id,
-                'name'               => $customer->name,
-                'phone'              => $customer->phone,
-                'address'            => $customer->address,
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'phone' => $customer->phone,
+                'address' => $customer->address,
                 'transactions_count' => $customer->transactions_count,
-                'created_at'         => $customer->created_at->format('d/m/Y'),
+                'created_at' => $customer->created_at->format('d/m/Y'),
             ]);
 
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
-            'filters'   => $request->only(['search']),
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -52,25 +52,25 @@ class CustomerController extends Controller
             ->latest()
             ->paginate(10)
             ->through(fn ($trx) => [
-                'id'                 => $trx->id,
+                'id' => $trx->id,
                 'transaction_number' => $trx->transaction_number,
-                'total'              => $trx->total,
-                'status'             => $trx->status,
-                'status_label'       => $trx->status_label,
-                'payment_method'     => $trx->payment_method,
-                'created_at'         => $trx->created_at->format('d/m/Y H:i'),
+                'total' => $trx->total,
+                'status' => $trx->status,
+                'status_label' => $trx->status_label,
+                'payment_method' => $trx->payment_method,
+                'created_at' => $trx->created_at->format('d/m/Y H:i'),
             ]);
 
         return Inertia::render('Customers/Show', [
-            'customer'     => [
-                'id'                  => $customer->id,
-                'name'                => $customer->name,
-                'phone'               => $customer->phone,
-                'address'             => $customer->address,
-                'notes'               => $customer->notes,
-                'total_spent'         => $customer->transactions_sum_total ?? 0,
-                'transactions_count'  => $customer->transactions_count,
-                'created_at'          => $customer->created_at->format('d/m/Y'),
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'phone' => $customer->phone,
+                'address' => $customer->address,
+                'notes' => $customer->notes,
+                'total_spent' => $customer->transactions_sum_total ?? 0,
+                'transactions_count' => $customer->transactions_count,
+                'created_at' => $customer->created_at->format('d/m/Y'),
             ],
             'transactions' => $transactions,
         ]);
@@ -88,7 +88,7 @@ class CustomerController extends Controller
         $customers = Customer::query()
             ->when($query, fn ($q) => $q->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('phone', 'like', "%{$query}%");
+                    ->orWhere('phone', 'like', "%{$query}%");
             }))
             ->orderBy('name')
             ->limit(20)
@@ -103,10 +103,10 @@ class CustomerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'    => ['required', 'string', 'max:255'],
-            'phone'   => ['nullable', 'string', 'max:20'],
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
-            'notes'   => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ], [
             'name.required' => 'Nama pelanggan wajib diisi.',
         ]);
@@ -124,10 +124,10 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer): RedirectResponse
     {
         $validated = $request->validate([
-            'name'    => ['required', 'string', 'max:255'],
-            'phone'   => ['nullable', 'string', 'max:20'],
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
-            'notes'   => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         $customer->update($validated);

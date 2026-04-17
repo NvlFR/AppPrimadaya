@@ -37,9 +37,9 @@ class TransactionController extends Controller
             'transactions.created_at'
         )
             ->with([
-            'customer:id,name',
-            'user:id,name',
-        ])
+                'customer:id,name',
+                'user:id,name',
+            ])
             ->when($request->search, fn ($q) => $q->where('transaction_number', 'like', "%{$request->search}%"))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->date_from, fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
@@ -48,16 +48,16 @@ class TransactionController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($trx) => [
-            'id' => $trx->id,
-            'transaction_number' => $trx->transaction_number,
-            'customer_name' => $trx->customer?->name ?? 'Umum',
-            'kasir_name' => $trx->user->name,
-            'total' => $trx->total,
-            'payment_method' => $trx->payment_method,
-            'status' => $trx->status,
-            'status_label' => $trx->status_label,
-            'created_at' => $trx->created_at->format('d/m/Y H:i'),
-        ]);
+                'id' => $trx->id,
+                'transaction_number' => $trx->transaction_number,
+                'customer_name' => $trx->customer?->name ?? 'Umum',
+                'kasir_name' => $trx->user->name,
+                'total' => $trx->total,
+                'payment_method' => $trx->payment_method,
+                'status' => $trx->status,
+                'status_label' => $trx->status_label,
+                'created_at' => $trx->created_at->format('d/m/Y H:i'),
+            ]);
 
         return Inertia::render('Transactions/Index', [
             'transactions' => $transactions,
@@ -324,14 +324,14 @@ class TransactionController extends Controller
             ->paginate($perPage)
             ->withQueryString()
             ->through(fn ($trx) => [
-            'id' => $trx->id,
-            'transaction_number' => $trx->transaction_number,
-            'customer_name' => $trx->customer?->name ?? 'Umum',
-            'total' => $trx->total,
-            'status' => $trx->status,
-            'status_label' => $trx->status_label,
-            'created_at' => $trx->created_at->format('d/m/Y H:i'),
-        ]);
+                'id' => $trx->id,
+                'transaction_number' => $trx->transaction_number,
+                'customer_name' => $trx->customer?->name ?? 'Umum',
+                'total' => $trx->total,
+                'status' => $trx->status,
+                'status_label' => $trx->status_label,
+                'created_at' => $trx->created_at->format('d/m/Y H:i'),
+            ]);
 
         $statusCounts = Transaction::groupBy('status')
             ->select('status', DB::raw('count(*) as count'))
@@ -377,7 +377,7 @@ class TransactionController extends Controller
             $transaction->forceDelete();
         }
 
-        return back()->with('success', count($transactions) . ' transaksi berhasil dihapus.');
+        return back()->with('success', count($transactions).' transaksi berhasil dihapus.');
     }
 
     /**

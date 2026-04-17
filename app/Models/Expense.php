@@ -31,10 +31,10 @@ class Expense extends Model
      * Label tampilan untuk setiap kategori pengeluaran.
      */
     public const CATEGORY_LABELS = [
-        'bahan'       => 'Bahan Baku',
+        'bahan' => 'Bahan Baku',
         'operasional' => 'Operasional',
-        'gaji'        => 'Gaji',
-        'lainnya'     => 'Lainnya',
+        'gaji' => 'Gaji',
+        'lainnya' => 'Lainnya',
     ];
 
     /**

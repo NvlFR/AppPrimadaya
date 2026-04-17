@@ -25,22 +25,22 @@ class StockController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($stock) => [
-                'id'          => $stock->id,
-                'name'        => $stock->name,
-                'category'    => $stock->category,
-                'unit'        => $stock->unit,
+                'id' => $stock->id,
+                'name' => $stock->name,
+                'category' => $stock->category,
+                'unit' => $stock->unit,
                 'current_qty' => $stock->current_qty,
-                'min_qty'     => $stock->min_qty,
+                'min_qty' => $stock->min_qty,
                 'is_low_stock' => $stock->is_low_stock,
-                'notes'       => $stock->notes,
+                'notes' => $stock->notes,
             ]);
 
         $lowStockCount = Stock::whereRaw('current_qty <= min_qty')->count();
 
         return Inertia::render('Stocks/Index', [
-            'stocks'         => $stocks,
+            'stocks' => $stocks,
             'low_stock_count' => $lowStockCount,
-            'filters'        => $request->only(['search', 'category']),
+            'filters' => $request->only(['search', 'category']),
         ]);
     }
 
@@ -50,12 +50,12 @@ class StockController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'category'    => ['required', 'in:kertas,tinta,bahan,lainnya'],
-            'unit'        => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:255'],
+            'category' => ['required', 'in:kertas,tinta,bahan,lainnya'],
+            'unit' => ['required', 'string', 'max:50'],
             'current_qty' => ['required', 'numeric', 'min:0'],
-            'min_qty'     => ['required', 'numeric', 'min:0'],
-            'notes'       => ['nullable', 'string'],
+            'min_qty' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         $stock = Stock::create($validated);
@@ -63,13 +63,13 @@ class StockController extends Controller
         // Catat log stok awal jika ada qty
         if ($stock->current_qty > 0) {
             StockLog::create([
-                'stock_id'   => $stock->id,
-                'user_id'    => Auth::id(),
-                'type'       => 'masuk',
-                'qty'        => $stock->current_qty,
+                'stock_id' => $stock->id,
+                'user_id' => Auth::id(),
+                'type' => 'masuk',
+                'qty' => $stock->current_qty,
                 'qty_before' => 0,
-                'qty_after'  => $stock->current_qty,
-                'notes'      => 'Stok awal saat item ditambahkan.',
+                'qty_after' => $stock->current_qty,
+                'notes' => 'Stok awal saat item ditambahkan.',
             ]);
         }
 
@@ -96,7 +96,7 @@ class StockController extends Controller
 
         // Validasi stok keluar dilakukan SEBELUM transaction agar redirect bisa berfungsi
         if ($request->type === 'keluar' && $request->qty > $stock->current_qty) {
-            return back()->withErrors(['qty' => 'Jumlah keluar melebihi stok yang tersedia (' . $stock->current_qty . ' ' . $stock->unit . ').' ])->withInput();
+            return back()->withErrors(['qty' => 'Jumlah keluar melebihi stok yang tersedia ('.$stock->current_qty.' '.$stock->unit.').'])->withInput();
         }
 
         $referenceTransaction = null;
@@ -123,16 +123,16 @@ class StockController extends Controller
 
             // Catat log perubahan
             StockLog::create([
-                'stock_id'   => $stock->id,
-                'user_id'    => Auth::id(),
-                'type'       => $request->type,
-                'qty'        => $request->qty,
+                'stock_id' => $stock->id,
+                'user_id' => Auth::id(),
+                'type' => $request->type,
+                'qty' => $request->qty,
                 'qty_before' => $qtyBefore,
-                'qty_after'  => $qtyAfter,
+                'qty_after' => $qtyAfter,
                 'reference_type' => $referenceTransaction?->getMorphClass(),
                 'reference_id' => $referenceTransaction?->id,
-                'reason'     => $request->reason,
-                'notes'      => $request->notes,
+                'reason' => $request->reason,
+                'notes' => $request->notes,
             ]);
         });
 
@@ -150,26 +150,26 @@ class StockController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($log) => [
-                'id'          => $log->id,
-                'stock_name'  => $log->stock->name,
-                'user_name'   => $log->user->name,
-                'type'        => $log->type,
-                'qty'         => $log->qty,
-                'qty_before'  => $log->qty_before,
-                'qty_after'   => $log->qty_after,
-                'reason'      => $log->reason,
+                'id' => $log->id,
+                'stock_name' => $log->stock->name,
+                'user_name' => $log->user->name,
+                'type' => $log->type,
+                'qty' => $log->qty,
+                'qty_before' => $log->qty_before,
+                'qty_after' => $log->qty_after,
+                'reason' => $log->reason,
                 'reason_label' => $log->reason_label,
                 'reference_number' => $log->reference instanceof Transaction ? $log->reference->transaction_number : null,
                 'reference_url' => $log->reference instanceof Transaction ? route('transactions.show', $log->reference) : null,
-                'notes'       => $log->notes,
-                'created_at'  => $log->created_at->format('d/m/Y H:i'),
+                'notes' => $log->notes,
+                'created_at' => $log->created_at->format('d/m/Y H:i'),
             ]);
 
         $stocks = Stock::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Stocks/Logs', [
-            'logs'    => $logs,
-            'stocks'  => $stocks,
+            'logs' => $logs,
+            'stocks' => $stocks,
             'filters' => $request->only(['stock_id']),
         ]);
     }

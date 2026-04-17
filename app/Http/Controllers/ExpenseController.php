@@ -24,14 +24,14 @@ class ExpenseController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($expense) => [
-                'id'             => $expense->id,
-                'category'       => $expense->category,
+                'id' => $expense->id,
+                'category' => $expense->category,
                 'category_label' => $expense->category_label,
-                'description'    => $expense->description,
-                'amount'         => $expense->amount,
-                'expense_date'   => $expense->expense_date->format('d/m/Y'),
-                'user_name'      => $expense->user->name,
-                'notes'          => $expense->notes,
+                'description' => $expense->description,
+                'amount' => $expense->amount,
+                'expense_date' => $expense->expense_date->format('d/m/Y'),
+                'user_name' => $expense->user->name,
+                'notes' => $expense->notes,
             ]);
 
         // Total pengeluaran berdasarkan filter aktif
@@ -41,10 +41,10 @@ class ExpenseController extends Controller
             ->sum('amount');
 
         return Inertia::render('Expenses/Index', [
-            'expenses'        => $expenses,
-            'total_filtered'  => $totalFiltered,
-            'categories'      => Expense::CATEGORY_LABELS,
-            'filters'         => $request->only(['category', 'date_from', 'date_to']),
+            'expenses' => $expenses,
+            'total_filtered' => $totalFiltered,
+            'categories' => Expense::CATEGORY_LABELS,
+            'filters' => $request->only(['category', 'date_from', 'date_to']),
         ]);
     }
 
@@ -54,15 +54,15 @@ class ExpenseController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'category'     => ['required', 'in:bahan,operasional,gaji,lainnya'],
-            'description'  => ['required', 'string', 'max:255'],
-            'amount'       => ['required', 'numeric', 'min:1'],
+            'category' => ['required', 'in:bahan,operasional,gaji,lainnya'],
+            'description' => ['required', 'string', 'max:255'],
+            'amount' => ['required', 'numeric', 'min:1'],
             'expense_date' => ['required', 'date'],
-            'notes'        => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ], [
-            'category.required'     => 'Kategori wajib dipilih.',
-            'description.required'  => 'Deskripsi pengeluaran wajib diisi.',
-            'amount.required'       => 'Nominal pengeluaran wajib diisi.',
+            'category.required' => 'Kategori wajib dipilih.',
+            'description.required' => 'Deskripsi pengeluaran wajib diisi.',
+            'amount.required' => 'Nominal pengeluaran wajib diisi.',
             'expense_date.required' => 'Tanggal pengeluaran wajib diisi.',
         ]);
 

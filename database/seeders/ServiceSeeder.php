@@ -55,7 +55,7 @@ class ServiceSeeder extends Seeder
                 );
             }
         }
-        
+
         // 3. Service dengan matrix (Banner / MMT)
         $printBanner = Service::firstOrCreate(['name' => 'Cetak Banner / MMT 280gr'], [
             'category' => 'banner',

@@ -62,7 +62,7 @@ class TransactionItem extends Model
     {
         return match ($this->print_type) {
             'color' => 'Warna',
-            'bw'    => 'Hitam Putih',
+            'bw' => 'Hitam Putih',
             default => '-',
         };
     }

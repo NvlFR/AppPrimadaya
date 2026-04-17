@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 class Transaction extends Model
 {
     use SoftDeletes;
-    
+
     /**
      * Daftarkan event model.
      */
@@ -20,7 +20,7 @@ class Transaction extends Model
         // Hapus file fisik saat transaksi dihapus (soft delete maupun permanent)
         // Jika ingin tetap ada di soft delete, ganti ke forceDeleting
         static::deleting(function (Transaction $transaction) {
-            if ($transaction->isForceDeleting() || !method_exists($transaction, 'isForceDeleting')) {
+            if ($transaction->isForceDeleting() || ! method_exists($transaction, 'isForceDeleting')) {
                 Storage::disk('public')->deleteDirectory("orders/{$transaction->id}");
             }
         });
@@ -57,20 +57,20 @@ class Transaction extends Model
      * Label tampilan untuk setiap status pesanan.
      */
     public const STATUS_LABELS = [
-        'pending'   => 'Pending',
-        'diproses'  => 'Diproses',
-        'selesai'   => 'Selesai',
-        'diambil'   => 'Diambil',
+        'pending' => 'Pending',
+        'diproses' => 'Diproses',
+        'selesai' => 'Selesai',
+        'diambil' => 'Diambil',
     ];
 
     /**
      * Warna badge untuk setiap status.
      */
     public const STATUS_COLORS = [
-        'pending'   => 'warning',
-        'diproses'  => 'info',
-        'selesai'   => 'success',
-        'diambil'   => 'default',
+        'pending' => 'warning',
+        'diproses' => 'info',
+        'selesai' => 'success',
+        'diambil' => 'default',
     ];
 
     /**

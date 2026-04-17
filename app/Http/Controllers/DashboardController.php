@@ -40,35 +40,35 @@ class DashboardController extends Controller
         $revenueGrowth = 0;
         if ($yesterdayRevenue > 0) {
             $revenueGrowth = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
-        } else if ($todayRevenue > 0) {
+        } elseif ($todayRevenue > 0) {
             $revenueGrowth = 100;
         }
 
         $recentTransactions = $this->getRecentTransactions();
-        
+
         $activeOrders = Transaction::with(['customer'])
             ->whereIn('status', ['pending', 'diproses', 'selesai'])
             ->orderByRaw("CASE WHEN status = 'pending' THEN 1 WHEN status = 'diproses' THEN 2 WHEN status = 'selesai' THEN 3 ELSE 4 END")
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn ($trx) => [
-                'id'                 => $trx->id,
+                'id' => $trx->id,
                 'transaction_number' => $trx->transaction_number,
-                'customer_name'      => $trx->customer?->name ?? 'Umum',
-                'status'             => $trx->status,
-                'status_label'       => $trx->status_label,
-                'created_at'         => $trx->created_at->format('H:i'),
+                'customer_name' => $trx->customer?->name ?? 'Umum',
+                'status' => $trx->status,
+                'status_label' => $trx->status_label,
+                'created_at' => $trx->created_at->format('H:i'),
             ]);
 
         $stats = [
-            'today_revenue'      => $todayRevenue,
-            'yesterday_revenue'  => $yesterdayRevenue,
-            'revenue_growth'     => round($revenueGrowth, 1),
+            'today_revenue' => $todayRevenue,
+            'yesterday_revenue' => $yesterdayRevenue,
+            'revenue_growth' => round($revenueGrowth, 1),
             'today_transactions' => $todayTransactions,
-            'monthly_revenue'    => 0,
-            'monthly_expenses'   => 0,
-            'pending_orders'     => $pendingOrders,
-            'net_profit'         => 0,
+            'monthly_revenue' => 0,
+            'monthly_expenses' => 0,
+            'pending_orders' => $pendingOrders,
+            'net_profit' => 0,
         ];
 
         $salesChart = [];
@@ -82,11 +82,11 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('Dashboard/Index', [
-            'stats'                => $stats,
-            'sales_chart'          => $salesChart,
-            'recent_transactions'  => $recentTransactions,
-            'active_orders'        => $activeOrders,
-            'category_sales'       => $categorySales,
+            'stats' => $stats,
+            'sales_chart' => $salesChart,
+            'recent_transactions' => $recentTransactions,
+            'active_orders' => $activeOrders,
+            'category_sales' => $categorySales,
         ]);
     }
 
@@ -97,13 +97,13 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(fn ($trx) => [
-                'id'                 => $trx->id,
+                'id' => $trx->id,
                 'transaction_number' => $trx->transaction_number,
-                'customer_name'      => $trx->customer?->name ?? 'Umum',
-                'total'              => $trx->total,
-                'status'             => $trx->status,
-                'status_label'       => $trx->status_label,
-                'created_at'         => $trx->created_at->format('d/m/Y H:i'),
+                'customer_name' => $trx->customer?->name ?? 'Umum',
+                'total' => $trx->total,
+                'status' => $trx->status,
+                'status_label' => $trx->status_label,
+                'created_at' => $trx->created_at->format('d/m/Y H:i'),
             ]);
     }
 
@@ -116,9 +116,9 @@ class DashboardController extends Controller
         $monthlyExpenses = (float) Expense::where('expense_date', '>=', $thisMonth)->sum('amount');
 
         return [
-            'monthly_revenue'   => $monthlyRevenue,
-            'monthly_expenses'  => $monthlyExpenses,
-            'net_profit'        => $monthlyRevenue - $monthlyExpenses,
+            'monthly_revenue' => $monthlyRevenue,
+            'monthly_expenses' => $monthlyExpenses,
+            'net_profit' => $monthlyRevenue - $monthlyExpenses,
         ];
     }
 
@@ -128,14 +128,15 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
             $salesChart[] = [
-                'date'    => $date->format('d/m'),
-                'label'   => $date->locale('id')->isoFormat('ddd'),
+                'date' => $date->format('d/m'),
+                'label' => $date->locale('id')->isoFormat('ddd'),
                 'revenue' => (float) Transaction::whereDate('created_at', $date)
                     ->whereNotIn('status', ['pending'])
                     ->sum('total'),
-                'count'   => Transaction::whereDate('created_at', $date)->count(),
+                'count' => Transaction::whereDate('created_at', $date)->count(),
             ];
         }
+
         return $salesChart;
     }
 

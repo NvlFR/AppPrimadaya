@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaperSize;
 use App\Models\Service;
 use App\Models\ServicePrice;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,24 +25,24 @@ class ServiceController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($service) => [
-                'id'                 => $service->id,
-                'name'               => $service->name,
-                'category'           => $service->category,
-                'base_price'         => $service->base_price,
-                'unit'               => $service->unit,
+                'id' => $service->id,
+                'name' => $service->name,
+                'category' => $service->category,
+                'base_price' => $service->base_price,
+                'unit' => $service->unit,
                 'has_matrix_pricing' => $service->has_matrix_pricing,
-                'is_per_meter'       => $service->is_per_meter,
-                'is_active'          => $service->is_active,
-                'description'        => $service->description,
-                'prices_count'       => $service->prices->count(),
+                'is_per_meter' => $service->is_per_meter,
+                'is_active' => $service->is_active,
+                'description' => $service->description,
+                'prices_count' => $service->prices->count(),
             ]);
 
         $paperSizes = PaperSize::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Services/Index', [
-            'services'    => $services,
+            'services' => $services,
             'paper_sizes' => $paperSizes,
-            'filters'     => $request->only(['search', 'category']),
+            'filters' => $request->only(['search', 'category']),
         ]);
     }
 
@@ -51,17 +52,17 @@ class ServiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'               => ['required', 'string', 'max:255'],
-            'category'           => ['required', 'in:print,banner,foto,fotocopy,laminasi,lainnya'],
-            'base_price'         => ['required', 'numeric', 'min:0'],
-            'unit'               => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:255'],
+            'category' => ['required', 'in:print,banner,foto,fotocopy,laminasi,lainnya'],
+            'base_price' => ['required', 'numeric', 'min:0'],
+            'unit' => ['required', 'string', 'max:50'],
             'has_matrix_pricing' => ['boolean'],
-            'is_per_meter'       => ['boolean'],
-            'is_active'          => ['boolean'],
-            'description'        => ['nullable', 'string'],
+            'is_per_meter' => ['boolean'],
+            'is_active' => ['boolean'],
+            'description' => ['nullable', 'string'],
         ], [
-            'name.required'       => 'Nama layanan wajib diisi.',
-            'category.required'   => 'Kategori layanan wajib dipilih.',
+            'name.required' => 'Nama layanan wajib diisi.',
+            'category.required' => 'Kategori layanan wajib dipilih.',
             'base_price.required' => 'Harga dasar wajib diisi.',
         ]);
 
@@ -76,14 +77,14 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service): RedirectResponse
     {
         $validated = $request->validate([
-            'name'               => ['required', 'string', 'max:255'],
-            'category'           => ['required', 'in:print,banner,foto,fotocopy,laminasi,lainnya'],
-            'base_price'         => ['required', 'numeric', 'min:0'],
-            'unit'               => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:255'],
+            'category' => ['required', 'in:print,banner,foto,fotocopy,laminasi,lainnya'],
+            'base_price' => ['required', 'numeric', 'min:0'],
+            'unit' => ['required', 'string', 'max:50'],
             'has_matrix_pricing' => ['boolean'],
-            'is_per_meter'       => ['boolean'],
-            'is_active'          => ['boolean'],
-            'description'        => ['nullable', 'string'],
+            'is_per_meter' => ['boolean'],
+            'is_active' => ['boolean'],
+            'description' => ['nullable', 'string'],
         ]);
 
         $service->update($validated);
@@ -104,7 +105,7 @@ class ServiceController extends Controller
     /**
      * Mendapatkan daftar harga (pricing matrix) untuk layanan tertentu.
      */
-    public function getPrices(Service $service): \Illuminate\Http\JsonResponse
+    public function getPrices(Service $service): JsonResponse
     {
         $prices = $service->prices()->with('paperSize')->get();
 
@@ -117,10 +118,10 @@ class ServiceController extends Controller
     public function storePrices(Request $request, Service $service): RedirectResponse
     {
         $request->validate([
-            'prices'                  => ['required', 'array'],
-            'prices.*.paper_size_id'  => ['nullable', 'exists:paper_sizes,id'],
-            'prices.*.print_type'     => ['required', 'in:color,bw,na'],
-            'prices.*.price'          => ['required', 'numeric', 'min:0'],
+            'prices' => ['required', 'array'],
+            'prices.*.paper_size_id' => ['nullable', 'exists:paper_sizes,id'],
+            'prices.*.print_type' => ['required', 'in:color,bw,na'],
+            'prices.*.price' => ['required', 'numeric', 'min:0'],
         ]);
 
         // Hapus semua pricing lama lalu buat ulang
@@ -128,10 +129,10 @@ class ServiceController extends Controller
 
         foreach ($request->prices as $priceData) {
             ServicePrice::create([
-                'service_id'    => $service->id,
+                'service_id' => $service->id,
                 'paper_size_id' => $priceData['paper_size_id'] ?? null,
-                'print_type'    => $priceData['print_type'],
-                'price'         => $priceData['price'],
+                'print_type' => $priceData['print_type'],
+                'price' => $priceData['price'],
             ]);
         }
 

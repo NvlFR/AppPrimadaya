@@ -20,7 +20,7 @@ class UserController extends Controller
     {
         $users = User::with('role')
             ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%")
-                                                 ->orWhere('email', 'like', "%{$request->search}%"))
+                ->orWhere('email', 'like', "%{$request->search}%"))
             ->when($request->role_id, fn ($q) => $q->where('role_id', $request->role_id))
             ->latest()
             ->paginate(15)
@@ -87,7 +87,7 @@ class UserController extends Controller
             'is_active' => $validated['is_active'],
         ];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
         }
 

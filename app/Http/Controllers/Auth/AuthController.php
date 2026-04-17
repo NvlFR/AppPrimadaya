@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,19 +26,20 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required'],
         ], [
-            'email.required'    => 'Email wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
             'password.required' => 'Password wajib diisi.',
         ]);
 
         $remember = $request->boolean('remember');
         $throttleKey = md5('login'.implode('|', [$request->email, $request->ip()]));
 
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($throttleKey);
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
             return back()->withErrors([
                 'email' => "Terlalu banyak percobaan login. Silakan coba lagi dalam $seconds detik.",
             ])->withInput($request->only('email'))->setStatusCode(429);
@@ -45,12 +47,13 @@ class AuthController extends Controller
 
         // Cek apakah akun aktif sebelum melakukan autentikasi
         if (Auth::attempt($credentials, $remember)) {
-            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
+            RateLimiter::clear($throttleKey);
             $user = Auth::user();
 
             // Tolak akses jika akun tidak aktif
             if (! $user->is_active) {
                 Auth::logout();
+
                 return back()->withErrors([
                     'email' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.',
                 ]);
@@ -61,7 +64,7 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
-        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey);
+        RateLimiter::hit($throttleKey);
 
         return back()->withErrors([
             'email' => 'Email atau password yang Anda masukkan tidak sesuai.',

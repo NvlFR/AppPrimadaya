@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
+use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Faker\Factory as Faker;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class ThousandDataSeeder extends Seeder
@@ -55,7 +55,7 @@ class ThousandDataSeeder extends Seeder
         for ($i = 0; $i < 1000; $i++) {
             $customers[] = [
                 'name' => $faker->name,
-                'phone' => '08' . $faker->numerify('##########'),
+                'phone' => '08'.$faker->numerify('##########'),
                 'address' => $faker->address,
                 'notes' => $faker->boolean(20) ? $faker->sentence : null,
                 'created_at' => now(),
@@ -67,11 +67,11 @@ class ThousandDataSeeder extends Seeder
 
         // --- 2. SEED TRANSACTIONS & ITEMS (1,000) ---
         $this->command->info('Seeding 1,000 transactions and items...');
-        
+
         for ($i = 0; $i < 1000; $i++) {
             $currentDate = Carbon::now()->subDays(rand(0, 30));
-            $trxNumber = "TRX-" . $currentDate->format('Ymd') . "-" . Str::random(6) . "-" . str_pad($i + 1, 5, '0', STR_PAD_LEFT);
-            
+            $trxNumber = 'TRX-'.$currentDate->format('Ymd').'-'.Str::random(6).'-'.str_pad($i + 1, 5, '0', STR_PAD_LEFT);
+
             $subtotal = 0;
             $itemsInTransaction = rand(1, 3);
             $transactionItems = [];
@@ -81,10 +81,10 @@ class ThousandDataSeeder extends Seeder
                 $uPrice = rand(1000, 25000);
                 $iSubtotal = $qty * $uPrice;
                 $subtotal += $iSubtotal;
-                
+
                 $transactionItems[] = [
                     'service_id' => $faker->randomElement($serviceIds),
-                    'service_name' => "Layanan " . ($j + 1),
+                    'service_name' => 'Layanan '.($j + 1),
                     'paper_size_id' => $faker->randomElement($paperSizeIds),
                     'paper_size_name' => $faker->randomElement(['A4', 'A3', 'F4']),
                     'print_type' => $faker->randomElement(['color', 'bw']),
@@ -130,19 +130,21 @@ class ThousandDataSeeder extends Seeder
             $expenses[] = [
                 'user_id' => $faker->randomElement($userIds),
                 'category' => $faker->randomElement(['bahan', 'operasional', 'gaji', 'lainnya']),
-                'description' => 'Biaya ' . $faker->words(3, true),
+                'description' => 'Biaya '.$faker->words(3, true),
                 'amount' => rand(50000, 500000),
                 'expense_date' => $eDate,
                 'created_at' => $eDate,
                 'updated_at' => $eDate,
             ];
-            
+
             if (count($expenses) >= 500) {
                 DB::table('expenses')->insert($expenses);
                 $expenses = [];
             }
         }
-        if (count($expenses) > 0) DB::table('expenses')->insert($expenses);
+        if (count($expenses) > 0) {
+            DB::table('expenses')->insert($expenses);
+        }
 
         // --- 4. SEED STOCK LOGS (1,000) ---
         $this->command->info('Seeding 1,000 stock logs...');
@@ -164,7 +166,9 @@ class ThousandDataSeeder extends Seeder
                 $logs = [];
             }
         }
-        if (count($logs) > 0) DB::table('stock_logs')->insert($logs);
+        if (count($logs) > 0) {
+            DB::table('stock_logs')->insert($logs);
+        }
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         $this->command->info('ThousandDataSeeder Berhasil! Semua tabel terisi 1.000 data.');

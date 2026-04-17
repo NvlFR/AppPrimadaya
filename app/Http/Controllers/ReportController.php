@@ -17,19 +17,19 @@ class ReportController extends Controller
      */
     public function index(Request $request): Response
     {
-        $type  = $request->query('type', 'daily');
-        $date  = $request->query('date', Carbon::today()->format('Y-m-d'));
+        $type = $request->query('type', 'daily');
+        $date = $request->query('date', Carbon::today()->format('Y-m-d'));
         $month = $request->query('month', Carbon::now()->format('Y-m'));
 
         $summary = [
-            'revenue'            => 0,
-            'expenses'           => 0,
-            'profit'             => 0,
+            'revenue' => 0,
+            'expenses' => 0,
+            'profit' => 0,
             'transactions_count' => 0,
         ];
 
         $transactions = [];
-        $expenses     = [];
+        $expenses = [];
 
         if ($type === 'daily') {
             $selectedDate = Carbon::parse($date);
@@ -40,9 +40,9 @@ class ReportController extends Controller
 
             $baseExpenseQuery = Expense::whereDate('expense_date', $selectedDate);
 
-            $summary['revenue']            = (clone $baseTransactionQuery)->sum('total');
+            $summary['revenue'] = (clone $baseTransactionQuery)->sum('total');
             $summary['transactions_count'] = (clone $baseTransactionQuery)->count();
-            $summary['expenses']           = (clone $baseExpenseQuery)->sum('amount');
+            $summary['expenses'] = (clone $baseExpenseQuery)->sum('amount');
 
             $transactions = (clone $baseTransactionQuery)
                 ->with('customer:id,name')
@@ -50,10 +50,10 @@ class ReportController extends Controller
                 ->latest()
                 ->get()
                 ->map(fn ($trx) => [
-                    'id'                 => $trx->id,
+                    'id' => $trx->id,
                     'transaction_number' => $trx->transaction_number,
-                    'customer'           => $trx->customer,
-                    'total'              => $trx->total,
+                    'customer' => $trx->customer,
+                    'total' => $trx->total,
                 ]);
 
             $expenses = (clone $baseExpenseQuery)
@@ -62,9 +62,9 @@ class ReportController extends Controller
                 ->get();
 
         } elseif ($type === 'monthly') {
-            $selectedMonth = Carbon::parse($month . '-01');
-            $year          = $selectedMonth->year;
-            $monthNum      = $selectedMonth->month;
+            $selectedMonth = Carbon::parse($month.'-01');
+            $year = $selectedMonth->year;
+            $monthNum = $selectedMonth->month;
 
             $baseTransactionQuery = Transaction::whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNum)
@@ -73,9 +73,9 @@ class ReportController extends Controller
             $baseExpenseQuery = Expense::whereYear('expense_date', $year)
                 ->whereMonth('expense_date', $monthNum);
 
-            $summary['revenue']            = (clone $baseTransactionQuery)->sum('total');
+            $summary['revenue'] = (clone $baseTransactionQuery)->sum('total');
             $summary['transactions_count'] = (clone $baseTransactionQuery)->count();
-            $summary['expenses']           = (clone $baseExpenseQuery)->sum('amount');
+            $summary['expenses'] = (clone $baseExpenseQuery)->sum('amount');
 
             // Laporan bulanan: group per hari
             $transactions = Transaction::selectRaw('DATE(created_at) as date, count(*) as total_transactions, sum(total) as daily_revenue')
@@ -97,12 +97,12 @@ class ReportController extends Controller
         $summary['profit'] = $summary['revenue'] - $summary['expenses'];
 
         return Inertia::render('Reports/Index', [
-            'type'         => $type,
-            'date'         => $date,
-            'month'        => $month,
-            'summary'      => $summary,
+            'type' => $type,
+            'date' => $date,
+            'month' => $month,
+            'summary' => $summary,
             'transactions' => $transactions,
-            'expenses'     => $expenses,
+            'expenses' => $expenses,
         ]);
     }
 
@@ -112,16 +112,16 @@ class ReportController extends Controller
      */
     public function export(Request $request): HttpResponse
     {
-        $type  = $request->query('type', 'daily');
-        $date  = $request->query('date', Carbon::today()->format('Y-m-d'));
+        $type = $request->query('type', 'daily');
+        $date = $request->query('date', Carbon::today()->format('Y-m-d'));
         $month = $request->query('month', Carbon::now()->format('Y-m'));
 
-        $rows     = [];
+        $rows = [];
         $filename = '';
 
         if ($type === 'daily') {
             $selectedDate = Carbon::parse($date);
-            $filename     = 'Laporan-Harian-' . $selectedDate->format('d-m-Y') . '.csv';
+            $filename = 'Laporan-Harian-'.$selectedDate->format('d-m-Y').'.csv';
 
             // Header tabel pendapatan
             $rows[] = ['No. Nota', 'Pelanggan', 'Total (Rp)', 'Status', 'Waktu'];
@@ -156,8 +156,8 @@ class ReportController extends Controller
                 });
 
         } elseif ($type === 'monthly') {
-            $selectedMonth = Carbon::parse($month . '-01');
-            $filename      = 'Laporan-Bulanan-' . $selectedMonth->format('m-Y') . '.csv';
+            $selectedMonth = Carbon::parse($month.'-01');
+            $filename = 'Laporan-Bulanan-'.$selectedMonth->format('m-Y').'.csv';
 
             $rows[] = ['Tanggal', 'Jumlah Transaksi', 'Pendapatan (Rp)'];
 
@@ -180,15 +180,15 @@ class ReportController extends Controller
         $csvContent = '';
         foreach ($rows as $row) {
             // Escape nilai agar tidak merusak struktur CSV
-            $escaped = array_map(fn ($cell) => '"' . str_replace('"', '""', (string) $cell) . '"', $row);
-            $csvContent .= implode(',', $escaped) . "\r\n";
+            $escaped = array_map(fn ($cell) => '"'.str_replace('"', '""', (string) $cell).'"', $row);
+            $csvContent .= implode(',', $escaped)."\r\n";
         }
 
         // Tambahkan BOM UTF-8 agar Excel membaca karakter Indonesia dengan benar
-        $csvContent = "\xEF\xBB\xBF" . $csvContent;
+        $csvContent = "\xEF\xBB\xBF".$csvContent;
 
         return response($csvContent, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
