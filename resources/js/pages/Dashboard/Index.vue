@@ -147,9 +147,7 @@ const revenueGrowthLabel = computed(() => {
 });
 
 const openCreateModal = () => {
-    // isEditMode.value = false;
-    // form.reset();
-    // isModalOpen.value = true;
+    router.visit(route('transactions.create'));
 };
 
 // ========= QUEUE LOGIC =========
@@ -184,8 +182,10 @@ const updateOrderStatus = (id: number, newStatus: string) => {
 <template>
     <AppLayout :breadcrumbs="[{ title: 'Dashboard', href: route('dashboard') }]">
         <template #header-actions>
-             <Button @click="openCreateModal" size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
-                <PlusIcon class="h-4 w-4 mr-2" />Transaksi Baru
+             <Button as-child size="sm" class="bg-blue-600 hover:bg-blue-700 shadow-sm">
+                <Link :href="route('transactions.create')">
+                    <PlusIcon class="h-4 w-4 mr-2" />Transaksi Baru
+                </Link>
             </Button>
         </template>
         <Head title="Dashboard" />
