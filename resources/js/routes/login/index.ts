@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\Auth\AuthController::post
-* @see app/Http/Controllers/Auth/AuthController.php:25
+* @see app/Http/Controllers/Auth/AuthController.php:26
 * @route '/login'
 */
 export const post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ post.definition = {
 
 /**
 * @see \App\Http\Controllers\Auth\AuthController::post
-* @see app/Http/Controllers/Auth/AuthController.php:25
+* @see app/Http/Controllers/Auth/AuthController.php:26
 * @route '/login'
 */
 post.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ post.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Auth\AuthController::post
-* @see app/Http/Controllers/Auth/AuthController.php:25
+* @see app/Http/Controllers/Auth/AuthController.php:26
 * @route '/login'
 */
 post.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ post.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Auth\AuthController::post
-* @see app/Http/Controllers/Auth/AuthController.php:25
+* @see app/Http/Controllers/Auth/AuthController.php:26
 * @route '/login'
 */
 const postForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const postForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\Auth\AuthController::post
-* @see app/Http/Controllers/Auth/AuthController.php:25
+* @see app/Http/Controllers/Auth/AuthController.php:26
 * @route '/login'
 */
 postForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

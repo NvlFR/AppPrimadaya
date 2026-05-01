@@ -1,5 +1,5 @@
 import { createInertiaApp } from '@inertiajs/vue3';
-import { createApp, createSSRApp, defineAsyncComponent, h } from 'vue';
+import { createApp, createSSRApp, defineAsyncComponent, h, type DefineComponent } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { ZiggyVue } from 'ziggy-js';
 import { route } from 'ziggy-js';
@@ -7,6 +7,8 @@ import { route } from 'ziggy-js';
 // Layout non-kritis dimuat lazy — tidak masuk main bundle
 const AuthLayout = defineAsyncComponent(() => import('@/layouts/AuthLayout.vue'));
 const SettingsLayout = defineAsyncComponent(() => import('@/layouts/settings/Layout.vue'));
+
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -23,6 +25,7 @@ if (typeof globalThis !== 'undefined') {
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')) as any,
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':

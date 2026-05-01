@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\ServiceController::store
-* @see app/Http/Controllers/ServiceController.php:117
+* @see app/Http/Controllers/ServiceController.php:118
 * @route '/services/{service}/prices'
 */
 export const store = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\ServiceController::store
-* @see app/Http/Controllers/ServiceController.php:117
+* @see app/Http/Controllers/ServiceController.php:118
 * @route '/services/{service}/prices'
 */
 store.url = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ store.url = (args: { service: number | { id: number } } | [service: number | { i
 
 /**
 * @see \App\Http\Controllers\ServiceController::store
-* @see app/Http/Controllers/ServiceController.php:117
+* @see app/Http/Controllers/ServiceController.php:118
 * @route '/services/{service}/prices'
 */
 store.post = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -59,7 +59,7 @@ store.post = (args: { service: number | { id: number } } | [service: number | { 
 
 /**
 * @see \App\Http\Controllers\ServiceController::store
-* @see app/Http/Controllers/ServiceController.php:117
+* @see app/Http/Controllers/ServiceController.php:118
 * @route '/services/{service}/prices'
 */
 const storeForm = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -69,7 +69,7 @@ const storeForm = (args: { service: number | { id: number } } | [service: number
 
 /**
 * @see \App\Http\Controllers\ServiceController::store
-* @see app/Http/Controllers/ServiceController.php:117
+* @see app/Http/Controllers/ServiceController.php:118
 * @route '/services/{service}/prices'
 */
 storeForm.post = (args: { service: number | { id: number } } | [service: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
