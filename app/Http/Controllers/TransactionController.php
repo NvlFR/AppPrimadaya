@@ -460,6 +460,16 @@ class TransactionController extends Controller
     }
 
     /**
+     * Menghapus satu transaksi (Admin Only).
+     */
+    public function destroy(Transaction $transaction): RedirectResponse
+    {
+        $transaction->forceDelete();
+
+        return back()->with('success', 'Transaksi #' . $transaction->transaction_number . ' berhasil dihapus.');
+    }
+
+    /**
      * Mengunduh invoice transaksi dalam format PDF.
      */
     public function downloadPdf(Transaction $transaction)

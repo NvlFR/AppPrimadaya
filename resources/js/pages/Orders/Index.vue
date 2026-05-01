@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Search, Filter, Eye, Clock, CheckCircle2, Package, ArrowRight, CheckCheck, TimerReset } from 'lucide-vue-next';
+import { Search, Filter, Eye, Clock, CheckCircle2, Package, ArrowRight, CheckCheck, TimerReset, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
@@ -43,6 +43,11 @@ const isAdmin = computed(() => (page.props.auth as any)?.role === 'admin');
 const selectedOrderIds = ref<number[]>([]);
 const isBulkStatusDialogOpen = ref(false);
 const bulkStatusTarget = ref<'diproses' | 'selesai' | null>(null);
+
+const isDeleteDialogOpen = ref(false);
+const orderToDelete = ref<Order | null>(null);
+
+const isBulkDeleteDialogOpen = ref(false);
 
 const isOrderSelected = (id: number) => selectedOrderIds.value.includes(id);
 const toggleOrderSelection = (id: number, checked: boolean | string) => {
@@ -88,6 +93,32 @@ const executeBulkStatusUpdate = () => {
                 replace: true,
             });
         },
+    });
+};
+
+const confirmDelete = (order: Order) => {
+    orderToDelete.value = order;
+    isDeleteDialogOpen.value = true;
+};
+
+const handleDelete = () => {
+    if (!orderToDelete.value) return;
+
+    router.delete(route('transactions.destroy', orderToDelete.value.id), {
+        onSuccess: () => {
+            isDeleteDialogOpen.value = false;
+            orderToDelete.value = null;
+        }
+    });
+};
+
+const handleBulkDelete = () => {
+    router.delete(route('transactions.bulk-destroy'), {
+        data: { transaction_ids: selectedOrderIds.value },
+        onFinish: () => {
+            isBulkDeleteDialogOpen.value = false;
+            selectedOrderIds.value = [];
+        }
     });
 };
 
@@ -210,6 +241,10 @@ const { formatRupiah } = useFormatRupiah();
                         <CheckCircle2 class="mr-2 h-4 w-4" />
                         Tandai Selesai
                     </Button>
+                    <Button v-if="isAdmin" variant="destructive" @click="isBulkDeleteDialogOpen = true">
+                        <Trash2 class="mr-2 h-4 w-4" />
+                        Hapus Pesanan
+                    </Button>
                 </div>
             </div>
 
@@ -248,9 +283,14 @@ const { formatRupiah } = useFormatRupiah();
                                 <p class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Nilai Pesanan</p>
                                 <p class="font-black text-gray-900">{{ formatRupiah(order.total) }}</p>
                             </div>
-                            <Button @click="router.get(route('transactions.show', order.id))" variant="ghost" size="sm" class="h-8 rounded-full bg-gray-100 hover:bg-primary hover:text-white transition-all group-hover:px-4">
-                                <Eye class="h-4 w-4 mr-1" /> <span class="hidden group-hover:inline text-xs transition-all">Detail</span> <ArrowRight class="h-3 w-3 ml-1" />
-                            </Button>
+                            <div class="flex gap-2">
+                                <Button @click="router.get(route('transactions.show', order.id))" variant="ghost" size="sm" class="h-8 rounded-full bg-gray-100 hover:bg-primary hover:text-white transition-all group-hover:px-4">
+                                    <Eye class="h-4 w-4 mr-1" /> <span class="hidden group-hover:inline text-xs transition-all">Detail</span> <ArrowRight class="h-3 w-3 ml-1" />
+                                </Button>
+                                <Button v-if="isAdmin" @click="confirmDelete(order)" variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600 transition-all">
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -322,6 +362,44 @@ const { formatRupiah } = useFormatRupiah();
                     <Button variant="outline" @click="isBulkStatusDialogOpen = false">Batal</Button>
                     <Button @click="executeBulkStatusUpdate" :class="bulkStatusTarget === 'selesai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'">
                         Lanjutkan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Dialog Konfirmasi Hapus Tunggal -->
+        <Dialog :open="isDeleteDialogOpen" @update:open="val => { if (!val) isDeleteDialogOpen = false; }">
+            <DialogContent class="sm:max-w-[420px]">
+                <DialogHeader>
+                    <DialogTitle class="text-red-600">Hapus Pesanan</DialogTitle>
+                    <DialogDescription>
+                        Apakah Anda yakin ingin menghapus pesanan <span class="font-bold text-gray-900">#{{ orderToDelete?.transaction_number }}</span>?
+                        Aksi ini tidak dapat dibatalkan dan data akan dihapus secara permanen.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 pt-2">
+                    <Button variant="outline" @click="isDeleteDialogOpen = false">Batal</Button>
+                    <Button variant="destructive" @click="handleDelete">
+                        Ya, Hapus
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Dialog Konfirmasi Hapus Massal -->
+        <Dialog :open="isBulkDeleteDialogOpen" @update:open="val => { if (!val) isBulkDeleteDialogOpen = false; }">
+            <DialogContent class="sm:max-w-[420px]">
+                <DialogHeader>
+                    <DialogTitle class="text-red-600">Hapus {{ selectedOrderIds.length }} Pesanan</DialogTitle>
+                    <DialogDescription>
+                        Apakah Anda yakin ingin menghapus semua pesanan yang dipilih?
+                        Aksi ini tidak dapat dibatalkan dan data akan dihapus secara permanen.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 pt-2">
+                    <Button variant="outline" @click="isBulkDeleteDialogOpen = false">Batal</Button>
+                    <Button variant="destructive" @click="handleBulkDelete">
+                        Ya, Hapus Semua
                     </Button>
                 </DialogFooter>
             </DialogContent>

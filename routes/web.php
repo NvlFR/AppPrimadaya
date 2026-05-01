@@ -84,6 +84,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Bulk delete transaksi untuk admin
         Route::delete('/transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
+        Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
 
         // Laporan
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
