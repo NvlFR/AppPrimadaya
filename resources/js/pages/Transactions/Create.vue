@@ -353,6 +353,7 @@ const discountAmount = computed(() => {
 });
 
 const totalFinal = computed(() => subtotal.value - discountAmount.value);
+const paymentMethodLabel = computed(() => 'Belum Dibayar');
 
 const hasSelectedCustomer = computed(() => form.customer_id !== 'none');
 const isCartEmpty = computed(() => form.items.length === 0);
@@ -1028,7 +1029,7 @@ const shouldShowCartError = computed(() =>
                                 {{ paymentMethodLabel }}
                             </div>
                         </div>
-                        <p class="mt-3 text-xs text-white/70">Panel pembayaran aktif. Pastikan total dan metode sudah sesuai sebelum menyimpan.</p>
+                        <p class="mt-3 text-xs text-white/70">Pengecekan akhir pesanan. Pastikan semua item sudah sesuai sebelum menyimpan.</p>
                     </div>
 
                     <CardContent class="flex-1 space-y-5 p-5">
@@ -1085,7 +1086,7 @@ const shouldShowCartError = computed(() =>
                         </div>
 
                         <!-- Info tagihan — no payment at this stage -->
-                        <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800">
+                        <!-- <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800">
                             <div class="flex items-start gap-3">
                                 <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100">
                                     <AlertTriangle class="h-4 w-4 text-amber-500" />
@@ -1095,7 +1096,7 @@ const shouldShowCartError = computed(() =>
                                     <p class="mt-0.5 text-xs text-amber-700 leading-relaxed">Pesanan akan disimpan dengan status <strong>Belum Dibayar</strong>. Proses pembayaran (lunas atau DP) dilakukan setelah pesanan selesai dikerjakan.</p>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
 
 
                     </CardContent>
@@ -1287,7 +1288,7 @@ const shouldShowCartError = computed(() =>
                 </DialogHeader>
                 <div class="py-4">
                     <p class="text-sm text-gray-500">
-                        Apakah Anda yakin ingin mereset kasir? Semua item di keranjang dan pengaturan pembayaran akan dihapus.
+                        Apakah Anda yakin ingin mereset kasir? Semua item di keranjang akan dihapus.
                     </p>
                 </div>
                 <DialogFooter>
