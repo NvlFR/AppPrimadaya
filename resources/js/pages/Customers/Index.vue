@@ -4,11 +4,13 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2, Users } from 'lucide-vue-next';
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, Loader2, Users, Tag, X } from 'lucide-vue-next';
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface Customer {
     id: number;
@@ -17,6 +19,13 @@ interface Customer {
     address: string;
     transactions_count: number;
     created_at: string;
+}
+
+interface Service {
+    id: number;
+    name: string;
+    base_price: number;
+    unit: string;
 }
 
 const props = defineProps<{
@@ -30,6 +39,7 @@ const props = defineProps<{
         total: number;
     };
     filters: { search?: string };
+    services: Service[];
 }>();
 
 // ============================================================
@@ -117,11 +127,72 @@ const form = useForm({
     phone: '',
     address: '',
     notes: '',
+    custom_prices: [] as Array<{ service_id: number; custom_price: number | string }>,
 });
+
+const { formatAngka } = useFormatRupiah();
+
+/**
+ * Tampilkan harga dalam format IDR (25.000) untuk ditampilkan di input.
+ * Gunakan parseFloat agar "15000.00" → 15000, bukan "1500000" (salah).
+ */
+const displayPrice = (price: number | string): string => {
+    const num = Math.round(parseFloat(String(price)) || 0);
+    return formatAngka(num);
+};
+
+/**
+ * Saat user mengetik, strip semua non-digit dan simpan sebagai angka murni.
+ */
+const onPriceInput = (idx: number, event: Event) => {
+    const raw = (event.target as HTMLInputElement).value.replace(/[^\d]/g, '');
+    form.custom_prices[idx].custom_price = raw ? Number(raw) : 0;
+    // Update tampilan input agar langsung terformat
+    (event.target as HTMLInputElement).value = formatAngka(Number(raw) || 0);
+};
+
+// ID layanan yang sedang dipilih untuk ditambahkan ke harga khusus
+const selectedServiceForPrice = ref<string>('');
+
+// Layanan yang belum punya entri harga khusus (agar tidak duplikat di dropdown)
+const availableServicesForPrice = computed(() => {
+    const usedServiceIds = form.custom_prices.map(p => p.service_id);
+    return props.services.filter(s => !usedServiceIds.includes(s.id));
+});
+
+/**
+ * Tambahkan layanan ke daftar harga khusus.
+ * Harga awal = base_price layanan tersebut.
+ */
+const addCustomPriceRow = () => {
+    if (!selectedServiceForPrice.value) return;
+    const serviceId = parseInt(selectedServiceForPrice.value);
+    const service = props.services.find(s => s.id === serviceId);
+    if (!service) return;
+
+    form.custom_prices.push({
+        service_id: serviceId,
+        custom_price: service.base_price,
+    });
+    selectedServiceForPrice.value = '';
+};
+
+/** Hapus satu baris harga khusus dari list. */
+const removeCustomPriceRow = (index: number) => {
+    form.custom_prices.splice(index, 1);
+};
+
+/** Nama layanan berdasarkan service_id. */
+const getServiceName = (serviceId: number) => {
+    return props.services.find(s => s.id === serviceId)?.name ?? '-';
+};
 
 const openCreateModal = () => {
     isEditMode.value = false;
+    editingId.value = null;
+    selectedServiceForPrice.value = '';
     form.reset();
+    form.custom_prices = [];
     isModalOpen.value = true;
 };
 
@@ -132,12 +203,38 @@ const openEditModal = (customer: Customer) => {
     form.phone = customer.phone || '';
     form.address = customer.address || '';
     form.notes = '';
+    // Fetch harga khusus yang sudah ada
+    form.custom_prices = [];
+    selectedServiceForPrice.value = '';
+    fetchExistingCustomPrices(customer.id);
     isModalOpen.value = true;
+};
+
+/**
+ * Fetch existing custom prices untuk customer yang sedang diedit.
+ */
+const fetchExistingCustomPrices = async (customerId: number) => {
+    try {
+        const res = await fetch(`/customers/${customerId}/custom-prices`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (res.ok) {
+            const data: Record<string, number> = await res.json();
+            form.custom_prices = Object.entries(data).map(([serviceId, price]) => ({
+                service_id: parseInt(serviceId),
+                custom_price: price,
+            }));
+        }
+    } catch (err) {
+        console.error('Gagal memuat harga khusus:', err);
+    }
 };
 
 const closeModal = () => {
     isModalOpen.value = false;
     form.reset();
+    form.custom_prices = [];
+    selectedServiceForPrice.value = '';
 };
 
 const saveCustomer = () => {
@@ -328,7 +425,7 @@ const executeDeleteCustomer = () => {
 
         <!-- Add/Edit Modal -->
         <Dialog :open="isModalOpen" @update:open="val => { if (!val) closeModal(); }">
-            <DialogContent class="sm:max-w-[425px]">
+            <DialogContent class="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{{ isEditMode ? 'Edit Pelanggan' : 'Tambah Pelanggan Baru' }}</DialogTitle>
                 </DialogHeader>
@@ -349,6 +446,62 @@ const executeDeleteCustomer = () => {
                     <div class="space-y-2">
                         <Label for="address">Alamat Lengkap</Label>
                         <textarea id="address" v-model="form.address" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600" placeholder="Cth: Jl. Jendral Sudirman Kav. 12..."></textarea>
+                    </div>
+
+                    <!-- Section Harga Khusus -->
+                    <div class="space-y-3 rounded-xl border border-dashed border-blue-200 bg-blue-50/40 p-4">
+                        <div class="flex items-center gap-2">
+                            <Tag class="h-4 w-4 text-blue-600" />
+                            <p class="text-sm font-semibold text-blue-800">Harga Khusus Layanan (Opsional)</p>
+                        </div>
+                        <p class="text-xs text-blue-600/70">Tetapkan harga override untuk layanan tertentu. Harga ini akan otomatis dipakai saat pelanggan ini dipilih di kasir.</p>
+
+                        <!-- Baris harga khusus yang sudah ditambahkan -->
+                        <div v-if="form.custom_prices.length > 0" class="space-y-2">
+                            <div
+                                v-for="(row, idx) in form.custom_prices"
+                                :key="row.service_id"
+                                class="flex items-center gap-2 rounded-lg bg-white border border-blue-100 px-3 py-2 shadow-sm"
+                            >
+                                <span class="flex-1 min-w-0 text-sm font-medium text-gray-700 truncate">{{ getServiceName(row.service_id) }}</span>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <span class="text-xs text-gray-400">Rp</span>
+                                    <input
+                                        type="text"
+                                        inputmode="numeric"
+                                        :value="displayPrice(row.custom_price)"
+                                        @input="onPriceInput(idx, $event)"
+                                        class="w-28 rounded-md border border-gray-200 px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <button type="button" @click="removeCustomPriceRow(idx)" class="text-red-400 hover:text-red-600 transition-colors">
+                                    <X class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown tambah layanan baru -->
+                        <div v-if="availableServicesForPrice.length > 0" class="flex gap-2">
+                            <Select v-model="selectedServiceForPrice">
+                                <SelectTrigger class="flex-1 bg-white text-sm h-9">
+                                    <SelectValue placeholder="Pilih layanan..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="svc in availableServicesForPrice"
+                                        :key="svc.id"
+                                        :value="svc.id.toString()"
+                                    >
+                                        {{ svc.name }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button type="button" size="sm" variant="outline" class="h-9 shrink-0 border-blue-300 text-blue-700 hover:bg-blue-50" @click="addCustomPriceRow">
+                                <PlusIcon class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <p v-else-if="form.custom_prices.length === props.services.length" class="text-xs text-gray-400 italic">Semua layanan sudah ditambahkan.</p>
                     </div>
 
                     <DialogFooter class="pt-4">

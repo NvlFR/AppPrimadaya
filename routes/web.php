@@ -52,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+    // Endpoint untuk fetch harga khusus pelanggan — digunakan oleh kasir saat customer dipilih
+    Route::get('/customers/{customer}/custom-prices', [CustomerController::class, 'getCustomPrices'])->name('customers.custom-prices');
 
     // Status Pesanan
     Route::get('/orders', [TransactionController::class, 'orders'])->name('orders.index');

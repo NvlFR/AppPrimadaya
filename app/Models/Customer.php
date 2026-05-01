@@ -26,6 +26,24 @@ class Customer extends Model
     }
 
     /**
+     * Mendapatkan harga kustom untuk layanan pelanggan ini.
+     */
+    public function customServicePrices(): HasMany
+    {
+        return $this->hasMany(CustomerServicePrice::class);
+    }
+
+    /**
+     * Mendapatkan harga kustom untuk layanan tertentu.
+     */
+    public function getCustomPriceForService(int $serviceId, float $defaultPrice): float
+    {
+        return $this->customServicePrices()
+            ->where('service_id', $serviceId)
+            ->value('price') ?? $defaultPrice;
+    }
+
+    /**
      * Menghitung total nilai transaksi pelanggan ini.
      */
     public function getTotalTransactionsAmountAttribute(): float

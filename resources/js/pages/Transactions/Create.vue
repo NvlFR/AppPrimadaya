@@ -48,6 +48,42 @@ let customerSearchTimer: ReturnType<typeof setTimeout>;
 // Flag: setelah tambah pelanggan baru, otomatis pilih hasil pertama yang muncul
 const autoSelectAfterSearch = ref(false);
 
+// ============================================================
+// Custom Pricing — Harga Khusus per Pelanggan
+// Map: service_id → custom_price (angka)
+// Dikosongkan otomatis saat ganti/hapus pelanggan
+// ============================================================
+const customerCustomPrices = ref<Record<number, number>>({});
+const isFetchingCustomPrices = ref(false);
+
+/**
+ * Fetch daftar harga khusus untuk pelanggan yang dipilih.
+ * Endpoint: GET /customers/{id}/custom-prices
+ * Return: { [service_id]: price }
+ */
+const fetchCustomPrices = async (customerId: number) => {
+    isFetchingCustomPrices.value = true;
+    try {
+        const res = await fetch(`/customers/${customerId}/custom-prices`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (res.ok) {
+            customerCustomPrices.value = await res.json();
+            // Jika sudah ada item di keranjang, update harga item yang punya harga khusus
+            form.items.forEach((item) => {
+                const serviceId = parseInt(item.service_id);
+                if (customerCustomPrices.value[serviceId] !== undefined) {
+                    item.unit_price = customerCustomPrices.value[serviceId];
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Gagal mengambil harga khusus pelanggan:', err);
+    } finally {
+        isFetchingCustomPrices.value = false;
+    }
+};
+
 /**
  * Mencari pelanggan secara asinkron ke endpoint /customers/search
  * dengan debounce 300ms agar tidak membebani server.
@@ -90,10 +126,13 @@ const selectCustomer = (customer: CustomerOption) => {
     customerSearchQuery.value = '';
     customerSearchResults.value = [];
     isCustomerDropdownOpen.value = false;
+    // Fetch harga khusus pelanggan ini untuk auto-apply ke item
+    fetchCustomPrices(customer.id);
 };
 
 /**
  * Mereset pilihan pelanggan ke Pelanggan Umum.
+ * Harga khusus juga direset — semua item kembali ke harga normal.
  */
 const clearCustomer = () => {
     form.customer_id = 'none';
@@ -101,6 +140,15 @@ const clearCustomer = () => {
     customerSearchQuery.value = '';
     customerSearchResults.value = [];
     isCustomerDropdownOpen.value = false;
+    // Bersihkan custom prices — harga kembali ke base_price layanan
+    customerCustomPrices.value = {};
+    // Reset unit_price item yang mungkin sudah diubah ke custom price
+    form.items.forEach((item) => {
+        const service = props.services.find(s => s.id === parseInt(item.service_id));
+        if (service && !service.has_matrix_pricing && !service.is_per_meter) {
+            item.unit_price = parseFloat(service.base_price);
+        }
+    });
 };
 
 // Pantau perubahan query pencarian dan trigger search ke API
@@ -228,8 +276,12 @@ const addItem = (serviceId?: number) => {
     if (!service) return;
 
     const isPerMeter = service.is_per_meter;
-    // Harga awal: per-meter = base_price × 1m × 1m, non-meter = base_price langsung
-    const initialPrice = parseFloat(service.base_price);
+    // Harga awal: cek custom price terlebih dahulu, fallback ke base_price
+    // Custom price hanya berlaku untuk layanan non-matrix dan non-per-meter
+    const customPrice = customerCustomPrices.value[service.id];
+    const initialPrice = (customPrice !== undefined && !service.has_matrix_pricing && !isPerMeter)
+        ? customPrice
+        : parseFloat(service.base_price);
 
     form.items.push({
         service_id: service.id.toString(),

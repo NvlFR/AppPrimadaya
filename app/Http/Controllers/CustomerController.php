@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerServicePrice;
+use App\Models\Service;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +35,15 @@ class CustomerController extends Controller
                 'created_at' => $customer->created_at->format('d/m/Y'),
             ]);
 
+        // Kirim daftar layanan aktif ke halaman pelanggan untuk keperluan form harga khusus
+        $services = Service::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'base_price', 'unit']);
+
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
             'filters' => $request->only(['search']),
+            'services' => $services,
         ]);
     }
 
@@ -61,6 +69,18 @@ class CustomerController extends Controller
                 'created_at' => $trx->created_at->format('d/m/Y H:i'),
             ]);
 
+        // Muat harga khusus yang sudah ditetapkan untuk pelanggan ini
+        $customPrices = $customer->customServicePrices()
+            ->with('service:id,name,base_price,unit')
+            ->get()
+            ->map(fn ($cp) => [
+                'id' => $cp->id,
+                'service_id' => $cp->service_id,
+                'service_name' => $cp->service->name,
+                'custom_price' => (float) $cp->custom_price,
+                'notes' => $cp->notes,
+            ]);
+
         return Inertia::render('Customers/Show', [
             'customer' => [
                 'id' => $customer->id,
@@ -73,6 +93,7 @@ class CustomerController extends Controller
                 'created_at' => $customer->created_at->format('d/m/Y'),
             ],
             'transactions' => $transactions,
+            'customPrices' => $customPrices,
         ]);
     }
 
@@ -98,7 +119,21 @@ class CustomerController extends Controller
     }
 
     /**
-     * Menyimpan pelanggan baru ke database.
+     * Mengambil daftar harga khusus untuk pelanggan tertentu.
+     * Digunakan oleh kasir untuk auto-apply harga saat customer dipilih.
+     */
+    public function getCustomPrices(Customer $customer): JsonResponse
+    {
+        $customPrices = $customer->customServicePrices()
+            ->get(['service_id', 'custom_price'])
+            ->keyBy('service_id')
+            ->map(fn ($cp) => (float) $cp->custom_price);
+
+        return response()->json($customPrices);
+    }
+
+    /**
+     * Menyimpan pelanggan baru ke database beserta harga khusus (opsional).
      */
     public function store(Request $request): RedirectResponse
     {
@@ -107,11 +142,31 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'custom_prices' => ['nullable', 'array'],
+            'custom_prices.*.service_id' => ['required', 'exists:services,id'],
+            'custom_prices.*.custom_price' => ['required', 'numeric', 'min:0'],
         ], [
             'name.required' => 'Nama pelanggan wajib diisi.',
+            'custom_prices.*.custom_price.min' => 'Harga tidak boleh negatif.',
         ]);
 
-        Customer::create($validated);
+        $customer = Customer::create([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        // Simpan harga khusus jika ada
+        if (!empty($validated['custom_prices'])) {
+            foreach ($validated['custom_prices'] as $priceData) {
+                CustomerServicePrice::create([
+                    'customer_id' => $customer->id,
+                    'service_id' => $priceData['service_id'],
+                    'custom_price' => $priceData['custom_price'],
+                ]);
+            }
+        }
 
         // Share data customers terbaru agar bisa di-reload via Inertia partial reload
         // (digunakan oleh fitur tambah pelanggan inline di halaman kasir)
@@ -128,9 +183,29 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'custom_prices' => ['nullable', 'array'],
+            'custom_prices.*.service_id' => ['required', 'exists:services,id'],
+            'custom_prices.*.custom_price' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $customer->update($validated);
+        $customer->update([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        // Sync harga khusus — hapus semua lalu insert ulang
+        if (isset($validated['custom_prices'])) {
+            $customer->customServicePrices()->delete();
+            foreach ($validated['custom_prices'] as $priceData) {
+                CustomerServicePrice::create([
+                    'customer_id' => $customer->id,
+                    'service_id' => $priceData['service_id'],
+                    'custom_price' => $priceData['custom_price'],
+                ]);
+            }
+        }
 
         return back()->with('success', 'Data pelanggan berhasil diperbarui.');
     }
