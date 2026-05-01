@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Struk {{ $transaction->transaction_number }}</title>
     <style>
         /* ===================================================
@@ -177,6 +178,38 @@
             font-weight: bold;
         }
 
+        /* Badge Status Bayar */
+        .payment-status-badge {
+            display: inline-block;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 2px 6px;
+            border: 1px solid #000;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .badge-belum-bayar {
+            border-color: #000;
+        }
+
+        .badge-dp {
+            border-color: #000;
+        }
+
+        .badge-lunas {
+            border-color: #000;
+        }
+
+        .sisa-tagihan-label {
+            font-weight: bold;
+        }
+
+        .sisa-tagihan-value {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
         /* ===================================================
          * Footer
          * =================================================== */
@@ -204,8 +237,13 @@
         }
 
         @media print {
-            .no-print { display: none; }
-            body { padding: 2mm; }
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 2mm;
+            }
         }
 
         /* ===================================================
@@ -239,6 +277,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Tombol cetak — tidak ikut tercetak (Issue #12) -->
@@ -251,7 +290,8 @@
          HEADER TOKO
          ======================== -->
     <div class="header">
-        <div class="shop-name">PRIMADAYA PRINT</div>
+        <img src="{{ asset('logo.png') }}" alt="Primadaya Print"
+            style="max-width: 120px; height: auto; display: block; margin: 0 auto 4px;">
         <div class="shop-tagline">Jasa Cetak &amp; Percetakan Digital</div>
     </div>
 
@@ -265,23 +305,24 @@
         </div>
         <div class="info-row">
             <span class="info-label">Tanggal</span>
-            <span class="info-value">{{ $transaction->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB</span>
+            <span class="info-value">{{ $transaction->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }}
+                WIB</span>
         </div>
         <div class="info-row">
             <span class="info-label">Kasir</span>
             <span class="info-value">{{ $transaction->user->name }}</span>
         </div>
-        @if($transaction->customer)
-        <div class="info-row">
-            <span class="info-label">Pelanggan</span>
-            <span class="info-value">{{ $transaction->customer->name }}</span>
-        </div>
-        @if($transaction->customer->phone)
-        <div class="info-row">
-            <span class="info-label">No. HP</span>
-            <span class="info-value">{{ $transaction->customer->phone }}</span>
-        </div>
-        @endif
+        @if ($transaction->customer)
+            <div class="info-row">
+                <span class="info-label">Pelanggan</span>
+                <span class="info-value">{{ $transaction->customer->name }}</span>
+            </div>
+            @if ($transaction->customer->phone)
+                <div class="info-row">
+                    <span class="info-label">No. HP</span>
+                    <span class="info-value">{{ $transaction->customer->phone }}</span>
+                </div>
+            @endif
         @endif
     </div>
 
@@ -294,28 +335,34 @@
             <span>Total</span>
         </div>
 
-        @foreach($transaction->items as $item)
-        <div class="item-row">
-            <div class="item-name">{{ $item->service_name }}</div>
-            @if($item->paper_size_name || ($item->print_type && $item->print_type !== 'na'))
-            <div class="item-detail">
-                @if($item->paper_size_name)Kertas {{ $item->paper_size_name }}@endif
-                @if($item->paper_size_name && $item->print_type !== 'na') | @endif
-                @if($item->print_type === 'bw')Hitam Putih
-                @elseif($item->print_type === 'color')Warna Full
+        @foreach ($transaction->items as $item)
+            <div class="item-row">
+                <div class="item-name">{{ $item->service_name }}</div>
+                @if ($item->paper_size_name || ($item->print_type && $item->print_type !== 'na'))
+                    <div class="item-detail">
+                        @if ($item->paper_size_name)
+                            Kertas {{ $item->paper_size_name }}
+                        @endif
+                        @if ($item->paper_size_name && $item->print_type !== 'na')
+                            |
+                        @endif
+                        @if ($item->print_type === 'bw')
+                            Hitam Putih
+                        @elseif($item->print_type === 'color')
+                            Warna Full
+                        @endif
+                    </div>
                 @endif
+                @if ($item->item_notes)
+                    <div class="item-note">Catatan: {{ $item->item_notes }}</div>
+                @endif
+                <div class="item-pricing">
+                    <span class="item-qty-price">
+                        {{ $item->qty }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                    </span>
+                    <span class="item-subtotal">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                </div>
             </div>
-            @endif
-            @if($item->item_notes)
-            <div class="item-note">Catatan: {{ $item->item_notes }}</div>
-            @endif
-            <div class="item-pricing">
-                <span class="item-qty-price">
-                    {{ $item->qty }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}
-                </span>
-                <span class="item-subtotal">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
-            </div>
-        </div>
         @endforeach
     </div>
 
@@ -327,11 +374,11 @@
             <span>Subtotal</span>
             <span>Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</span>
         </div>
-        @if($transaction->discount_amount > 0)
-        <div class="summary-row">
-            <span>Diskon ({{ number_format($transaction->discount_percent, 0) }}%)</span>
-            <span>- Rp {{ number_format($transaction->discount_amount, 0, ',', '.') }}</span>
-        </div>
+        @if ($transaction->discount_amount > 0)
+            <div class="summary-row">
+                <span>Diskon ({{ number_format($transaction->discount_percent, 0) }}%)</span>
+                <span>- Rp {{ number_format($transaction->discount_amount, 0, ',', '.') }}</span>
+            </div>
         @endif
         <div class="summary-total">
             <span>TOTAL</span>
@@ -343,29 +390,79 @@
          INFO PEMBAYARAN
          ======================== -->
     <div class="payment-section">
-        <div class="payment-row">
-            <span>Metode Bayar</span>
-            <span><strong>{{ strtoupper($transaction->payment_method) }}</strong></span>
+        @php
+            $paymentStatus = $transaction->payment_status ?? 'belum_bayar';
+        @endphp
+
+        {{-- Status Pembayaran --}}
+        <div class="payment-row" style="margin-bottom: 4px;">
+            <span>Status Bayar</span>
+            <span>
+                @if ($paymentStatus === 'lunas')
+                    <span class="payment-status-badge badge-lunas">★ LUNAS</span>
+                @elseif($paymentStatus === 'dp')
+                    <span class="payment-status-badge badge-dp">DP</span>
+                @else
+                    <span class="payment-status-badge badge-belum-bayar">BELUM BAYAR</span>
+                @endif
+            </span>
         </div>
-        @if($transaction->payment_method === 'cash')
-        <div class="payment-row">
-            <span>Jumlah Dibayar</span>
-            <span>Rp {{ number_format($transaction->amount_paid, 0, ',', '.') }}</span>
-        </div>
-        <div class="payment-row">
-            <span>Kembalian</span>
-            <span class="kembalian-value">Rp {{ number_format($transaction->change_amount, 0, ',', '.') }}</span>
-        </div>
+
+        @if ($paymentStatus === 'lunas')
+            {{-- Sudah Lunas: tampilkan metode + jumlah bayar + kembalian --}}
+            @if ($transaction->payment_method)
+                <div class="payment-row">
+                    <span>Metode Bayar</span>
+                    <span><strong>{{ strtoupper($transaction->payment_method) }}</strong></span>
+                </div>
+            @endif
+            <div class="payment-row">
+                <span>Dibayar</span>
+                <span>Rp {{ number_format($transaction->amount_paid, 0, ',', '.') }}</span>
+            </div>
+            @if ($transaction->payment_method === 'cash' && $transaction->change_amount > 0)
+                <div class="payment-row">
+                    <span>Kembalian</span>
+                    <span class="kembalian-value">Rp
+                        {{ number_format($transaction->change_amount, 0, ',', '.') }}</span>
+                </div>
+            @endif
+        @elseif($paymentStatus === 'dp')
+            {{-- DP: tampilkan uang muka dan sisa tagihan --}}
+            @if ($transaction->payment_method)
+                <div class="payment-row">
+                    <span>Metode Bayar</span>
+                    <span><strong>{{ strtoupper($transaction->payment_method) }}</strong></span>
+                </div>
+            @endif
+            <div class="payment-row">
+                <span>Uang Muka (DP)</span>
+                <span>Rp {{ number_format($transaction->dp_amount, 0, ',', '.') }}</span>
+            </div>
+            <div class="payment-row" style="border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px;">
+                <span class="sisa-tagihan-label">SISA TAGIHAN</span>
+                <span class="sisa-tagihan-value">Rp
+                    {{ number_format($transaction->remaining_amount, 0, ',', '.') }}</span>
+            </div>
+        @else
+            {{-- Belum Bayar: tampilkan total yang harus dibayar --}}
+            <div class="payment-row" style="border-top: 1px dashed #000; padding-top: 4px; margin-top: 3px;">
+                <span class="sisa-tagihan-label">TOTAL TAGIHAN</span>
+                <span class="sisa-tagihan-value">Rp {{ number_format($transaction->total, 0, ',', '.') }}</span>
+            </div>
+            <div style="font-size: 9px; font-style: italic; margin-top: 3px; text-align: center;">
+                * Pembayaran belum diterima
+            </div>
         @endif
     </div>
 
     <!-- ========================
          CATATAN KASIR (jika ada)
          ======================== -->
-    @if($transaction->notes)
-    <div style="font-size: 9px; border: 1px dashed #666; padding: 4px; margin-bottom: 6px; border-radius: 2px;">
-        <strong>Catatan:</strong> {{ $transaction->notes }}
-    </div>
+    @if ($transaction->notes)
+        <div style="font-size: 9px; border: 1px dashed #666; padding: 4px; margin-bottom: 6px; border-radius: 2px;">
+            <strong>Catatan:</strong> {{ $transaction->notes }}
+        </div>
     @endif
 
     <!-- ========================
@@ -373,8 +470,12 @@
          ======================== -->
     <div class="footer">
         <div class="footer-thanks">Terima Kasih!</div>
-        <div>Simpan struk ini sebagai bukti pembayaran.</div>
-        <div style="margin-top: 3px;">Primadaya Print — Percetakan Profesional</div>
+        @if (($transaction->payment_status ?? 'belum_bayar') !== 'belum_bayar')
+            <div>Simpan struk ini sebagai bukti pembayaran.</div>
+        @else
+            <div>Harap selesaikan pembayaran sebelum mengambil pesanan.</div>
+        @endif
+        {{-- <div style="margin-top: 3px;">Primadaya </div> --}}
         <div style="margin-top: 3px; font-size: 8px; color: #999;">
             Dicetak: {{ now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB
         </div>
@@ -385,4 +486,5 @@
     // Auto-print saat halaman dibuka (opsional — aktifkan jika dikehendaki)
     // window.addEventListener('load', () => window.print());
 </script>
+
 </html>

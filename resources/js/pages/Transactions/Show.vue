@@ -4,15 +4,18 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { 
-    PrinterIcon, 
-    ArrowLeftIcon, 
+import {
+    PrinterIcon,
+    ArrowLeftIcon,
     CheckCircleIcon,
     AlertCircleIcon,
     DownloadIcon,
-    PaperclipIcon
+    PaperclipIcon,
+    CreditCardIcon,
+    BanknoteIcon,
+    ClockIcon,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 interface TransactionItem {
@@ -37,11 +40,15 @@ interface Transaction {
     discount_percent: string | number;
     discount_amount: string | number;
     total: string | number;
-    payment_method: string;
-    amount_paid: string | number;
-    change_amount: string | number;
+    payment_method: string | null;
+    amount_paid: string | number | null;
+    change_amount: string | number | null;
     status: string;
     status_label: string;
+    payment_status: string;
+    payment_status_label: string;
+    dp_amount: string | number | null;
+    remaining_amount: string | number | null;
     notes: string | null;
     created_at: string;
     items: TransactionItem[];
@@ -50,20 +57,24 @@ interface Transaction {
 const props = defineProps<{
     transaction: Transaction;
     status_options: Record<string, string>;
+    payment_status_options: Record<string, string>;
 }>();
 
 const formStatus = useForm({
     status: props.transaction.status,
 });
 
+const formPayment = useForm({
+    payment_type: 'lunas' as 'lunas' | 'dp',
+    payment_method: 'cash' as 'cash' | 'transfer' | 'qris',
+    amount_paid: '' as string | number,
+});
+
 const { formatRupiah } = useFormatRupiah();
 const customerMissing = computed(() => !props.transaction.customer);
-const customerDisplayName = computed(() => props.transaction.customer?.name ?? 'Data pelanggan tidak ditemukan');
-const customerDisplayPhone = computed(() => props.transaction.customer?.phone ?? '-');
-
 
 const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
         case 'selesai': return 'bg-green-100 text-green-800 border-green-200';
         case 'diambil': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
         case 'diproses': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -71,9 +82,40 @@ const getStatusColor = (status: string) => {
     }
 };
 
+const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+        case 'lunas':       return 'bg-green-100 text-green-800 border-green-200';
+        case 'dp':          return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'belum_bayar': return 'bg-red-100 text-red-800 border-red-200';
+        default:            return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+};
+
+const isUnpaid = computed(() => props.transaction.payment_status !== 'lunas');
+
+// Sisa tagihan yang harus dibayar sekarang
+const sisaTagihan = computed(() => Number(props.transaction.remaining_amount ?? props.transaction.total));
+
+// Placeholder nominal berdasarkan tipe pembayaran
+const amountPlaceholder = computed(() => {
+    if (formPayment.payment_type === 'lunas') {
+        return `Min. ${formatRupiah(sisaTagihan.value)}`;
+    }
+    return 'Nominal DP yang dibayar';
+});
+
 const updateStatus = () => {
     formStatus.patch(route('transactions.status', props.transaction.id), {
         preserveScroll: true,
+    });
+};
+
+const submitPayment = () => {
+    formPayment.post(route('transactions.payment', props.transaction.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            formPayment.reset('amount_paid');
+        },
     });
 };
 
@@ -81,7 +123,6 @@ const downloadPdf = () => {
     window.open(route('transactions.pdf', props.transaction.id), '_blank');
 };
 
-// Buka struk thermal 80mm di tab baru untuk dicetak langsung (Issue #12)
 const printThermal = () => {
     window.open(route('transactions.thermal', props.transaction.id), '_blank');
 };
@@ -89,11 +130,11 @@ const printThermal = () => {
 
 <template>
     <AppLayout :breadcrumbs="[
-        { title: 'Dashboard', href: route('dashboard') }, 
+        { title: 'Dashboard', href: route('dashboard') },
         { title: 'Transaksi', href: route('transactions.index') || '#' },
         { title: 'Detail Transaksi', href: route('transactions.show', transaction.id) }
     ]">
-        <Head :title="`Invoice ${transaction.transaction_number}`" />
+        <Head :title="`Pesanan ${transaction.transaction_number}`" />
 
         <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
             <!-- Header Section -->
@@ -105,10 +146,13 @@ const printThermal = () => {
                         </Button>
                     </Link>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
                             {{ transaction.transaction_number }}
                             <Badge variant="outline" :class="getStatusColor(transaction.status)">
                                 {{ transaction.status_label }}
+                            </Badge>
+                            <Badge variant="outline" :class="getPaymentStatusColor(transaction.payment_status)">
+                                {{ transaction.payment_status_label }}
                             </Badge>
                         </h1>
                         <p class="text-sm text-gray-500">{{ transaction.created_at }} &bull; Kasir: {{ transaction.kasir_name }}</p>
@@ -125,23 +169,40 @@ const printThermal = () => {
                 </div>
             </div>
 
+            <!-- Tagihan Belum Lunas — Alert Banner -->
+            <div v-if="isUnpaid" class="rounded-xl border border-orange-200 bg-orange-50 px-5 py-4 flex items-start gap-3">
+                <ClockIcon class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                <div>
+                    <p class="font-semibold text-orange-800 text-sm">
+                        {{ transaction.payment_status === 'dp' ? 'Pembayaran Belum Lunas' : 'Belum Ada Pembayaran' }}
+                    </p>
+                    <p class="text-sm text-orange-700 mt-0.5">
+                        Sisa tagihan:
+                        <span class="font-bold">{{ formatRupiah(sisaTagihan) }}</span>
+                        <span v-if="Number(transaction.dp_amount) > 0">
+                            (DP terbayar: {{ formatRupiah(transaction.dp_amount) }})
+                        </span>
+                    </p>
+                </div>
+            </div>
+
             <!-- Main Content Grid -->
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                
+
                 <!-- Left Column (Invoice Content) -->
                 <div class="col-span-1 space-y-6 lg:col-span-2">
-                    
+
                     <!-- Customer Info -->
                     <div class="bg-white rounded-xl border shadow-sm p-6">
                         <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Informasi Pelanggan</h3>
                         <div v-if="transaction.customer" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <p class="text-sm text-gray-500">Nama Pelanggan / Instansi</p>
-                                <p class="font-medium text-gray-900">{{ customerDisplayName }}</p>
+                                <p class="font-medium text-gray-900">{{ transaction.customer?.name ?? 'Pelanggan Umum' }}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500">No. Telepon / WhatsApp</p>
-                                <p class="font-medium text-gray-900">{{ customerDisplayPhone }}</p>
+                                <p class="font-medium text-gray-900">{{ transaction.customer?.phone ?? '-' }}</p>
                             </div>
                         </div>
                         <div v-else class="flex items-center text-gray-500 italic text-sm">
@@ -151,7 +212,7 @@ const printThermal = () => {
                                     <div class="space-y-1">
                                         <p class="text-sm font-semibold text-amber-800">Data pelanggan tidak tersedia</p>
                                         <p class="text-sm text-amber-700">
-                                            Transaksi ini tercatat tanpa pelanggan terhubung. Sistem menandainya sebagai pelanggan umum, tetapi data detail pelanggan tidak ditemukan.
+                                            Transaksi ini tercatat tanpa pelanggan terhubung.
                                         </p>
                                     </div>
                                 </div>
@@ -201,7 +262,7 @@ const printThermal = () => {
                             <table class="data-table">
                                 <thead class="bg-white text-gray-500 border-b">
                                     <tr>
-                                        <th class="px-6 py-3 font-medium">Layanan & Keterangan</th>
+                                        <th class="px-6 py-3 font-medium">Layanan &amp; Keterangan</th>
                                         <th class="px-6 py-3 font-medium text-center">Qty</th>
                                         <th class="px-6 py-3 font-medium text-right">Harga Satuan</th>
                                         <th class="px-6 py-3 font-medium text-right">Subtotal</th>
@@ -236,21 +297,20 @@ const printThermal = () => {
                         <div class="flex items-start">
                             <AlertCircleIcon class="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
                             <div>
-                                <h4 class="text-sm font-semibold text-amber-800">Catatan Kasir</h4>
+                                <h4 class="text-sm font-semibold text-amber-800">Catatan</h4>
                                 <p class="text-sm text-amber-700 mt-1">{{ transaction.notes }}</p>
                             </div>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- Right Column (Billing & Actions) -->
                 <div class="col-span-1 space-y-6">
-                    
+
                     <!-- Billing Summary -->
                     <div class="bg-white rounded-xl border shadow-sm p-6 space-y-4">
-                        <h3 class="font-semibold text-gray-900 border-b pb-4">Ringkasan Pembayaran</h3>
-                        
+                        <h3 class="font-semibold text-gray-900 border-b pb-4">Ringkasan Tagihan</h3>
+
                         <div class="space-y-3 text-sm">
                             <div class="flex justify-between text-gray-600">
                                 <span>Subtotal</span>
@@ -266,31 +326,139 @@ const printThermal = () => {
                             </div>
                         </div>
 
-                        <div class="bg-gray-50 rounded-lg p-4 space-y-2 mt-4 text-sm border">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Metode Pembayaran</span>
+                        <!-- Info Pembayaran (jika sudah ada) -->
+                        <div v-if="transaction.payment_status !== 'belum_bayar'" class="bg-gray-50 rounded-lg p-4 space-y-2 mt-2 text-sm border">
+                            <div v-if="Number(transaction.dp_amount) > 0" class="flex justify-between">
+                                <span class="text-gray-500">DP Terbayar</span>
+                                <span class="font-semibold text-green-600">{{ formatRupiah(transaction.dp_amount) }}</span>
+                            </div>
+                            <div v-if="Number(transaction.remaining_amount) > 0" class="flex justify-between">
+                                <span class="text-gray-500">Sisa Tagihan</span>
+                                <span class="font-semibold text-red-600">{{ formatRupiah(transaction.remaining_amount) }}</span>
+                            </div>
+                            <div v-if="transaction.payment_method" class="flex justify-between">
+                                <span class="text-gray-500">Metode Bayar</span>
                                 <span class="font-semibold uppercase">{{ transaction.payment_method }}</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Total Dibayar</span>
-                                <span class="font-medium text-gray-900">{{ formatRupiah(transaction.amount_paid) }}</span>
-                            </div>
-                            <div class="flex justify-between pt-2 border-t border-gray-200">
+                            <div v-if="transaction.payment_status === 'lunas'" class="flex justify-between pt-2 border-t border-gray-200">
                                 <span class="text-gray-500">Kembalian</span>
-                                <span class="font-semibold text-green-600">{{ formatRupiah(transaction.change_amount) }}</span>
+                                <span class="font-semibold text-green-600">{{ formatRupiah(transaction.change_amount ?? 0) }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Update Status Workflow -->
+                    <!-- Form Proses Pembayaran (muncul kalau belum lunas) -->
+                    <div v-if="isUnpaid" class="bg-white rounded-xl border shadow-sm p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <CreditCardIcon class="h-4 w-4 text-blue-600" />
+                            Proses Pembayaran
+                        </h3>
+
+                        <form @submit.prevent="submitPayment" class="space-y-4">
+                            <!-- Tipe Pembayaran -->
+                            <div class="space-y-2">
+                                <Label>Tipe Pembayaran</Label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        @click="formPayment.payment_type = 'lunas'"
+                                        :class="[
+                                            'flex flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all',
+                                            formPayment.payment_type === 'lunas'
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
+                                                : 'border-gray-200 text-gray-600 hover:border-blue-200'
+                                        ]"
+                                    >
+                                        <BanknoteIcon class="h-5 w-5 mb-1" />
+                                        Bayar Lunas
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="formPayment.payment_type = 'dp'"
+                                        :class="[
+                                            'flex flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all',
+                                            formPayment.payment_type === 'dp'
+                                                ? 'border-yellow-500 bg-yellow-50 text-yellow-700 font-semibold'
+                                                : 'border-gray-200 text-gray-600 hover:border-yellow-200'
+                                        ]"
+                                    >
+                                        <CreditCardIcon class="h-5 w-5 mb-1" />
+                                        Bayar DP
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Metode Pembayaran -->
+                            <div class="space-y-2">
+                                <Label for="payment_method">Metode Pembayaran</Label>
+                                <select
+                                    id="payment_method"
+                                    v-model="formPayment.payment_method"
+                                    class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    <option value="cash">Tunai (Cash)</option>
+                                    <option value="transfer">Transfer Bank</option>
+                                    <option value="qris">QRIS</option>
+                                </select>
+                                <p v-if="formPayment.errors.payment_method" class="text-xs text-red-500">{{ formPayment.errors.payment_method }}</p>
+                            </div>
+
+                            <!-- Nominal -->
+                            <div class="space-y-2">
+                                <Label for="amount_paid">
+                                    {{ formPayment.payment_type === 'lunas' ? 'Nominal Diterima' : 'Nominal DP' }}
+                                </Label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">Rp</span>
+                                    <input
+                                        id="amount_paid"
+                                        v-model="formPayment.amount_paid"
+                                        type="number"
+                                        min="1"
+                                        :placeholder="amountPlaceholder"
+                                        class="flex h-10 w-full rounded-md border border-input bg-transparent pl-10 pr-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                </div>
+                                <p v-if="formPayment.errors.amount_paid" class="text-xs text-red-500">{{ formPayment.errors.amount_paid }}</p>
+
+                                <!-- Info sisa untuk mode lunas -->
+                                <p v-if="formPayment.payment_type === 'lunas'" class="text-xs text-blue-600">
+                                    Sisa tagihan: {{ formatRupiah(sisaTagihan) }}
+                                </p>
+                            </div>
+
+                            <Button
+                                type="submit"
+                                :class="[
+                                    'w-full',
+                                    formPayment.payment_type === 'lunas'
+                                        ? 'bg-blue-600 hover:bg-blue-700'
+                                        : 'bg-yellow-500 hover:bg-yellow-600'
+                                ]"
+                                :disabled="formPayment.processing"
+                            >
+                                <CheckCircleIcon class="h-4 w-4 mr-2" />
+                                {{ formPayment.payment_type === 'lunas' ? 'Konfirmasi Lunas' : 'Catat DP' }}
+                            </Button>
+                        </form>
+                    </div>
+
+                    <!-- Lunas Badge (tampil kalau sudah lunas) -->
+                    <div v-else class="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
+                        <CheckCircleIcon class="h-8 w-8 text-green-500 mx-auto mb-2" />
+                        <p class="font-bold text-green-800">Pembayaran Lunas</p>
+                        <p class="text-sm text-green-600 mt-1">Transaksi ini sudah selesai dibayar.</p>
+                    </div>
+
+                    <!-- Update Status Pesanan -->
                     <div class="bg-white rounded-xl border shadow-sm p-6">
                         <h3 class="font-semibold text-gray-900 mb-4">Update Status Pesanan</h3>
                         <form @submit.prevent="updateStatus" class="space-y-4">
                             <div class="space-y-2">
                                 <Label for="status">Status Saat Ini</Label>
-                                <select 
-                                    id="status" 
-                                    v-model="formStatus.status" 
+                                <select
+                                    id="status"
+                                    v-model="formStatus.status"
                                     class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option v-for="(label, key) in status_options" :key="key" :value="key">
@@ -298,12 +466,12 @@ const printThermal = () => {
                                     </option>
                                 </select>
                             </div>
-                            <Button 
-                                type="submit" 
-                                class="w-full bg-blue-600 hover:bg-blue-700" 
+                            <Button
+                                type="submit"
+                                class="w-full bg-gray-700 hover:bg-gray-800"
                                 :disabled="formStatus.processing || formStatus.status === transaction.status"
                             >
-                                <CheckCircleIcon class="h-4 w-4 mr-2" /> Simpan Status Baru
+                                <CheckCircleIcon class="h-4 w-4 mr-2" /> Simpan Status
                             </Button>
                         </form>
                     </div>

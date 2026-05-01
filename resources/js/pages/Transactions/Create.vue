@@ -144,8 +144,6 @@ const form = useForm({
     }>,
     discount_type: 'percent' as 'percent' | 'flat',
     discount_value: 0,
-    payment_method: 'cash',
-    amount_paid: 0,
     notes: '',
 });
 
@@ -194,12 +192,7 @@ onKeyStroke('F2', (e) => {
     trigger?.focus();
 });
 
-// F4: Fokus ke input nominal bayar tunai
-onKeyStroke('F4', (e) => {
-    e.preventDefault();
-    const paymentInput = document.querySelector('[data-payment-input]') as HTMLElement;
-    paymentInput?.focus();
-});
+// F4: (Reserved — tidak dipakai di alur baru)
 
 // F9: Buka dialog konfirmasi transaksi
 onKeyStroke('F9', (e) => {
@@ -361,36 +354,13 @@ const discountAmount = computed(() => {
 
 const totalFinal = computed(() => subtotal.value - discountAmount.value);
 
-// Kembalian — jika kurang bayar tampilkan selisih negatif (Issue #7)
-const changeAmount = computed(() => form.amount_paid - totalFinal.value);
-
-const isUnderpaid = computed(() =>
-    form.payment_method === 'cash' && form.amount_paid > 0 && changeAmount.value < 0
-);
 const hasSelectedCustomer = computed(() => form.customer_id !== 'none');
 const isCartEmpty = computed(() => form.items.length === 0);
-const requiresCashAmount = computed(() => form.payment_method === 'cash');
-const isCashAmountMissing = computed(() => requiresCashAmount.value && Number(form.amount_paid) <= 0);
 
 const { formatRupiah, formatAngka } = useFormatRupiah();
 const totalItemCount = computed(() =>
     form.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
 );
-
-const cashQuickAmounts = [5000, 10000, 20000, 50000, 100000, 200000];
-
-const paymentMethodLabel = computed(() => {
-    switch (form.payment_method) {
-        case 'cash':
-            return 'Tunai';
-        case 'qris':
-            return 'QRIS';
-        case 'transfer':
-            return 'Transfer';
-        default:
-            return form.payment_method.toUpperCase();
-    }
-});
 
 // ============================================================
 // Fungsi Reset Kasir
@@ -410,10 +380,8 @@ const resetKasir = () => {
 const executeResetKasir = () => {
     form.reset();
     form.items = [];
-    form.payment_method = 'cash';
     form.discount_type = 'percent';
     form.discount_value = 0;
-    form.amount_paid = 0;
     form.customer_id = 'none';
     selectedServiceId.value = '';
     
@@ -434,23 +402,15 @@ const openConfirmDialog = () => {
     const issues: string[] = [];
 
     if (!hasSelectedCustomer.value) {
-        issues.push('Pelanggan belum dipilih. Pilih pelanggan terlebih dahulu sebelum menyimpan transaksi.');
+        issues.push('Pelanggan belum dipilih. Pilih pelanggan terlebih dahulu sebelum menyimpan pesanan.');
     }
 
     if (isCartEmpty.value) {
         issues.push('Keranjang belanja masih kosong. Tambahkan minimal satu layanan.');
     }
 
-    if (isCashAmountMissing.value) {
-        issues.push('Nominal dibayarkan belum diisi untuk pembayaran tunai.');
-    }
-
-    if (isUnderpaid.value) {
-        issues.push('Nominal pembayaran tunai masih kurang dari total tagihan.');
-    }
-
     if (issues.length > 0) {
-        checkoutWarningTitle.value = 'Transaksi Belum Lengkap';
+        checkoutWarningTitle.value = 'Pesanan Belum Lengkap';
         checkoutWarningMessage.value = '';
         checkoutWarnings.value = issues;
         showCheckoutWarningDialog.value = true;
@@ -511,9 +471,6 @@ const shouldShowCustomerError = computed(() =>
 );
 const shouldShowCartError = computed(() =>
     checkoutAttempted.value && isCartEmpty.value
-);
-const shouldShowPaymentError = computed(() =>
-    checkoutAttempted.value && (isCashAmountMissing.value || isUnderpaid.value)
 );
 </script>
 
@@ -1127,118 +1084,15 @@ const shouldShowPaymentError = computed(() =>
                             </div>
                         </div>
 
-                        <!-- Pembayaran Form -->
-                        <div class="space-y-4">
-                            <div class="space-y-2">
-                                <Label class="font-semibold text-slate-700" for="payment_method">Metode Pembayaran</Label>
-                                <Select
-                                    :model-value="form.payment_method"
-                                    @update:model-value="(val) => { 
-                                        form.payment_method = val as string; 
-                                        // Auto-fill amount_paid jika bukan cash
-                                        form.amount_paid = val === 'cash' ? 0 : totalFinal; 
-                                    }"
-                                >
-                                    <SelectTrigger class="h-11 rounded-xl border-slate-200 bg-white shadow-sm">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="cash">Tunai (Cash)</SelectItem>
-                                        <SelectItem value="qris">E-Wallet / QRIS</SelectItem>
-                                        <SelectItem value="transfer">Transfer Bank</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <!-- Field Nominal Dibayarkan — Konsisten (Issue layout fix) -->
-                                <div class="space-y-3 pt-1">
-                                <Label class="font-semibold text-slate-700">
-                                    Nominal Dibayarkan {{ form.payment_method === 'cash' ? '(Tunai)' : `(${paymentMethodLabel})` }}
-                                </Label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500 font-medium">Rp</div>
-                                    <Input
-                                        v-model="form.amount_paid"
-                                        type="number"
-                                        class="h-12 rounded-xl pl-10 text-lg font-bold shadow-sm"
-                                        :class="{
-                                            'focus-visible:ring-primary/50': form.payment_method === 'cash',
-                                            'bg-slate-100 opacity-80 cursor-not-allowed': form.payment_method !== 'cash'
-                                        }"
-                                        :readonly="form.payment_method !== 'cash'"
-                                        data-payment-input
-                                    />
-                                    <kbd v-if="form.payment_method === 'cash'" class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium text-muted-foreground opacity-100 pointer-events-none shadow-sm">
-                                        F4
-                                    </kbd>
+                        <!-- Info tagihan — no payment at this stage -->
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                                    <AlertTriangle class="h-4 w-4 text-amber-500" />
                                 </div>
-
-                                <!-- Wrapper dengan tinggi tetap agar layout panel konsisten di semua metode pembayaran -->
-                                <div class="space-y-3" style="min-height: 168px;">
-
-                                    <!-- Tombol cepat nominal uang (hanya muncul jika metode = cash) -->
-                                    <div v-if="form.payment_method === 'cash'" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                        <Button
-                                            v-for="nominal in cashQuickAmounts"
-                                            :key="nominal"
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            class="h-9 rounded-xl text-xs font-medium hover:border-primary/40 hover:bg-primary/10"
-                                            @click="form.amount_paid = nominal"
-                                        >
-                                            {{ formatRupiah(nominal).replace('Rp ', '') }}
-                                        </Button>
-                                    </div>
-
-                                    <!-- Placeholder tinggi saat bukan cash (supaya layout tidak berubah) -->
-                                    <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3 invisible">
-                                        <div v-for="i in 6" :key="i" class="h-9 rounded-xl"></div>
-                                    </div>
-
-                                    <div
-                                        v-if="shouldShowPaymentError || form.errors.amount_paid"
-                                        class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
-                                    >
-                                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                        <span>{{ form.errors.amount_paid || 'Nominal dibayarkan harus diisi saat pembayaran tunai.' }}</span>
-                                    </div>
-
-                                    <!-- Tampilan Kembalian (Issue #7) — HANYA UNTUK CASH -->
-                                    <div
-                                        v-if="form.payment_method === 'cash'"
-                                        class="flex items-center justify-between rounded-2xl border p-3 transition-colors"
-                                        :class="{
-                                            'border-emerald-200 bg-emerald-50/80': changeAmount >= 0 && form.amount_paid > 0,
-                                            'border-red-200 bg-red-50/80': isUnderpaid,
-                                            'border-slate-200 bg-slate-50': form.amount_paid === 0
-                                        }"
-                                    >
-                                        <span class="text-sm font-medium" :class="{
-                                            'text-emerald-700': changeAmount >= 0 && form.amount_paid > 0,
-                                            'text-red-600': isUnderpaid,
-                                            'text-slate-500': form.amount_paid === 0
-                                        }">
-                                            {{ isUnderpaid ? 'Kurang Bayar:' : 'Kembalian:' }}
-                                        </span>
-                                        <span
-                                            class="text-2xl font-bold"
-                                            :class="{
-                                                'text-emerald-600': changeAmount >= 0 && form.amount_paid > 0,
-                                                'text-red-600': isUnderpaid,
-                                                'text-slate-400': form.amount_paid === 0
-                                            }"
-                                        >
-                                            {{ isUnderpaid ? formatRupiah(Math.abs(changeAmount)) : formatRupiah(changeAmount) }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Info non-cash — menggantikan posisi box Kembalian agar tinggi sama -->
-                                    <div v-else class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-sm text-blue-700">
-                                        <AlertTriangle class="h-4 w-4 text-blue-400 shrink-0" />
-                                        <span>Pastikan dana <strong>{{ form.payment_method.toUpperCase() }}</strong> sudah masuk.</span>
-                                    </div>
-
+                                <div>
+                                    <p class="font-semibold text-amber-900">Pembayaran belum diperlukan</p>
+                                    <p class="mt-0.5 text-xs text-amber-700 leading-relaxed">Pesanan akan disimpan dengan status <strong>Belum Dibayar</strong>. Proses pembayaran (lunas atau DP) dilakukan setelah pesanan selesai dikerjakan.</p>
                                 </div>
                             </div>
                         </div>
@@ -1256,7 +1110,7 @@ const shouldShowPaymentError = computed(() =>
                             <div class="flex items-center justify-center gap-2">
                                 <Loader2 v-if="form.processing" class="h-5 w-5 animate-spin" />
                                 <Save v-else class="h-5 w-5" />
-                                <span>{{ form.processing ? 'MEMPROSES...' : 'SIMPAN & CETAK NOTA' }}</span>
+                                <span>{{ form.processing ? 'MEMPROSES...' : 'SIMPAN PESANAN' }}</span>
                                 <kbd v-if="!form.processing" class="hidden md:inline-flex ml-2 h-5 items-center gap-1 rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 font-mono text-[10px] font-medium text-white opacity-90">F9</kbd>
                             </div>
                         </Button>
@@ -1305,12 +1159,16 @@ const shouldShowPaymentError = computed(() =>
                     Konfirmasi Transaksi
                 </DialogTitle>
                 <DialogDescription class="mt-1">
-                    Pastikan semua detail pesanan dan pembayaran sudah benar sebelum disimpan.
+                    Pastikan semua detail pesanan sudah benar. Pembayaran dilakukan terpisah setelah pesanan selesai.
                 </DialogDescription>
             </DialogHeader>
 
-            <!-- Ringkasan singkat transaksi -->
+            <!-- Ringkasan singkat pesanan -->
             <div class="my-4 space-y-3 text-sm">
+                <div class="flex justify-between items-center py-2 border-b border-dashed">
+                    <span class="text-gray-500">Pelanggan</span>
+                    <span class="font-semibold">{{ selectedCustomerLabel }}</span>
+                </div>
                 <div class="flex justify-between items-center py-2 border-b border-dashed">
                     <span class="text-gray-500">Total Item</span>
                     <span class="font-semibold">{{ form.items.length }} item</span>
@@ -1327,13 +1185,9 @@ const shouldShowPaymentError = computed(() =>
                     <span class="font-bold text-primary text-base">TOTAL TAGIHAN</span>
                     <span class="font-bold text-primary text-xl">{{ formatRupiah(totalFinal) }}</span>
                 </div>
-                <div class="flex justify-between items-center py-2 px-3">
-                    <span class="text-gray-500">Metode Bayar</span>
-                    <span class="font-semibold uppercase">{{ form.payment_method }}</span>
-                </div>
-                <div v-if="form.payment_method === 'cash'" class="flex justify-between items-center py-2 px-3 bg-green-50 rounded-lg">
-                    <span class="text-gray-600">Kembalian</span>
-                    <span class="font-bold text-green-600 text-lg">{{ formatRupiah(changeAmount) }}</span>
+                <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <AlertTriangle class="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <span>Status: <strong>Belum Dibayar</strong> — pembayaran akan diproses setelah pesanan selesai.</span>
                 </div>
             </div>
 
@@ -1343,7 +1197,7 @@ const shouldShowPaymentError = computed(() =>
                 </Button>
                 <Button @click="submitTransaction" class="flex-1 bg-primary hover:bg-primary/90">
                     <Save class="h-4 w-4 mr-2" />
-                    Ya, Simpan Transaksi
+                    Ya, Simpan Pesanan
                 </Button>
             </DialogFooter>
         </DialogContent>

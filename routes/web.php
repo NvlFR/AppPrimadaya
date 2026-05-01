@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::patch('/transactions/{transaction}/status', [TransactionController::class, 'updateStatus'])->name('transactions.status');
+    Route::post('/transactions/{transaction}/payment', [TransactionController::class, 'processPayment'])->name('transactions.payment');
     Route::get('/transactions/{transaction}/pdf', [TransactionController::class, 'downloadPdf'])->name('transactions.pdf');
     Route::get('/transactions/{transaction}/thermal', [TransactionController::class, 'printThermal'])->name('transactions.thermal');
 

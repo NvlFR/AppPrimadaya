@@ -16,9 +16,11 @@ interface Transaction {
     customer_name: string;
     kasir_name: string;
     total: string | number;
-    payment_method: string;
+    payment_method: string | null;
     status: string;
     status_label: string;
+    payment_status: string;
+    payment_status_label: string;
     created_at: string;
 }
 
@@ -35,9 +37,11 @@ const props = defineProps<{
     filters: {
         search?: string;
         status?: string;
+        payment_status?: string;
         date_from?: string;
         date_to?: string;
     };
+    payment_status_options: Record<string, string>;
 }>();
 
 const { formatRupiah } = useFormatRupiah();
@@ -97,6 +101,7 @@ const executeBulkDelete = () => {
 // ============================================================
 const search = ref(props.filters.search || '');
 const statusFilter = ref(props.filters.status || '');
+const paymentStatusFilter = ref(props.filters.payment_status || '');
 const dateFromFilter = ref(props.filters.date_from || '');
 const dateToFilter = ref(props.filters.date_to || '');
 
@@ -113,6 +118,7 @@ const triggerSearch = () => {
         router.get(route('transactions.index'), {
             search: search.value,
             status: statusFilter.value,
+            payment_status: paymentStatusFilter.value,
             date_from: dateFromFilter.value,
             date_to: dateToFilter.value,
         }, {
@@ -122,7 +128,7 @@ const triggerSearch = () => {
     }, 400);
 };
 
-watch([search, statusFilter, dateFromFilter, dateToFilter], triggerSearch);
+watch([search, statusFilter, paymentStatusFilter, dateFromFilter, dateToFilter], triggerSearch);
 
 // ============================================================
 // Infinite Scroll — Intersection Observer (Issue #26)
@@ -149,6 +155,7 @@ const loadNextPage = () => {
     router.get(route('transactions.index'), {
         search: search.value,
         status: statusFilter.value,
+        payment_status: paymentStatusFilter.value,
         date_from: dateFromFilter.value,
         date_to: dateToFilter.value,
         page: nextPage,
@@ -209,7 +216,17 @@ const getStatusColor = (status: string) => {
     }
 };
 
-const getPaymentLabel = (method: string) => {
+const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+        case 'lunas':       return 'bg-green-100 text-green-800 border-green-200';
+        case 'dp':          return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'belum_bayar': return 'bg-red-100 text-red-800 border-red-200';
+        default:            return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+};
+
+const getPaymentLabel = (method: string | null) => {
+    if (!method) return '-';
     const map: Record<string, string> = {
         cash: 'Tunai',
         qris: 'QRIS',
@@ -255,11 +272,20 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                     v-model="statusFilter"
                     class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[150px]"
                 >
-                    <option value="">Semua Status</option>
+                    <option value="">Semua Status Pesanan</option>
                     <option value="pending">Pending</option>
                     <option value="diproses">Diproses</option>
                     <option value="selesai">Selesai</option>
                     <option value="diambil">Diambil</option>
+                </select>
+                <select
+                    v-model="paymentStatusFilter"
+                    class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:w-[160px]"
+                >
+                    <option value="">Semua Status Bayar</option>
+                    <option v-for="(label, key) in payment_status_options" :key="key" :value="key">
+                        {{ label }}
+                    </option>
                 </select>
                 <div class="flex w-full items-center gap-2 sm:w-auto">
                     <span class="text-sm text-gray-500 whitespace-nowrap">Dari:</span>
@@ -320,8 +346,10 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                             <p class="mt-1 text-gray-600">{{ item.kasir_name }}</p>
                         </div>
                         <div>
-                            <p class="text-xs uppercase tracking-wide text-gray-400">Metode</p>
-                            <p class="mt-1 text-gray-600">{{ getPaymentLabel(item.payment_method) }}</p>
+                            <p class="text-xs uppercase tracking-wide text-gray-400">Pembayaran</p>
+                            <Badge variant="outline" :class="getPaymentStatusColor(item.payment_status)" class="mt-1 text-xs">
+                                {{ item.payment_status_label }}
+                            </Badge>
                         </div>
                     </div>
 
@@ -366,9 +394,9 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                                 <th class="px-5 py-3">No. Transaksi</th>
                                 <th class="px-5 py-3">Pelanggan</th>
                                 <th class="px-5 py-3">Kasir</th>
-                                <th class="px-5 py-3 text-right">Total Bayar</th>
-                                <th class="px-5 py-3">Metode</th>
-                                <th class="px-5 py-3 text-center">Status</th>
+                                <th class="px-5 py-3 text-right">Total</th>
+                                <th class="px-5 py-3 text-center">Pembayaran</th>
+                                <th class="px-5 py-3 text-center">Status Pesanan</th>
                                 <th class="px-5 py-3 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -390,10 +418,13 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
                                 <td class="px-5 py-4 text-right">
                                     <span class="font-semibold text-gray-900">{{ formatRupiah(item.total) }}</span>
                                 </td>
-                                <td class="px-5 py-4">
-                                    <span class="text-xs font-medium uppercase tracking-wide text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                <td class="px-5 py-4 text-center">
+                                    <Badge variant="outline" :class="getPaymentStatusColor(item.payment_status)">
+                                        {{ item.payment_status_label }}
+                                    </Badge>
+                                    <p v-if="item.payment_method" class="text-xs text-gray-400 mt-1 capitalize">
                                         {{ getPaymentLabel(item.payment_method) }}
-                                    </span>
+                                    </p>
                                 </td>
                                 <td class="px-5 py-4 text-center">
                                     <Badge variant="outline" :class="getStatusColor(item.status)">
@@ -416,7 +447,7 @@ const hasMore = () => currentPage.value < props.transactions.last_page;
 
                             <!-- Empty state -->
                             <tr v-if="localData.length === 0">
-                                <td :colspan="isAdmin ? 8 : 7" class="px-6 py-16 text-center text-gray-400">
+                                <td :colspan="isAdmin ? 9 : 8" class="px-6 py-16 text-center text-gray-400">
                                     <PrinterIcon class="h-10 w-10 mx-auto mb-3 text-gray-200" />
                                     <p class="font-medium text-gray-600">Tidak ada transaksi ditemukan.</p>
                                     <p class="text-sm mt-1">Coba sesuaikan filter pencarian di atas.</p>
