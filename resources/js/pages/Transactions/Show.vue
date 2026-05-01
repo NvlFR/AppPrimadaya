@@ -124,7 +124,18 @@ const downloadPdf = () => {
 };
 
 const printThermal = () => {
-    window.open(route('transactions.thermal', props.transaction.id), '_blank');
+    const url = route('transactions.thermal', props.transaction.id);
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+        }, 1000);
+    };
 };
 </script>
 
