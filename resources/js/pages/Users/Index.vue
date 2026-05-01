@@ -11,8 +11,9 @@ import {
     PencilIcon, 
     TrashIcon, 
     UsersIcon,
-    UsersRound
+    UsersRound,
 } from 'lucide-vue-next';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { ref, watch, computed } from 'vue';
 
 interface User {
@@ -290,7 +291,10 @@ const executeDeleteUser = () => {
                 <DialogHeader>
                     <DialogTitle>{{ isEditMode ? 'Edit Profil Karyawan' : 'Tambah Karyawan Baru' }}</DialogTitle>
                 </DialogHeader>
-                <form @submit.prevent="saveUser" class="space-y-4 py-4">
+                <form @submit.prevent="saveUser" class="space-y-4 py-4" autocomplete="off">
+                    <!-- Fake inputs to prevent browser autofill -->
+                    <input type="text" style="display:none" aria-hidden="true">
+                    <input type="password" style="display:none" aria-hidden="true">
                     
                     <div class="space-y-2">
                         <Label for="name">Nama Lengkap <span class="text-red-500">*</span></Label>
@@ -317,7 +321,13 @@ const executeDeleteUser = () => {
 
                     <div class="space-y-2">
                         <Label for="password">Password {{ isEditMode ? '(Opsional)' : '*' }}</Label>
-                        <Input id="password" type="password" v-model="form.password" :required="!isEditMode" placeholder="Minimal 8 karakter" />
+                        <PasswordInput 
+                            id="password" 
+                            v-model="form.password" 
+                            :required="!isEditMode" 
+                            placeholder="Minimal 8 karakter"
+                            autocomplete="new-password"
+                        />
                         <p v-if="isEditMode" class="text-xs text-gray-400">Kosongkan jika tidak ingin mengubah password.</p>
                         <span class="text-xs text-red-500" v-if="form.errors.password">{{ form.errors.password }}</span>
                     </div>
