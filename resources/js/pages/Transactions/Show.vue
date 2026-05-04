@@ -29,6 +29,8 @@ interface TransactionItem {
     subtotal: string | number;
     item_notes: string | null;
     original_filename: string | null;
+    width_meter: string | number | null;
+    height_meter: string | number | null;
 }
 
 interface Transaction {
@@ -247,6 +249,9 @@ const printThermal = () => {
                                     <div v-if="item.original_filename" class="text-xs text-blue-600 flex items-center bg-blue-50 bg-opacity-50 w-fit px-2 py-1 rounded">
                                         <PaperclipIcon class="h-3 w-3 mr-1" /> {{ item.original_filename }}
                                     </div>
+                                    <div v-if="item.width_meter && item.height_meter" class="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit">
+                                        Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
+                                    </div>
                                     <p v-if="item.item_notes" class="text-sm italic text-gray-600">
                                         Catatan: {{ item.item_notes }}
                                     </p>
@@ -289,6 +294,9 @@ const printThermal = () => {
                                             </div>
                                             <div v-if="item.original_filename" class="mt-2 text-xs text-blue-600 flex items-center bg-blue-50 bg-opacity-50 w-fit px-2 py-1 rounded">
                                                 <PaperclipIcon class="h-3 w-3 mr-1" /> {{ item.original_filename }}
+                                            </div>
+                                            <div v-if="item.width_meter && item.height_meter" class="mt-2 text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit">
+                                                Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
                                             </div>
                                             <div v-if="item.item_notes" class="mt-2 text-xs text-gray-600 italic">
                                                 Catatan: {{ item.item_notes }}

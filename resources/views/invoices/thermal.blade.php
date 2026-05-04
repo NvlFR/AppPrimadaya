@@ -353,12 +353,28 @@
                         @endif
                     </div>
                 @endif
+                @if ($item->width_meter && $item->height_meter)
+                    @php
+                        $area = $item->width_meter * $item->height_meter;
+                        $pricePerMeter = $area > 0 ? $item->unit_price / $area : 0;
+                    @endphp
+                    <div class="item-detail">
+                        {{ number_format($item->width_meter, 2) }}m x {{ number_format($item->height_meter, 2) }}m = {{ number_format($area, 2) }} m²
+                    </div>
+                    <div class="item-detail">
+                        Harga/m²: Rp {{ number_format($pricePerMeter, 0, ',', '.') }}
+                    </div>
+                @endif
                 @if ($item->item_notes)
                     <div class="item-note">Catatan: {{ $item->item_notes }}</div>
                 @endif
                 <div class="item-pricing">
                     <span class="item-qty-price">
-                        {{ $item->qty }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                        @if ($item->width_meter && $item->height_meter)
+                            {{ $item->qty }} pcs
+                        @else
+                            {{ $item->qty }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                        @endif
                     </span>
                     <span class="item-subtotal">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
                 </div>

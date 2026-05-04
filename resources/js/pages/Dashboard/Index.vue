@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon, CheckCircle } from 'lucide-vue-next';
+import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon, CheckCircle, CheckCircle2, CircleDollarSign, AlertCircle } from 'lucide-vue-next';
 import { computed, ref, defineAsyncComponent } from 'vue';
 
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'));
@@ -14,6 +14,8 @@ const props = defineProps<{
     stats: {
         today_revenue: number;
         today_transactions: number;
+        today_paid: number;
+        today_unpaid: number;
         monthly_revenue: number;
         monthly_expenses: number;
         pending_orders: number;
@@ -241,6 +243,38 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                         <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ stats.pending_orders }} <span class="text-base font-normal text-gray-500">pesanan</span></div>
                         <p class="text-xs text-muted-foreground mt-1">
                             Segera proses untuk hari ini
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <!-- Card: Total Sudah Bayar (Lunas) -->
+                <Card class="hover:shadow-md transition-shadow border">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium text-gray-500">Sudah Lunas</CardTitle>
+                        <div class="h-8 w-8 bg-emerald-50 flex items-center justify-center rounded-lg text-emerald-600">
+                            <CheckCircle2 class="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="break-words text-2xl font-bold leading-tight text-emerald-700">{{ formatRupiah(stats.today_paid) }}</div>
+                        <p class="text-xs text-muted-foreground mt-1 text-emerald-600 font-medium">
+                            Tagihan lunas hari ini
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <!-- Card: Total Belum/Kurang Bayar -->
+                <Card class="hover:shadow-md transition-shadow border">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium text-gray-500">Belum Lunas</CardTitle>
+                        <div class="h-8 w-8 bg-orange-50 flex items-center justify-center rounded-lg text-orange-500">
+                            <AlertCircle class="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="break-words text-2xl font-bold leading-tight text-orange-600">{{ formatRupiah(stats.today_unpaid) }}</div>
+                        <p class="text-xs text-muted-foreground mt-1 text-orange-500 font-medium">
+                            Sisa piutang hari ini
                         </p>
                     </CardContent>
                 </Card>

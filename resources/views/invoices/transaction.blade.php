@@ -553,6 +553,18 @@
                                     @endif
                                 </div>
                             @endif
+                            @if ($item->width_meter && $item->height_meter)
+                                @php
+                                    $area = $item->width_meter * $item->height_meter;
+                                    $pricePerMeter = $area > 0 ? $item->unit_price / $area : 0;
+                                @endphp
+                                <div class="service-detail">
+                                    Ukuran: {{ number_format($item->width_meter, 2) }}m &times; {{ number_format($item->height_meter, 2) }}m = {{ number_format($area, 2) }} m²
+                                </div>
+                                <div class="service-detail">
+                                    Harga/m²: Rp {{ number_format($pricePerMeter, 0, ',', '.') }}
+                                </div>
+                            @endif
                             @if ($item->original_filename)
                                 <div class="service-file">&#128206; {{ $item->original_filename }}</div>
                             @endif
@@ -562,7 +574,12 @@
                         </td>
                         <td class="text-center">{{ $item->qty }}</td>
                         <td class="text-right">
-                            Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                            @if ($item->width_meter && $item->height_meter)
+                                Rp {{ number_format($item->unit_price, 0, ',', '.') }}<br>
+                                <span class="service-detail">(total area)</span>
+                            @else
+                                Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                            @endif
                         </td>
                         <td class="text-right font-bold">
                             Rp {{ number_format($item->subtotal, 0, ',', '.') }}

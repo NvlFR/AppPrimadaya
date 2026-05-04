@@ -60,15 +60,26 @@ class DashboardController extends Controller
                 'created_at' => $trx->created_at->format('H:i'),
             ]);
 
+        // Total piutang (belum lunas) & total yang sudah terbayar hari ini
+        $todayPaid = (float) Transaction::whereDate('created_at', $today)
+            ->where('payment_status', 'lunas')
+            ->sum('total');
+
+        $todayUnpaid = (float) Transaction::whereDate('created_at', $today)
+            ->whereIn('payment_status', ['belum_bayar', 'dp'])
+            ->sum('remaining_amount');
+
         $stats = [
-            'today_revenue' => $todayRevenue,
-            'yesterday_revenue' => $yesterdayRevenue,
-            'revenue_growth' => round($revenueGrowth, 1),
+            'today_revenue'      => $todayRevenue,
+            'yesterday_revenue'  => $yesterdayRevenue,
+            'revenue_growth'     => round($revenueGrowth, 1),
             'today_transactions' => $todayTransactions,
-            'monthly_revenue' => 0,
-            'monthly_expenses' => 0,
-            'pending_orders' => $pendingOrders,
-            'net_profit' => 0,
+            'today_paid'         => $todayPaid,
+            'today_unpaid'       => $todayUnpaid,
+            'monthly_revenue'    => 0,
+            'monthly_expenses'   => 0,
+            'pending_orders'     => $pendingOrders,
+            'net_profit'         => 0,
         ];
 
         $salesChart = [];

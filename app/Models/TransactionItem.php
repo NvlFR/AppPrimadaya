@@ -20,14 +20,18 @@ class TransactionItem extends Model
         'file_path',
         'original_filename',
         'item_notes',
+        'width_meter',
+        'height_meter',
     ];
 
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
-            'subtotal' => 'decimal:2',
-            'qty' => 'integer',
+            'unit_price'   => 'decimal:2',
+            'subtotal'     => 'decimal:2',
+            'qty'          => 'integer',
+            'width_meter'  => 'decimal:2',
+            'height_meter' => 'decimal:2',
         ];
     }
 

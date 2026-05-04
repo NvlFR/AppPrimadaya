@@ -199,10 +199,18 @@ class TransactionController extends Controller
                         // Handle upload file custom order
                         $filePath         = null;
                         $originalFilename = null;
-                        if (isset($itemData['file']) && $itemData['file']) {
+                        if (isset($itemData['file']) && $itemData['file'] instanceof \Illuminate\Http\UploadedFile) {
                             $file             = $itemData['file'];
                             $filePath         = Storage::disk('public')->put("orders/{$transaction->id}", $file);
                             $originalFilename = $file->getClientOriginalName();
+                        }
+
+                        // Simpan dimensi spanduk jika layanan adalah per-meter
+                        $widthMeter  = null;
+                        $heightMeter = null;
+                        if ($service?->is_per_meter) {
+                            $widthMeter  = max(0.1, (float) ($itemData['width'] ?? 0.1));
+                            $heightMeter = max(0.1, (float) ($itemData['height'] ?? 0.1));
                         }
 
                         TransactionItem::create([
@@ -218,6 +226,8 @@ class TransactionController extends Controller
                             'file_path'         => $filePath,
                             'original_filename' => $originalFilename,
                             'item_notes'        => $itemData['item_notes'] ?? null,
+                            'width_meter'       => $widthMeter,
+                            'height_meter'      => $heightMeter,
                         ]);
                     }
 
@@ -280,6 +290,8 @@ class TransactionController extends Controller
                     'subtotal'          => $item->subtotal,
                     'item_notes'        => $item->item_notes,
                     'original_filename' => $item->original_filename,
+                    'width_meter'       => $item->width_meter,
+                    'height_meter'      => $item->height_meter,
                 ]),
             ],
             'status_options'          => Transaction::STATUS_LABELS,
