@@ -11,6 +11,8 @@ const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'));
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
 const props = defineProps<{
+    paid_transactions: Array<any>;
+    unpaid_transactions: Array<any>;
     stats: {
         today_revenue: number;
         today_transactions: number;
@@ -323,6 +325,87 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                         <p class="text-xs font-medium" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
                             {{ netProfitPositive ? 'Profit bulan ini masih aman.' : 'Laba bersih negatif, perlu perhatian.' }}
                         </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <!-- Daftar Transaksi Hari Ini: Lunas & Piutang -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Kolom Lunas -->
+                <Card class="border-emerald-100 shadow-sm bg-emerald-50/10">
+                    <CardHeader class="pb-3 border-b border-emerald-100/50">
+                        <CardTitle class="text-base font-bold text-emerald-800 flex items-center gap-2">
+                            <div class="p-1 bg-emerald-100 rounded-md">
+                                <CheckCircle2 class="w-4 h-4 text-emerald-600" />
+                            </div>
+                            Daftar Lunas Hari Ini
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="p-0">
+                        <div v-if="!paid_transactions || paid_transactions.length === 0" class="p-10 text-center">
+                            <div class="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                <CheckCircle2 class="w-6 h-6 text-gray-300" />
+                            </div>
+                            <p class="text-sm text-gray-400">Belum ada transaksi lunas hari ini.</p>
+                        </div>
+                        <div v-else class="divide-y divide-emerald-100/30 max-h-[400px] overflow-y-auto">
+                            <div v-for="t in paid_transactions" :key="t.id" class="p-4 hover:bg-emerald-50/50 transition-colors group">
+                                <div class="flex justify-between items-center">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <Badge variant="outline" class="text-[9px] h-4 px-1 bg-emerald-50 text-emerald-600 border-emerald-200">LUNAS</Badge>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">
+                                            {{ t.invoice_number }} • {{ new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
+                                        </p>
+                                    </div>
+                                    <div class="text-right ml-4">
+                                        <p class="font-bold text-emerald-700 text-sm">{{ formatRupiah(t.total) }}</p>
+                                        <p class="text-[9px] text-emerald-500/70 font-medium uppercase tracking-tighter">{{ t.payment_method || 'CASH' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Kolom Belum Lunas (Piutang) -->
+                <Card class="border-orange-100 shadow-sm bg-orange-50/10">
+                    <CardHeader class="pb-3 border-b border-orange-100/50">
+                        <CardTitle class="text-base font-bold text-orange-800 flex items-center gap-2">
+                            <div class="p-1 bg-orange-100 rounded-md">
+                                <AlertCircle class="w-4 h-4 text-orange-600" />
+                            </div>
+                            Daftar Piutang Hari Ini
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="p-0">
+                        <div v-if="!unpaid_transactions || unpaid_transactions.length === 0" class="p-10 text-center">
+                            <div class="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                <AlertCircle class="w-6 h-6 text-gray-300" />
+                            </div>
+                            <p class="text-sm text-gray-400">Semua tagihan hari ini sudah lunas!</p>
+                        </div>
+                        <div v-else class="divide-y divide-orange-100/30 max-h-[400px] overflow-y-auto">
+                            <div v-for="t in unpaid_transactions" :key="t.id" class="p-4 hover:bg-orange-50/50 transition-colors group">
+                                <div class="flex justify-between items-center">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <Badge variant="outline" class="text-[9px] h-4 px-1 bg-orange-50 text-orange-600 border-orange-200">{{ t.payment_status }}</Badge>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">
+                                            {{ t.invoice_number }} • {{ new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
+                                        </p>
+                                    </div>
+                                    <div class="text-right ml-4">
+                                        <p class="font-bold text-red-600 text-sm">{{ formatRupiah(t.remaining_amount) }}</p>
+                                        <p class="text-[9px] text-orange-500 font-medium">Sisa dari {{ formatRupiah(t.total) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

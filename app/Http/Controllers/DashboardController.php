@@ -91,8 +91,24 @@ class DashboardController extends Controller
             $categorySales = $this->getCategorySales($thisMonth);
         }
 
+        // Daftar transaksi lunas hari ini
+        $paidTransactions = Transaction::with('customer')
+            ->whereDate('created_at', $today)
+            ->where('payment_status', 'lunas')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Daftar piutang (DP / Belum Bayar) hari ini
+        $unpaidTransactions = Transaction::with('customer')
+            ->whereDate('created_at', $today)
+            ->whereIn('payment_status', ['belum_bayar', 'dp'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return Inertia::render('Dashboard/Index', [
             'stats' => $stats,
+            'paid_transactions' => $paidTransactions,
+            'unpaid_transactions' => $unpaidTransactions,
             'sales_chart' => $salesChart,
             'recent_transactions' => $recentTransactions,
             'active_orders' => $activeOrders,
