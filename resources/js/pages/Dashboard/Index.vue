@@ -30,6 +30,8 @@ const props = defineProps<{
         revenue: number;
         count: number;
     }>;
+    payment_methods: Array<any>;
+    top_services: Array<any>;
     category_sales: Array<{
         label: string;
         category: string;
@@ -180,6 +182,36 @@ const updateOrderStatus = (id: number, newStatus: string) => {
         preserveScroll: true,
     });
 };
+
+// Chart: Metode Pembayaran
+const paymentChartOptions = computed(() => ({
+    chart: { type: 'donut', fontFamily: 'inherit' },
+    labels: props.payment_methods.map(m => m.label),
+    colors: ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6'],
+    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Transaksi', formatter: () => props.payment_methods.reduce((a, b) => a + b.count, 0) } } } } },
+    dataLabels: { enabled: false },
+    legend: { position: 'bottom' },
+    stroke: { width: 0 }
+}));
+
+const paymentChartSeries = computed(() => props.payment_methods.map(m => m.count));
+
+// Chart: Top Services
+const serviceChartOptions = computed(() => ({
+    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '60%' } },
+    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+    dataLabels: { enabled: true, formatter: (val: any) => val + 'x', style: { fontSize: '10px' } },
+    xaxis: { categories: props.top_services.map(s => s.name), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    grid: { show: false },
+    legend: { show: false },
+}));
+
+const serviceChartSeries = computed(() => [{
+    name: 'Jumlah Pesanan',
+    data: props.top_services.map(s => s.total_qty)
+}]);
+
 // ===============================
 </script>
 

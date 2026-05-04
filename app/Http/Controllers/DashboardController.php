@@ -113,6 +113,8 @@ class DashboardController extends Controller
             'recent_transactions' => $recentTransactions,
             'active_orders' => $activeOrders,
             'category_sales' => $categorySales,
+            'payment_methods' => $this->getPaymentMethodStats($thisMonth),
+            'top_services' => $this->getTopServices($thisMonth),
         ]);
     }
 
@@ -190,5 +192,35 @@ class DashboardController extends Controller
                     'revenue' => (float) $item->revenue,
                 ];
             });
+    }
+
+    private function getPaymentMethodStats(Carbon $thisMonth)
+    {
+        return Transaction::where('created_at', '>=', $thisMonth)
+            ->whereNotIn('status', ['pending'])
+            ->select('payment_method', DB::raw('count(*) as count'), DB::raw('SUM(total) as revenue'))
+            ->groupBy('payment_method')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'label' => strtoupper($item->payment_method ?: 'LAINNYA'),
+                    'count' => $item->count,
+                    'revenue' => (float) $item->revenue,
+                ];
+            });
+    }
+
+    private function getTopServices(Carbon $thisMonth)
+    {
+        return DB::table('transaction_items')
+            ->join('services', 'transaction_items.service_id', '=', 'services.id')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->where('transactions.created_at', '>=', $thisMonth)
+            ->whereNotIn('transactions.status', ['pending'])
+            ->select('services.name', DB::raw('SUM(transaction_items.qty) as total_qty'), DB::raw('SUM(transaction_items.subtotal) as revenue'))
+            ->groupBy('services.id', 'services.name')
+            ->orderBy('total_qty', 'desc')
+            ->take(5)
+            ->get();
     }
 }

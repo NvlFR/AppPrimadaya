@@ -104,7 +104,7 @@ const amountPlaceholder = computed(() => {
     if (formPayment.payment_type === 'lunas') {
         return `Min. ${formatRupiah(sisaTagihan.value)}`;
     }
-    return 'Nominal DP yang dibayar';
+    return 'Masukkan Nominal DP';
 });
 
 const updateStatus = () => {
@@ -442,9 +442,9 @@ const printThermal = () => {
                                 <p v-if="formPayment.errors.amount_paid" class="text-xs text-red-500">{{ formPayment.errors.amount_paid }}</p>
 
                                 <!-- Info sisa untuk mode lunas -->
-                                <p v-if="formPayment.payment_type === 'lunas'" class="text-xs text-blue-600">
+                                <!-- <p v-if="formPayment.payment_type === 'lunas'" class="text-xs text-blue-600">
                                     Sisa tagihan: {{ formatRupiah(sisaTagihan) }}
-                                </p>
+                                </p> -->
                             </div>
 
                             <Button
