@@ -259,6 +259,8 @@ class TransactionController extends Controller
             'transaction' => [
                 'id' => $transaction->id,
                 'transaction_number' => $transaction->transaction_number,
+                'invoice_number' => $transaction->invoice_number,
+                'uuid' => $transaction->uuid,
                 'customer' => $transaction->customer ? [
                     'id' => $transaction->customer->id,
                     'name' => $transaction->customer->name,
@@ -293,6 +295,10 @@ class TransactionController extends Controller
                     'original_filename' => $item->original_filename,
                     'width_meter' => $item->width_meter,
                     'height_meter' => $item->height_meter,
+                    'service' => $item->service ? [
+                        'id' => $item->service->id,
+                        'name' => $item->service->name,
+                    ] : null,
                 ]),
             ],
             'status_options' => Transaction::STATUS_LABELS,
@@ -554,5 +560,31 @@ class TransactionController extends Controller
     {
         return $exception->getCode() === '23000'
             || in_array($exception->errorInfo[1] ?? null, [1062, 19], true);
+    }
+
+    /**
+     * Menampilkan invoice untuk publik (pelanggan).
+     */
+    public function publicInvoice($uuid)
+    {
+        $transaction = Transaction::with(['customer', 'items.service', 'user'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        return view('invoices.transaction', compact('transaction'));
+    }
+
+    /**
+     * Download PDF invoice untuk publik.
+     */
+    public function publicPdf($uuid)
+    {
+        $transaction = Transaction::with(['customer', 'items.service', 'user'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        $pdf = \PDF::loadView('invoices.transaction', compact('transaction'));
+
+        return $pdf->download("Invoice-{$transaction->invoice_number}.pdf");
     }
 }

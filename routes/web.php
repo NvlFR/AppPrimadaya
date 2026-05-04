@@ -99,3 +99,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+
+// Public Invoice Link
+Route::get('/invoice/{uuid}', [TransactionController::class, 'publicInvoice'])->name('public.invoice');
+Route::get('/invoice/{uuid}/pdf', [TransactionController::class, 'publicPdf'])->name('public.invoice.pdf');

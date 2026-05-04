@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +15,13 @@ import {
     BanknoteIcon,
     ClockIcon,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
+
+interface TransactionItemService {
+    id: number;
+    name: string;
+}
 
 interface TransactionItem {
     id: number;
@@ -32,11 +37,14 @@ interface TransactionItem {
     width_meter: string | number | null;
     height_meter: string | number | null;
     price_per_meter: string | number | null;
+    service?: TransactionItemService | null;
 }
 
 interface Transaction {
     id: number;
     transaction_number: string;
+    invoice_number: string | null;
+    uuid: string;
     customer: { id: number; name: string; phone: string | null } | null;
     kasir_name: string;
     subtotal: string | number;
@@ -75,6 +83,7 @@ const formPayment = useForm({
 
 const { formatRupiah } = useFormatRupiah();
 const customerMissing = computed(() => !props.transaction.customer);
+const toNumber = (value: string | number | null | undefined) => Number(value ?? 0);
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -97,7 +106,7 @@ const getPaymentStatusColor = (status: string) => {
 const isUnpaid = computed(() => props.transaction.payment_status !== 'lunas');
 
 // Sisa tagihan yang harus dibayar sekarang
-const sisaTagihan = computed(() => Number(props.transaction.remaining_amount ?? props.transaction.total));
+const sisaTagihan = computed(() => toNumber(props.transaction.remaining_amount ?? props.transaction.total));
 
 // Placeholder nominal berdasarkan tipe pembayaran
 const amountPlaceholder = computed(() => {
@@ -106,6 +115,49 @@ const amountPlaceholder = computed(() => {
     }
     return 'Masukkan Nominal DP';
 });
+
+
+const shareToWhatsApp = () => {
+    const trx = props.transaction;
+    const items = trx.items
+        .map((item) => `- ${item.service_name || item.service?.name || 'Layanan'} (x${item.qty})`)
+        .join('\n');
+    const publicUrl = window.location.origin + '/invoice/' + trx.uuid;
+    const paymentMethod = (trx.payment_method ?? 'cash').toUpperCase();
+
+    let message = `Halo *${trx.customer?.name || 'Pelanggan'}*,\n\n`;
+    message += `Berikut adalah detail pesanan Anda di *Primadaya Print*:\n\n`;
+    message += `*No. Invoice:* ${trx.invoice_number || trx.transaction_number}\n`;
+    message += `*Status:* ${trx.status_label}\n`;
+    message += `*Metode Bayar:* ${paymentMethod}
+
+`;
+    message += `*Layanan*:\n${items}
+
+`;
+    message += `*Total:* ${formatRupiah(trx.total)}\n`;
+
+    const remaining = toNumber(trx.remaining_amount);
+    if (remaining > 0) {
+        message += `*Sisa Tagihan:* ${formatRupiah(remaining)}\n`;
+    } else {
+        message += `*Status Bayar:* LUNAS\n`;
+    }
+
+    message += `\n📄 *Lihat Invoice (Web):*\n${publicUrl}
+`;
+    message += `📥 *Download PDF:*\n${publicUrl}/pdf
+
+`;
+    message += `Terima kasih telah mempercayakan pesanan Anda kepada kami!`;
+
+    const phone = trx.customer?.phone || '';
+    const encodedMessage = encodeURIComponent(message);
+    const waUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMessage}`;
+
+    window.open(waUrl, '_blank');
+};
+
 
 const updateStatus = () => {
     formStatus.patch(route('transactions.status', props.transaction.id), {
@@ -133,8 +185,14 @@ const printThermal = () => {
     iframe.src = url;
     document.body.appendChild(iframe);
     iframe.onload = () => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+        const iframeWindow = iframe.contentWindow;
+        if (!iframeWindow) {
+            document.body.removeChild(iframe);
+            return;
+        }
+
+        iframeWindow.focus();
+        iframeWindow.print();
         setTimeout(() => {
             document.body.removeChild(iframe);
         }, 1000);
@@ -174,6 +232,10 @@ const printThermal = () => {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" size="sm" class="bg-green-50 text-green-700 border-green-200 hover:bg-green-100" @click="shareToWhatsApp">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        Share WA
+                    </Button>
                     <Button variant="outline" @click="printThermal" class="border-gray-300 text-gray-700 hover:bg-gray-50">
                         <PrinterIcon class="h-4 w-4 mr-2" /> Struk Thermal
                     </Button>
