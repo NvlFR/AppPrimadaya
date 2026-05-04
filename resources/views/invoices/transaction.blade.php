@@ -21,6 +21,43 @@
             line-height: 1.5;
         }
 
+        @if(!$is_pdf)
+        body {
+            background: #f1f5f9;
+            padding: 40px 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+        .page {
+            background: #ffffff;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .download-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1d4ed8;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 10px 15px -3px rgba(29, 78, 216, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            z-index: 1000;
+        }
+        .download-btn:hover {
+            background: #1e40af;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(29, 78, 216, 0.4);
+        }
+        @endif
+
         /* Layout Utama */
         .page {
             padding: 32px 36px;
@@ -471,7 +508,7 @@
         {{-- ===================== HEADER ===================== --}}
         <div class="invoice-header">
             <div class="invoice-header-left">
-                <img src="{{ public_path('logo.png') }}" alt="Primadaya Print"
+                <img src="{{ $is_pdf ? public_path('logo.png') : asset('logo.png') }}" alt="Primadaya Print"
                     style="max-height: 48px; width: auto; display: block; margin-bottom: 4px;">
                 {{-- <div class="business-tagline">Jasa Cetak & Percetakan Digital Profesional</div> --}}
             </div>
@@ -715,8 +752,14 @@
                 Dicetak: {{ now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB
             </div>
         </div>
-
     </div>
+
+    @if(!$is_pdf)
+    <a href="{{ url()->current() }}/pdf" class="download-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Download PDF
+    </a>
+    @endif
 </body>
 
 </html>

@@ -18,11 +18,6 @@ import {
 import { computed } from 'vue';
 import { useFormatRupiah } from '@/composables/useFormatRupiah';
 
-interface TransactionItemService {
-    id: number;
-    name: string;
-}
-
 interface TransactionItem {
     id: number;
     service_name: string;
@@ -37,13 +32,12 @@ interface TransactionItem {
     width_meter: string | number | null;
     height_meter: string | number | null;
     price_per_meter: string | number | null;
-    service?: TransactionItemService | null;
+    service?: { id: number; name: string } | null;
 }
 
 interface Transaction {
     id: number;
     transaction_number: string;
-    invoice_number: string | null;
     uuid: string;
     customer: { id: number; name: string; phone: string | null } | null;
     kasir_name: string;
@@ -119,41 +113,54 @@ const amountPlaceholder = computed(() => {
 
 const shareToWhatsApp = () => {
     const trx = props.transaction;
+    
+    // Formatting items list with professional style
     const items = trx.items
-        .map((item) => `- ${item.service_name || item.service?.name || 'Layanan'} (x${item.qty})`)
+        .map((item: TransactionItem) => `• ${item.service_name} (x${item.qty})`)
         .join('\n');
+
     const publicUrl = window.location.origin + '/invoice/' + trx.uuid;
-    const paymentMethod = (trx.payment_method ?? 'cash').toUpperCase();
-
-    let message = `Halo *${trx.customer?.name || 'Pelanggan'}*,\n\n`;
-    message += `Berikut adalah detail pesanan Anda di *Primadaya Print*:\n\n`;
-    message += `*No. Invoice:* ${trx.invoice_number || trx.transaction_number}\n`;
-    message += `*Status:* ${trx.status_label}\n`;
-    message += `*Metode Bayar:* ${paymentMethod}
-
-`;
-    message += `*Layanan*:\n${items}
-
-`;
-    message += `*Total:* ${formatRupiah(trx.total)}\n`;
-
+    const paymentMethod = (trx.payment_method ?? 'Tunai').toUpperCase();
     const remaining = toNumber(trx.remaining_amount);
-    if (remaining > 0) {
-        message += `*Sisa Tagihan:* ${formatRupiah(remaining)}\n`;
-    } else {
-        message += `*Status Bayar:* LUNAS\n`;
-    }
 
-    message += `\n📄 *Lihat Invoice (Web):*\n${publicUrl}
-`;
-    message += `📥 *Download PDF:*\n${publicUrl}/pdf
-
-`;
-    message += `Terima kasih telah mempercayakan pesanan Anda kepada kami!`;
+    const message = [
+        `*NOTIFIKASI PESANAN - PRIMADAYA PRINT*`,
+        `----------------------------------------`,
+        `Halo *${trx.customer?.name || 'Pelanggan'}*,`,
+        `Terima kasih telah memesan. Berikut rinciannya:`,
+        '',
+        `📌 *Informasi Transaksi*`,
+        `• *No. Invoice:* ${trx.transaction_number}`,
+        `• *Status:* ${trx.status_label}`,
+        `• *Metode Bayar:* ${paymentMethod}`,
+        '',
+        `🛍️ *Daftar Layanan:*`,
+        items,
+        '',
+        `💰 *Rincian Pembayaran*`,
+        `• *Total Tagihan:* ${formatRupiah(trx.total)}`,
+        remaining > 0 
+            ? `• *Sisa Tagihan:* *${formatRupiah(remaining)}*` 
+            : `• *Status Bayar:* ✅ *LUNAS*`,
+        '',
+        `📄 *Link Invoice & Download PDF:*`,
+        publicUrl,
+        '',
+        `----------------------------------------`,
+        `Pesanan Anda sedang kami proses. Terima kasih!`,
+    ].join('\n');
 
     const phone = trx.customer?.phone || '';
+    // Clean phone number: remove non-digits, ensure it starts with 62 if it starts with 0
+    let formattedPhone = phone.replace(/[^0-9]/g, '');
+    if (formattedPhone.startsWith('0')) {
+        formattedPhone = '62' + formattedPhone.substring(1);
+    } else if (formattedPhone.startsWith('8')) {
+        formattedPhone = '62' + formattedPhone;
+    }
+
     const encodedMessage = encodeURIComponent(message);
-    const waUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMessage}`;
+    const waUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
 
     window.open(waUrl, '_blank');
 };

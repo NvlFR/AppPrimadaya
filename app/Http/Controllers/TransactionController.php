@@ -571,7 +571,8 @@ class TransactionController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        return view('invoices.transaction', compact('transaction'));
+        $is_pdf = false;
+        return view('invoices.transaction', compact('transaction', 'is_pdf'));
     }
 
     /**
@@ -583,7 +584,8 @@ class TransactionController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        $pdf = \PDF::loadView('invoices.transaction', compact('transaction'));
+        $is_pdf = true;
+        $pdf = \PDF::loadView('invoices.transaction', compact('transaction', 'is_pdf'));
 
         return $pdf->download("Invoice-{$transaction->invoice_number}.pdf");
     }
