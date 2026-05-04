@@ -22,6 +22,7 @@ class TransactionItem extends Model
         'item_notes',
         'width_meter',
         'height_meter',
+        'price_per_meter',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class TransactionItem extends Model
             'qty' => 'integer',
             'width_meter' => 'decimal:2',
             'height_meter' => 'decimal:2',
+            'price_per_meter' => 'decimal:2',
         ];
     }
 

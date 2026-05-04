@@ -60,13 +60,12 @@ class DashboardController extends Controller
                 'created_at' => $trx->created_at->format('H:i'),
             ]);
 
-        // Total piutang (belum lunas) & total yang sudah terbayar hari ini
+        // Total uang yang sudah diterima (Cash/Transfer/QRIS) hari ini, termasuk DP
         $todayPaid = (float) Transaction::whereDate('created_at', $today)
-            ->where('payment_status', 'lunas')
-            ->sum('total');
+            ->sum('amount_paid');
 
+        // Total piutang (sisa tagihan yang belum dibayar) dari transaksi hari ini
         $todayUnpaid = (float) Transaction::whereDate('created_at', $today)
-            ->whereIn('payment_status', ['belum_bayar', 'dp'])
             ->sum('remaining_amount');
 
         $stats = [

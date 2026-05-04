@@ -31,6 +31,7 @@ interface TransactionItem {
     original_filename: string | null;
     width_meter: string | number | null;
     height_meter: string | number | null;
+    price_per_meter: string | number | null;
 }
 
 interface Transaction {

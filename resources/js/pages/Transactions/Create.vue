@@ -292,7 +292,9 @@ const addItem = (serviceId?: number) => {
         item_notes: '',
         file: null,
         width: isPerMeter ? 1 : undefined,
-        height: isPerMeter ? 1 : undefined,
+
+        price_per_meter: isPerMeter ? parseFloat(service.base_price) : 0,
+
     });
 
     selectedServiceId.value = ''; // reset dropdown
@@ -321,7 +323,9 @@ const getItemUnitPrice = (item: {
     const service = findServiceByItem(item);
 
     if (service?.is_per_meter) {
-        return parseFloat(service.base_price) * getItemArea(item);
+        // Gunakan price_per_meter kustom jika ada, fallback ke base_price layanan
+        const rate = Number(item.price_per_meter) || parseFloat(service.base_price) || 0;
+        return rate * getItemArea(item);
     }
 
     return Number(item.unit_price) || 0;
@@ -345,7 +349,8 @@ const updateDimensions = (index: number) => {
     if (service?.is_per_meter) {
         const w = Number(item.width) || 0;
         const h = Number(item.height) || 0;
-        item.unit_price = parseFloat(service.base_price) * w * h;
+        const rate = Number(item.price_per_meter) || parseFloat(service.base_price) || 0;
+        item.unit_price = rate * w * h;
     }
 };
 
@@ -840,7 +845,7 @@ const shouldShowCartError = computed(() =>
                                         </div>
                                     </div>
                                     <div class="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-1.5 text-[11px] text-indigo-600 font-mono">
-                                        {{ getItemArea(item).toFixed(2) }} m² × {{ formatRupiah(services.find(s => s.id == item.service_id)?.base_price || 0) }}/m² × {{ item.qty }} pcs = <strong>{{ formatRupiah(getItemSubtotal(item)) }}</strong>
+                                        {{ getItemArea(item).toFixed(2) }} m² × {{ formatRupiah(item.price_per_meter || 0) }}/m² × {{ item.qty }} pcs = <strong>{{ formatRupiah(getItemSubtotal(item)) }}</strong>
                                     </div>
                                 </div>
 
@@ -1000,16 +1005,19 @@ const shouldShowCartError = computed(() =>
                                             <!-- Tarif per m² -->
                                             <div class="space-y-1">
                                                 <Label class="text-[10px] font-bold uppercase text-gray-400">Tarif /m²</Label>
-                                                <div class="flex h-9 items-center rounded-md border border-dashed bg-gray-50 px-3 text-xs font-semibold text-gray-600">
-                                                    {{ formatRupiah(services.find(s => s.id == item.service_id)?.base_price || 0) }}
-                                                </div>
+                                                <Input
+                                                    v-model.number="item.price_per_meter"
+                                                    type="number"
+                                                    class="h-9 w-[120px] bg-white font-medium text-right"
+                                                    @input="updateDimensions(index)"
+                                                />
                                             </div>
                                         </div>
                                         <!-- Keterangan rumus harga -->
                                         <div class="flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-1.5 text-[11px] text-indigo-600">
                                             <span class="font-mono font-bold">{{ getItemArea(item).toFixed(2) }} m²</span>
                                             <span>×</span>
-                                            <span class="font-mono font-bold">{{ formatRupiah(services.find(s => s.id == item.service_id)?.base_price || 0) }}/m²</span>
+                                            <span class="font-mono font-bold">{{ formatRupiah(item.price_per_meter || 0) }}/m²</span>
                                             <span>×</span>
                                             <span class="font-mono font-bold">{{ item.qty }} pcs</span>
                                             <span>=</span>

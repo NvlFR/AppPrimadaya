@@ -250,7 +250,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                 <!-- Card: Total Sudah Bayar (Lunas) -->
                 <Card class="hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Sudah Lunas</CardTitle>
+                        <CardTitle class="text-sm font-medium text-gray-500">Uang Diterima</CardTitle>
                         <div class="h-8 w-8 bg-emerald-50 flex items-center justify-center rounded-lg text-emerald-600">
                             <CheckCircle2 class="h-4 w-4" />
                         </div>
@@ -258,7 +258,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                     <CardContent>
                         <div class="break-words text-2xl font-bold leading-tight text-emerald-700">{{ formatRupiah(stats.today_paid) }}</div>
                         <p class="text-xs text-muted-foreground mt-1 text-emerald-600 font-medium">
-                            Tagihan lunas hari ini
+                            Total uang masuk (Cash/DP)
                         </p>
                     </CardContent>
                 </Card>
@@ -266,7 +266,7 @@ const updateOrderStatus = (id: number, newStatus: string) => {
                 <!-- Card: Total Belum/Kurang Bayar -->
                 <Card class="hover:shadow-md transition-shadow border">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Belum Lunas</CardTitle>
+                        <CardTitle class="text-sm font-medium text-gray-500">Sisa Piutang</CardTitle>
                         <div class="h-8 w-8 bg-orange-50 flex items-center justify-center rounded-lg text-orange-500">
                             <AlertCircle class="h-4 w-4" />
                         </div>
