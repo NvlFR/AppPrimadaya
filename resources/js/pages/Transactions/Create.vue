@@ -1006,10 +1006,11 @@ const shouldShowCartError = computed(() =>
                                             <div class="space-y-1">
                                                 <Label class="text-[10px] font-bold uppercase text-gray-400">Tarif /m²</Label>
                                                 <Input
-                                                    v-model.number="item.price_per_meter"
-                                                    type="number"
+                                                    :model-value="formatAngka(item.price_per_meter)"
+                                                    type="text"
+                                                    inputmode="numeric"
                                                     class="h-9 w-[120px] bg-white font-medium text-right"
-                                                    @input="updateDimensions(index)"
+                                                    @update:model-value="value => updateFormattedPricePerMeter(index, value)"
                                                 />
                                             </div>
                                         </div>
