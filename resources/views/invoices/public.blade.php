@@ -282,6 +282,53 @@
             box-shadow: 0 20px 30px -10px rgba(29, 78, 216, 0.5);
         }
 
+        /* Promotion Banner */
+        .promo-banner {
+            margin-top: 40px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 12px;
+            padding: 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .promo-content h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #38bdf8;
+        }
+
+        .promo-content p {
+            font-size: 13px;
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        .promo-btn {
+            background: #ffffff;
+            color: #0f172a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .promo-btn:hover {
+            background: #38bdf8;
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
         @media (max-width: 768px) {
             .invoice-card { padding: 24px; }
             .info-grid { grid-template-columns: 1fr; gap: 15px; }
@@ -289,6 +336,8 @@
             .header { flex-direction: column; gap: 16px; }
             .invoice-meta { text-align: left; }
             .download-fab { bottom: 20px; right: 20px; padding: 14px 20px; font-size: 14px; }
+            .promo-banner { flex-direction: column; text-align: center; padding: 20px; }
+            .promo-btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -488,6 +537,18 @@
                     Digital Invoice Generated at<br>
                     {{ now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB
                 </div>
+            </div>
+
+            <!-- Promotion Section -->
+            <div class="promo-banner">
+                <div class="promo-content">
+                    <h3>Mau buat aplikasi kasir seperti ini?</h3>
+                    <p>Kelola bisnis jadi lebih rapi dan profesional dengan <strong>BisnisRapi.my.id</strong></p>
+                </div>
+                <a href="https://wa.me/6285199256640?text=Halo%20BisnisRapi,%20saya%20lihat%20invoice%20di%20Primadaya%20dan%20tertarik%20buat%20aplikasi%20kasir%20juga" class="promo-btn" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    Hubungi Kami
+                </a>
             </div>
         </div>
     </div>
