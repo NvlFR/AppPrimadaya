@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
 
+@php
+    $is_pdf = $is_pdf ?? false;
+@endphp
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />

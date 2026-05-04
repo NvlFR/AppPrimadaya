@@ -15,8 +15,9 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             PaperSizeSeeder::class,
-            StockSeeder::class,
             ServiceSeeder::class,
+            StockSeeder::class,
+            BusinessDataSeeder::class,
             // BigDataSeeder::class, // Aktifkan hanya jika butuh 1jt data demo
         ]);
     }

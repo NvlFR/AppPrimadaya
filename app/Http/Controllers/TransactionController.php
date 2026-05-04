@@ -494,9 +494,11 @@ class TransactionController extends Controller
     public function downloadPdf(Transaction $transaction)
     {
         $transaction->load(['customer', 'user', 'items']);
+        $is_pdf = true;
 
         $pdf = Pdf::loadView('invoices.transaction', [
             'transaction' => $transaction,
+            'is_pdf' => $is_pdf,
         ]);
 
         $filename = "Invoice-{$transaction->transaction_number}.pdf";

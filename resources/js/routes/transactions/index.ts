@@ -599,7 +599,7 @@ pdf.form = pdfForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 export const thermal = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -614,7 +614,7 @@ thermal.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -647,7 +647,7 @@ thermal.url = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -657,7 +657,7 @@ thermal.get = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -667,7 +667,7 @@ thermal.head = (args: { transaction: number | { id: number } } | [transaction: n
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 const thermalForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -677,7 +677,7 @@ const thermalForm = (args: { transaction: number | { id: number } } | [transacti
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 thermalForm.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -687,7 +687,7 @@ thermalForm.get = (args: { transaction: number | { id: number } } | [transaction
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:510
+* @see app/Http/Controllers/TransactionController.php:512
 * @route '/transactions/{transaction}/thermal'
 */
 thermalForm.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
