@@ -35,8 +35,8 @@ return new class extends Migration
         // Update kolom payment_method agar nullable (pesanan bisa disimpan tanpa bayar dulu)
         // Modifikasi enum agar support nullable dengan cara ubah via raw SQL
         DB::statement("ALTER TABLE transactions MODIFY payment_method ENUM('cash','transfer','qris','dp') NULL DEFAULT NULL");
-        DB::statement("ALTER TABLE transactions MODIFY amount_paid DECIMAL(12,2) NULL DEFAULT NULL");
-        DB::statement("ALTER TABLE transactions MODIFY change_amount DECIMAL(12,2) NULL DEFAULT NULL");
+        DB::statement('ALTER TABLE transactions MODIFY amount_paid DECIMAL(12,2) NULL DEFAULT NULL');
+        DB::statement('ALTER TABLE transactions MODIFY change_amount DECIMAL(12,2) NULL DEFAULT NULL');
 
         // Set payment_status = 'lunas' untuk semua transaksi lama yang sudah ada
         // (asumsi semua transaksi lama sudah dibayar karena flow lama adalah bayar langsung)
@@ -54,7 +54,7 @@ return new class extends Migration
 
         // Kembalikan ke non-nullable
         DB::statement("ALTER TABLE transactions MODIFY payment_method ENUM('cash','transfer','qris') NOT NULL DEFAULT 'cash'");
-        DB::statement("ALTER TABLE transactions MODIFY amount_paid DECIMAL(12,2) NOT NULL DEFAULT 0");
-        DB::statement("ALTER TABLE transactions MODIFY change_amount DECIMAL(12,2) NOT NULL DEFAULT 0");
+        DB::statement('ALTER TABLE transactions MODIFY amount_paid DECIMAL(12,2) NOT NULL DEFAULT 0');
+        DB::statement('ALTER TABLE transactions MODIFY change_amount DECIMAL(12,2) NOT NULL DEFAULT 0');
     }
 };

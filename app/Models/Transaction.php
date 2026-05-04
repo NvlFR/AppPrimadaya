@@ -46,14 +46,14 @@ class Transaction extends Model
     protected function casts(): array
     {
         return [
-            'subtotal'          => 'decimal:2',
-            'discount_percent'  => 'decimal:2',
-            'discount_amount'   => 'decimal:2',
-            'total'             => 'decimal:2',
-            'amount_paid'       => 'decimal:2',
-            'change_amount'     => 'decimal:2',
-            'dp_amount'         => 'decimal:2',
-            'remaining_amount'  => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'discount_percent' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'total' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
+            'change_amount' => 'decimal:2',
+            'dp_amount' => 'decimal:2',
+            'remaining_amount' => 'decimal:2',
         ];
     }
 
@@ -61,20 +61,20 @@ class Transaction extends Model
      * Label tampilan untuk setiap status pesanan (produksi).
      */
     public const STATUS_LABELS = [
-        'pending'  => 'Pending',
+        'pending' => 'Pending',
         'diproses' => 'Diproses',
-        'selesai'  => 'Selesai',
-        'diambil'  => 'Diambil',
+        'selesai' => 'Selesai',
+        'diambil' => 'Diambil',
     ];
 
     /**
      * Warna badge untuk setiap status pesanan.
      */
     public const STATUS_COLORS = [
-        'pending'  => 'warning',
+        'pending' => 'warning',
         'diproses' => 'info',
-        'selesai'  => 'success',
-        'diambil'  => 'default',
+        'selesai' => 'success',
+        'diambil' => 'default',
     ];
 
     /**
@@ -82,8 +82,8 @@ class Transaction extends Model
      */
     public const PAYMENT_STATUS_LABELS = [
         'belum_bayar' => 'Belum Bayar',
-        'dp'          => 'DP (Uang Muka)',
-        'lunas'       => 'Lunas',
+        'dp' => 'DP (Uang Muka)',
+        'lunas' => 'Lunas',
     ];
 
     /**
@@ -91,8 +91,8 @@ class Transaction extends Model
      */
     public const PAYMENT_STATUS_COLORS = [
         'belum_bayar' => 'destructive',
-        'dp'          => 'warning',
-        'lunas'       => 'success',
+        'dp' => 'warning',
+        'lunas' => 'success',
     ];
 
     /**

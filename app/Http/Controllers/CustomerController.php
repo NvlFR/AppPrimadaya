@@ -158,7 +158,7 @@ class CustomerController extends Controller
         ]);
 
         // Simpan harga khusus jika ada
-        if (!empty($validated['custom_prices'])) {
+        if (! empty($validated['custom_prices'])) {
             foreach ($validated['custom_prices'] as $priceData) {
                 CustomerServicePrice::create([
                     'customer_id' => $customer->id,

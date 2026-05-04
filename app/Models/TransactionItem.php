@@ -27,10 +27,10 @@ class TransactionItem extends Model
     protected function casts(): array
     {
         return [
-            'unit_price'   => 'decimal:2',
-            'subtotal'     => 'decimal:2',
-            'qty'          => 'integer',
-            'width_meter'  => 'decimal:2',
+            'unit_price' => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'qty' => 'integer',
+            'width_meter' => 'decimal:2',
             'height_meter' => 'decimal:2',
         ];
     }

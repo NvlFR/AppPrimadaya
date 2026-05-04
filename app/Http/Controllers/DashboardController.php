@@ -70,16 +70,16 @@ class DashboardController extends Controller
             ->sum('remaining_amount');
 
         $stats = [
-            'today_revenue'      => $todayRevenue,
-            'yesterday_revenue'  => $yesterdayRevenue,
-            'revenue_growth'     => round($revenueGrowth, 1),
+            'today_revenue' => $todayRevenue,
+            'yesterday_revenue' => $yesterdayRevenue,
+            'revenue_growth' => round($revenueGrowth, 1),
             'today_transactions' => $todayTransactions,
-            'today_paid'         => $todayPaid,
-            'today_unpaid'       => $todayUnpaid,
-            'monthly_revenue'    => 0,
-            'monthly_expenses'   => 0,
-            'pending_orders'     => $pendingOrders,
-            'net_profit'         => 0,
+            'today_paid' => $todayPaid,
+            'today_unpaid' => $todayUnpaid,
+            'monthly_revenue' => 0,
+            'monthly_expenses' => 0,
+            'pending_orders' => $pendingOrders,
+            'net_profit' => 0,
         ];
 
         $salesChart = [];
