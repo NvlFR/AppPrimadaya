@@ -1106,7 +1106,7 @@ publicInvoice.form = publicInvoiceForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 export const publicPdf = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1121,7 +1121,7 @@ publicPdf.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 publicPdf.url = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -1148,7 +1148,7 @@ publicPdf.url = (args: { uuid: string | number } | [uuid: string | number ] | st
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 publicPdf.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1158,7 +1158,7 @@ publicPdf.get = (args: { uuid: string | number } | [uuid: string | number ] | st
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 publicPdf.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -1168,7 +1168,7 @@ publicPdf.head = (args: { uuid: string | number } | [uuid: string | number ] | s
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 const publicPdfForm = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1178,7 +1178,7 @@ const publicPdfForm = (args: { uuid: string | number } | [uuid: string | number 
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 publicPdfForm.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1188,7 +1188,7 @@ publicPdfForm.get = (args: { uuid: string | number } | [uuid: string | number ] 
 
 /**
 * @see \App\Http\Controllers\TransactionController::publicPdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 publicPdfForm.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

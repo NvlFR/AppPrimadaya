@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 export const pdf = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ pdf.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 pdf.url = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -43,7 +43,7 @@ pdf.url = (args: { uuid: string | number } | [uuid: string | number ] | string |
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 pdf.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -53,7 +53,7 @@ pdf.get = (args: { uuid: string | number } | [uuid: string | number ] | string |
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 pdf.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -63,7 +63,7 @@ pdf.head = (args: { uuid: string | number } | [uuid: string | number ] | string 
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 const pdfForm = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -73,7 +73,7 @@ const pdfForm = (args: { uuid: string | number } | [uuid: string | number ] | st
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 pdfForm.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -83,7 +83,7 @@ pdfForm.get = (args: { uuid: string | number } | [uuid: string | number ] | stri
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:581
+* @see app/Http/Controllers/TransactionController.php:580
 * @route '/invoice/{uuid}/pdf'
 */
 pdfForm.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

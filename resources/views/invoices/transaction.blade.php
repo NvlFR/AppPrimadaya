@@ -508,9 +508,19 @@
         {{-- ===================== HEADER ===================== --}}
         <div class="invoice-header">
             <div class="invoice-header-left">
-                <img src="{{ $is_pdf ? public_path('logo.png') : asset('logo.png') }}" alt="Primadaya Print"
-                    style="max-height: 48px; width: auto; display: block; margin-bottom: 4px;">
-                {{-- <div class="business-tagline">Jasa Cetak & Percetakan Digital Profesional</div> --}}
+                @php
+                    $logoPath = public_path('logo.png');
+                    $logoData = '';
+                    if (file_exists($logoPath)) {
+                        $logoData = base64_encode(file_get_contents($logoPath));
+                    }
+                @endphp
+                @if($logoData)
+                    <img src="data:image/png;base64,{{ $logoData }}" alt="Primadaya Print"
+                        style="max-height: 48px; width: auto; display: block; margin-bottom: 4px;">
+                @else
+                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">PRIMADAYA PRINT</div>
+                @endif
             </div>
             <div class="invoice-header-right">
                 <div class="invoice-number-label">Invoice</div>
