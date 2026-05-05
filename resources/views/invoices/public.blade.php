@@ -144,6 +144,15 @@
             overflow-x: auto;
         }
 
+        .desktop-items {
+            display: block;
+        }
+
+        .mobile-items {
+            display: none;
+            margin-bottom: 30px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -169,6 +178,77 @@
         .service-details { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
         .service-note { font-size: 12px; color: var(--warning); font-style: italic; margin-top: 4px; }
         .service-file { font-size: 12px; color: var(--primary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+        .item-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            background: #fff;
+            box-shadow: 0 8px 20px -16px rgba(15, 23, 42, 0.35);
+        }
+
+        .item-card + .item-card {
+            margin-top: 14px;
+        }
+
+        .item-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .item-card-price {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .item-card-price .label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .item-card-price .value {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 15px;
+        }
+
+        .item-card-meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .item-card-meta .meta-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .item-card-meta .meta-label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .item-card-meta .meta-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+        }
 
         .text-right { text-align: right; }
         .text-center { text-align: center; }
@@ -338,6 +418,11 @@
             .download-fab { bottom: 20px; right: 20px; padding: 14px 20px; font-size: 14px; }
             .promo-banner { flex-direction: column; text-align: center; padding: 20px; }
             .promo-btn { width: 100%; justify-content: center; }
+            .desktop-items { display: none; }
+            .mobile-items { display: block; }
+            .item-card-header { flex-direction: column; }
+            .item-card-price { text-align: left; width: 100%; }
+            .item-card-meta { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -394,7 +479,7 @@
             </div>
 
             <!-- Items Table -->
-            <div class="table-container">
+            <div class="table-container desktop-items">
                 <table>
                     <thead>
                         <tr>
@@ -439,6 +524,59 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mobile-items">
+                @foreach($transaction->items as $item)
+                    <div class="item-card">
+                        <div class="item-card-header">
+                            <div>
+                                <div class="service-name">{{ $item->service_name }}</div>
+                                @if($item->paper_size_name || ($item->print_type && $item->print_type !== 'na'))
+                                    <div class="service-details">
+                                        {{ $item->paper_size_name ? 'Kertas ' . $item->paper_size_name : '' }}
+                                        {{ ($item->paper_size_name && $item->print_type !== 'na') ? '|' : '' }}
+                                        {{ $item->print_type === 'bw' ? 'Hitam Putih' : ($item->print_type === 'color' ? 'Warna' : '') }}
+                                    </div>
+                                @endif
+                                @if($item->width_meter && $item->height_meter)
+                                    <div class="service-details">
+                                        Ukuran: {{ number_format($item->width_meter, 2) }}m &times; {{ number_format($item->height_meter, 2) }}m
+                                        ({{ number_format($item->width_meter * $item->height_meter, 2) }} m²)
+                                    </div>
+                                @endif
+                                @if($item->original_filename)
+                                    <div class="service-file">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.51a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                        {{ $item->original_filename }}
+                                    </div>
+                                @endif
+                                @if($item->item_notes)
+                                    <div class="service-note">Catatan: {{ $item->item_notes }}</div>
+                                @endif
+                            </div>
+                            <div class="item-card-price">
+                                <span class="label">Subtotal</span>
+                                <span class="value">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+
+                        <div class="item-card-meta">
+                            <div class="meta-box">
+                                <span class="meta-label">Qty</span>
+                                <span class="meta-value">{{ $item->qty }}</span>
+                            </div>
+                            <div class="meta-box">
+                                <span class="meta-label">Harga</span>
+                                <span class="meta-value">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="meta-box">
+                                <span class="meta-label">Subtotal</span>
+                                <span class="meta-value">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
 
             <!-- Summary -->

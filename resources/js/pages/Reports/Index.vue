@@ -68,6 +68,13 @@ watch(selectedType, () => {
 
 const { formatRupiah } = useFormatRupiah();
 
+const formatCompactRupiah = (value: number) => {
+    if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
+    if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toFixed(1)} jt`;
+    if (value >= 1_000) return `Rp ${(value / 1_000).toFixed(0)} rb`;
+    return `Rp ${value}`;
+};
+
 const profitMargin = computed(() => {
     if (props.summary.revenue === 0) return 0;
     return (props.summary.profit / props.summary.revenue) * 100;
@@ -183,20 +190,24 @@ const paymentChartOptions = computed(() => ({
     plotOptions: {
         pie: {
             donut: {
-                size: '70%',
+                size: '74%',
                 labels: {
                     show: true,
+                    name: { show: false },
+                    value: { show: false },
                     total: {
                         show: true,
                         label: 'Total',
-                        formatter: () => formatRupiah(props.summary.revenue)
+                        fontSize: '13px',
+                        color: '#334155',
+                        formatter: () => formatCompactRupiah(props.summary.revenue)
                     }
                 }
             }
         }
     },
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' as const },
+    legend: { show: false },
     stroke: { width: 0 }
 }));
 
@@ -447,13 +458,32 @@ const exportData = () => {
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Payment Methods Donut -->
                 <div class="bg-white border border-gray-100 shadow-sm rounded-[2rem] p-8 flex flex-col h-full">
-                    <div class="mb-8">
+                    <div class="mb-6">
                         <h3 class="text-sm font-black text-gray-900 uppercase tracking-wider">Metode Pembayaran</h3>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Distribusi nominal</p>
                     </div>
-                    <div class="flex-1 flex items-center justify-center">
-                        <div v-if="payment_methods.length > 0" class="w-full max-w-[250px]">
-                            <VueApexCharts :options="paymentChartOptions" :series="paymentSeries" type="donut" />
+                    <div class="flex-1 flex flex-col items-center justify-center gap-5">
+                        <div v-if="payment_methods.length > 0" class="w-full max-w-[220px] sm:max-w-[250px]">
+                            <VueApexCharts :options="paymentChartOptions" :series="paymentSeries" type="donut" height="250" />
+                        </div>
+                        <div v-if="payment_methods.length > 0" class="grid w-full grid-cols-2 gap-2 sm:grid-cols-1">
+                            <div
+                                v-for="(method, index) in payment_methods"
+                                :key="`payment-legend-${method.method}`"
+                                class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2"
+                            >
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <span
+                                        class="h-3 w-3 flex-none rounded-full"
+                                        :style="{ backgroundColor: paymentChartOptions.colors[index % paymentChartOptions.colors.length] }"
+                                    ></span>
+                                    <span class="truncate text-[11px] font-bold uppercase tracking-wide text-gray-600">
+                                        {{ method.method }}
+                                    </span>
+                                </div>
+                                <span class="ml-2 whitespace-nowrap text-[11px] font-black text-gray-900">
+                                    {{ formatRupiah(method.revenue) }}
+                                </span>
+                            </div>
                         </div>
                         <div v-else class="text-center py-10 text-xs text-gray-400 italic">Data belum tersedia</div>
                     </div>
@@ -498,7 +528,7 @@ const exportData = () => {
 
             <!-- Business Insights -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-indigo-900 text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl shadow-indigo-100">
+                <!-- <div class="bg-indigo-900 text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl shadow-indigo-100">
                     <div class="absolute top-0 right-0 p-6 opacity-10">
                         <TrendingUpIcon class="h-24 w-24" />
                     </div>
@@ -529,7 +559,7 @@ const exportData = () => {
                             </template>
                         </p>
                     </div>
-                </div>
+                </div> -->
 
                 <div class="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm group hover:shadow-md transition-all">
                     <div class="space-y-4">
@@ -578,7 +608,38 @@ const exportData = () => {
                                 </h3>
                                 <Badge variant="outline" class="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold uppercase">Valid Orders</Badge>
                             </div>
-                            <div class="overflow-x-auto">
+                            <div class="space-y-3 p-4 md:hidden">
+                                <div v-for="trx in transactions" :key="`trx-mobile-${trx.id}`" class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-black text-blue-600 break-all">{{ trx.transaction_number }}</p>
+                                            <p class="mt-1 text-sm font-bold text-gray-900">{{ trx.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <p class="mt-1 text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ trx.created_at }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-black text-gray-900">{{ formatRupiah(trx.total) }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex items-center justify-between gap-3">
+                                        <Badge 
+                                            variant="outline" 
+                                            class="text-[9px] px-2 py-0.5 font-black uppercase border-0"
+                                            :class="{
+                                                'bg-emerald-100 text-emerald-700': trx.payment_status === 'lunas',
+                                                'bg-amber-100 text-amber-700': trx.payment_status === 'dp',
+                                                'bg-red-100 text-red-700': trx.payment_status === 'belum_bayar',
+                                            }"
+                                        >
+                                            {{ trx.payment_status.replace('_', ' ') }}
+                                        </Badge>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">{{ trx.status }}</span>
+                                    </div>
+                                </div>
+                                <div v-if="transactions.length === 0" class="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-xs text-gray-400 italic">
+                                    Belum ada transaksi tervalidasi hari ini.
+                                </div>
+                            </div>
+                            <div class="hidden overflow-x-auto md:block">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-white border-b border-gray-100">
@@ -631,7 +692,21 @@ const exportData = () => {
                                 </h3>
                                 <Badge variant="outline" class="bg-red-50 text-red-700 border-red-200 text-[10px] font-bold uppercase">Operational Cost</Badge>
                             </div>
-                            <div class="overflow-x-auto">
+                            <div class="space-y-3 p-4 md:hidden">
+                                <div v-for="exp in expenses" :key="`exp-mobile-${exp.id}`" class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <Badge variant="secondary" class="bg-red-50 text-red-600 border-0 text-[9px] font-black uppercase tracking-widest">{{ exp.category }}</Badge>
+                                            <p class="mt-3 text-sm font-bold text-gray-900">{{ exp.description }}</p>
+                                        </div>
+                                        <p class="text-sm font-black text-red-600 whitespace-nowrap">- {{ formatRupiah(exp.amount) }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="expenses.length === 0" class="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-xs text-gray-400 italic">
+                                    Tidak ada catatan pengeluaran hari ini.
+                                </div>
+                            </div>
+                            <div class="hidden overflow-x-auto md:block">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-white border-b border-gray-100">
@@ -669,7 +744,37 @@ const exportData = () => {
                                 </h3>
                                 <Badge variant="outline" class="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold uppercase">{{ month }}</Badge>
                             </div>
-                            <div class="overflow-x-auto">
+                            <div class="space-y-3 p-4 md:hidden">
+                                <div v-for="row in sortedTransactions" :key="`month-mobile-${row.date}`" class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p class="text-sm font-black text-gray-900">{{ row.date }}</p>
+                                            <p class="mt-1 text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ row.total_transactions }} pesanan</p>
+                                        </div>
+                                        <p class="text-sm font-black text-gray-900">{{ formatRupiah(row.daily_revenue) }}</p>
+                                    </div>
+                                    <div class="mt-4 grid grid-cols-1 gap-2">
+                                        <div class="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2">
+                                            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Uang Masuk</span>
+                                            <span class="text-sm font-black text-emerald-600">{{ formatRupiah(row.daily_paid) }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2">
+                                            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700">Piutang</span>
+                                            <span class="text-sm font-black text-amber-600">{{ formatRupiah(row.daily_unpaid) }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between rounded-xl bg-red-50 px-3 py-2">
+                                            <span class="text-[11px] font-bold uppercase tracking-wider text-red-700">Pengeluaran</span>
+                                            <span class="text-sm font-black text-red-600">
+                                                {{ expenses.find(e => e.date === row.date) ? formatRupiah(expenses.find(e => e.date === row.date).daily_expense) : '-' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="sortedTransactions.length === 0" class="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-xs text-gray-400 italic">
+                                    Belum ada data tervalidasi di bulan ini.
+                                </div>
+                            </div>
+                            <div class="hidden overflow-x-auto md:block">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-white border-b border-gray-100">
