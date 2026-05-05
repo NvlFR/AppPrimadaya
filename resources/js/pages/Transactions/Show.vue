@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
     PrinterIcon,
     ArrowLeftIcon,
@@ -78,6 +79,10 @@ const formPayment = useForm({
 const { formatRupiah } = useFormatRupiah();
 const customerMissing = computed(() => !props.transaction.customer);
 const toNumber = (value: string | number | null | undefined) => Number(value ?? 0);
+const hasPerMeterDetails = (item: TransactionItem) =>
+    toNumber(item.width_meter) > 0 && toNumber(item.height_meter) > 0;
+const getItemArea = (item: TransactionItem) =>
+    toNumber(item.width_meter) * toNumber(item.height_meter);
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -319,8 +324,13 @@ const printThermal = () => {
                                     <div v-if="item.original_filename" class="text-xs text-blue-600 flex items-center bg-blue-50 bg-opacity-50 w-fit px-2 py-1 rounded">
                                         <PaperclipIcon class="h-3 w-3 mr-1" /> {{ item.original_filename }}
                                     </div>
-                                    <div v-if="item.width_meter && item.height_meter" class="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit">
-                                        Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
+                                    <div v-if="hasPerMeterDetails(item)" class="space-y-1">
+                                        <div class="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit whitespace-nowrap">
+                                            Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
+                                        </div>
+                                        <div v-if="item.price_per_meter" class="max-w-full text-xs font-mono leading-relaxed text-indigo-700 bg-indigo-100/70 px-2 py-1 rounded">
+                                            {{ toNumber(item.width_meter).toFixed(2) }}m x {{ toNumber(item.height_meter).toFixed(2) }}m = {{ getItemArea(item).toFixed(2) }} m² x {{ formatRupiah(item.price_per_meter) }}/m²
+                                        </div>
                                     </div>
                                     <p v-if="item.item_notes" class="text-sm italic text-gray-600">
                                         Catatan: {{ item.item_notes }}
@@ -346,7 +356,7 @@ const printThermal = () => {
 
                         <div class="data-table-scroll hidden md:block">
                             <table class="data-table">
-                                <thead class="bg-white text-gray-500 border-b">
+                                <thead class="bg-white text-gray-500 border-b whitespace-nowrap">
                                     <tr>
                                         <th class="px-6 py-3 font-medium">Layanan &amp; Keterangan</th>
                                         <th class="px-6 py-3 font-medium text-center">Qty</th>
@@ -357,24 +367,66 @@ const printThermal = () => {
                                 <tbody class="divide-y divide-gray-100">
                                     <tr v-for="item in transaction.items" :key="item.id">
                                         <td class="px-6 py-4">
-                                            <p class="font-bold text-gray-900">{{ item.service_name }}</p>
-                                            <div class="text-xs text-gray-500 mt-1 flex gap-2 flex-wrap">
-                                                <Badge v-if="item.paper_size_name" variant="secondary" class="font-normal">{{ item.paper_size_name }}</Badge>
-                                                <Badge v-if="item.print_type !== 'na'" variant="outline" class="font-normal">{{ item.print_type_label }}</Badge>
-                                            </div>
-                                            <div v-if="item.original_filename" class="mt-2 text-xs text-blue-600 flex items-center bg-blue-50 bg-opacity-50 w-fit px-2 py-1 rounded">
-                                                <PaperclipIcon class="h-3 w-3 mr-1" /> {{ item.original_filename }}
-                                            </div>
-                                            <div v-if="item.width_meter && item.height_meter" class="mt-2 text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit">
-                                                Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
-                                            </div>
-                                            <div v-if="item.item_notes" class="mt-2 text-xs text-gray-600 italic">
-                                                Catatan: {{ item.item_notes }}
-                                            </div>
+                                            <TooltipProvider v-if="hasPerMeterDetails(item) && item.price_per_meter" :delay-duration="100">
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <div>
+                                                            <p class="font-bold text-gray-900">{{ item.service_name }}</p>
+                                                            <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                                                                <Badge v-if="item.paper_size_name" variant="secondary" class="font-normal">{{ item.paper_size_name }}</Badge>
+                                                                <Badge v-if="item.print_type !== 'na'" variant="outline" class="font-normal">{{ item.print_type_label }}</Badge>
+                                                            </div>
+                                                            <div v-if="item.original_filename" class="mt-2 flex w-fit items-center rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 bg-opacity-50">
+                                                                <PaperclipIcon class="mr-1 h-3 w-3" /> {{ item.original_filename }}
+                                                            </div>
+                                                            <div class="mt-2 space-y-1">
+                                                                <div class="w-fit whitespace-nowrap rounded bg-indigo-50 px-2 py-1 text-xs font-mono text-indigo-600">
+                                                                    Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
+                                                                </div>
+                                                            </div>
+                                                            <div v-if="item.item_notes" class="mt-2 text-xs italic text-gray-600">
+                                                                Catatan: {{ item.item_notes }}
+                                                            </div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" align="start" class="max-w-[340px] border border-indigo-200 bg-white text-indigo-900 shadow-xl">
+                                                        <div class="space-y-1 text-xs">
+                                                            <p class="font-semibold">Rincian Perhitungan</p>
+                                                            <p class="font-mono">
+                                                                {{ toNumber(item.width_meter).toFixed(2) }}m x {{ toNumber(item.height_meter).toFixed(2) }}m = {{ getItemArea(item).toFixed(2) }} m²
+                                                            </p>
+                                                            <p class="font-mono">
+                                                                {{ getItemArea(item).toFixed(2) }} m² x {{ formatRupiah(item.price_per_meter) }}/m² x {{ item.qty }} pcs
+                                                            </p>
+                                                            <p class="font-semibold">
+                                                                Total: {{ formatRupiah(item.subtotal) }}
+                                                            </p>
+                                                        </div>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            <template v-else>
+                                                <p class="font-bold text-gray-900">{{ item.service_name }}</p>
+                                                <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                                                    <Badge v-if="item.paper_size_name" variant="secondary" class="font-normal">{{ item.paper_size_name }}</Badge>
+                                                    <Badge v-if="item.print_type !== 'na'" variant="outline" class="font-normal">{{ item.print_type_label }}</Badge>
+                                                </div>
+                                                <div v-if="item.original_filename" class="mt-2 flex w-fit items-center rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 bg-opacity-50">
+                                                    <PaperclipIcon class="mr-1 h-3 w-3" /> {{ item.original_filename }}
+                                                </div>
+                                                <div v-if="hasPerMeterDetails(item)" class="mt-2 space-y-1">
+                                                    <div class="w-fit whitespace-nowrap rounded bg-indigo-50 px-2 py-1 text-xs font-mono text-indigo-600">
+                                                        Ukuran: {{ item.width_meter }}m x {{ item.height_meter }}m
+                                                    </div>
+                                                </div>
+                                                <div v-if="item.item_notes" class="mt-2 text-xs italic text-gray-600">
+                                                    Catatan: {{ item.item_notes }}
+                                                </div>
+                                            </template>
                                         </td>
-                                        <td class="px-6 py-4 text-center font-medium">{{ item.qty }}</td>
-                                        <td class="px-6 py-4 text-right">{{ formatRupiah(item.unit_price) }}</td>
-                                        <td class="px-6 py-4 text-right font-medium text-gray-900">{{ formatRupiah(item.subtotal) }}</td>
+                                        <td class="px-6 py-4 text-center font-medium whitespace-nowrap">{{ item.qty }}</td>
+                                        <td class="px-6 py-4 text-right whitespace-nowrap">{{ formatRupiah(item.unit_price) }}</td>
+                                        <td class="px-6 py-4 text-right font-medium text-gray-900 whitespace-nowrap">{{ formatRupiah(item.subtotal) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
