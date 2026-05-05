@@ -56,6 +56,37 @@ const autoSelectAfterSearch = ref(false);
 const customerCustomPrices = ref<Record<number, number>>({});
 const isFetchingCustomPrices = ref(false);
 
+const applyCustomPriceToItem = (item: {
+    service_id: string;
+    unit_price: number;
+    price_per_meter: number;
+    width: number | undefined;
+    height: number | undefined;
+}) => {
+    const serviceId = parseInt(item.service_id);
+    const service = props.services.find(s => s.id === serviceId);
+    if (!service) return;
+
+    const customPrice = customerCustomPrices.value[serviceId];
+
+    if (service.is_per_meter) {
+        item.price_per_meter = customPrice !== undefined
+            ? customPrice
+            : parseFloat(service.base_price);
+
+        item.unit_price = item.price_per_meter * ((Number(item.width) || 0) * (Number(item.height) || 0));
+        return;
+    }
+
+    if (service.has_matrix_pricing) {
+        return;
+    }
+
+    item.unit_price = customPrice !== undefined
+        ? customPrice
+        : parseFloat(service.base_price);
+};
+
 /**
  * Fetch daftar harga khusus untuk pelanggan yang dipilih.
  * Endpoint: GET /customers/{id}/custom-prices
@@ -69,12 +100,9 @@ const fetchCustomPrices = async (customerId: number) => {
         });
         if (res.ok) {
             customerCustomPrices.value = await res.json();
-            // Jika sudah ada item di keranjang, update harga item yang punya harga khusus
+            // Jika sudah ada item di keranjang, sinkronkan ke harga customer ini
             form.items.forEach((item) => {
-                const serviceId = parseInt(item.service_id);
-                if (customerCustomPrices.value[serviceId] !== undefined) {
-                    item.unit_price = customerCustomPrices.value[serviceId];
-                }
+                applyCustomPriceToItem(item);
             });
         }
     } catch (err) {
@@ -142,12 +170,9 @@ const clearCustomer = () => {
     isCustomerDropdownOpen.value = false;
     // Bersihkan custom prices — harga kembali ke base_price layanan
     customerCustomPrices.value = {};
-    // Reset unit_price item yang mungkin sudah diubah ke custom price
+    // Reset harga item yang mungkin sudah diubah ke custom price
     form.items.forEach((item) => {
-        const service = props.services.find(s => s.id === parseInt(item.service_id));
-        if (service && !service.has_matrix_pricing && !service.is_per_meter) {
-            item.unit_price = parseFloat(service.base_price);
-        }
+        applyCustomPriceToItem(item);
     });
 };
 
@@ -277,12 +302,13 @@ const addItem = (serviceId?: number) => {
     if (!service) return;
 
     const isPerMeter = service.is_per_meter;
-    // Harga awal: cek custom price terlebih dahulu, fallback ke base_price
-    // Custom price hanya berlaku untuk layanan non-matrix dan non-per-meter
     const customPrice = customerCustomPrices.value[service.id];
     const initialPrice = (customPrice !== undefined && !service.has_matrix_pricing && !isPerMeter)
         ? customPrice
         : parseFloat(service.base_price);
+    const initialPricePerMeter = isPerMeter
+        ? (customPrice !== undefined ? customPrice : parseFloat(service.base_price))
+        : 0;
 
     form.items.push({
         service_id: service.id.toString(),
@@ -294,7 +320,7 @@ const addItem = (serviceId?: number) => {
         file: null,
         width: isPerMeter ? 1 : undefined,
 
-        price_per_meter: isPerMeter ? parseFloat(service.base_price) : 0,
+        price_per_meter: initialPricePerMeter,
 
     });
 
