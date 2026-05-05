@@ -4,7 +4,12 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, PieChart, AlertTriangle, PlusIcon, CheckCircle, CheckCircle2, CircleDollarSign, AlertCircle } from 'lucide-vue-next';
+import { 
+    Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, 
+    PieChart, AlertTriangle, PlusIcon, CheckCircle, CheckCircle2, 
+    CircleDollarSign, AlertCircle, Users, ShoppingBag, ArrowRight,
+    ArrowUpRight, ArrowDownRight, ReceiptText
+} from 'lucide-vue-next';
 import { computed, ref, defineAsyncComponent } from 'vue';
 
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'));
@@ -13,11 +18,15 @@ import { useFormatRupiah } from '@/composables/useFormatRupiah';
 const props = defineProps<{
     paid_transactions: Array<any>;
     unpaid_transactions: Array<any>;
+    monthly_paid_transactions: Array<any>;
+    monthly_unpaid_transactions: Array<any>;
     stats: {
         today_revenue: number;
         today_transactions: number;
         today_paid: number;
         today_unpaid: number;
+        monthly_paid: number;
+        monthly_unpaid: number;
         monthly_revenue: number;
         monthly_expenses: number;
         pending_orders: number;
@@ -37,6 +46,13 @@ const props = defineProps<{
         category: string;
         revenue: number;
     }>;
+    low_stock_alerts: Array<{
+        id: number;
+        name: string;
+        current_qty: number;
+        min_qty: number;
+        unit: string;
+    }>;
     recent_transactions: Array<{
         id: number;
         transaction_number: string;
@@ -53,6 +69,18 @@ const props = defineProps<{
         status: string;
         status_label: string;
         created_at: string;
+    }>;
+    recent_expenses: Array<{
+        id: number;
+        description: string;
+        amount: number;
+        expense_date: string;
+        category: string;
+    }>;
+    top_customers: Array<{
+        name: string;
+        total_spent: number;
+        transaction_count: number;
     }>;
 }>();
 
@@ -152,10 +180,6 @@ const revenueGrowthLabel = computed(() => {
     return `${prefix}${Math.abs(props.stats.revenue_growth).toFixed(1)}%`;
 });
 
-const openCreateModal = () => {
-    router.visit(route('transactions.create'));
-};
-
 // ========= QUEUE LOGIC =========
 const activeQueueTab = ref<'semua' | 'pending' | 'diproses' | 'selesai'>('semua');
 
@@ -185,12 +209,12 @@ const updateOrderStatus = (id: number, newStatus: string) => {
 
 // Chart: Metode Pembayaran
 const paymentChartOptions = computed(() => ({
-    chart: { type: 'donut', fontFamily: 'inherit' },
+    chart: { type: 'donut' as const, fontFamily: 'inherit' },
     labels: props.payment_methods.map(m => m.label),
     colors: ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6'],
-    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Transaksi', formatter: () => props.payment_methods.reduce((a, b) => a + b.count, 0) } } } } },
+    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, formatter: () => props.payment_methods.reduce((a, b) => a + b.count, 0) } } } } },
     dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
+    legend: { position: 'bottom' as const },
     stroke: { width: 0 }
 }));
 
@@ -198,7 +222,7 @@ const paymentChartSeries = computed(() => props.payment_methods.map(m => m.count
 
 // Chart: Top Services
 const serviceChartOptions = computed(() => ({
-    chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
+    chart: { type: 'bar' as const, fontFamily: 'inherit', toolbar: { show: false } },
     plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '60%' } },
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
     dataLabels: { enabled: true, formatter: (val: any) => val + 'x', style: { fontSize: '10px' } },
@@ -212,7 +236,10 @@ const serviceChartSeries = computed(() => [{
     data: props.top_services.map(s => s.total_qty)
 }]);
 
-// ===============================
+const transactionPeriod = ref<'today' | 'month'>('today');
+
+const todayGrandTotal = computed(() => props.stats.today_paid + props.stats.today_unpaid);
+const monthlyGrandTotal = computed(() => props.stats.monthly_paid + props.stats.monthly_unpaid);
 </script>
 
 <template>
@@ -226,371 +253,578 @@ const serviceChartSeries = computed(() => [{
         </template>
         <Head title="Dashboard" />
 
-        <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-            <!-- Header Section -->
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
-                    <p class="text-sm text-gray-500 mt-1">Ringkasan aktivitas dan performa percetakan hari ini.</p>
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 bg-gray-50/30">
+            <!-- Dashboard Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex flex-col gap-1">
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Dashboard Utama</h2>
                 </div>
-                <div class="flex gap-3">
-                    <!-- <Link :href="route('transactions.create')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4 shadow-sm">
-                        <ShoppingCart class="mr-2 h-4 w-4" />
-                        Transaksi Baru
-                    </Link> -->
+                
+                <!-- Floating Quick Actions -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button as-child variant="outline" class="bg-white shadow-sm">
+                        <Link :href="route('customers.index')">
+                            <Users class="h-4 w-4 mr-2 text-gray-400" /> Pelanggan
+                        </Link>
+                    </Button>
+                    <Button v-if="$page.props.auth.role === 'admin'" as-child variant="outline" class="bg-white shadow-sm">
+                        <Link :href="route('expenses.index')">
+                            <CircleDollarSign class="h-4 w-4 mr-2 text-gray-400" /> Pengeluaran
+                        </Link>
+                    </Button>
+                    <Button v-if="$page.props.auth.role === 'admin'" as-child variant="outline" class="bg-white shadow-sm">
+                        <Link :href="route('reports.index')">
+                            <TrendingUp class="h-4 w-4 mr-2 text-gray-400" /> Laporan
+                        </Link>
+                    </Button>
                 </div>
             </div>
 
-            <!-- Metric Cards -->
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-                <Card class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Penjualan Hari Ini</CardTitle>
-                        <div class="h-8 w-8 bg-blue-50 flex items-center justify-center rounded-lg text-primary">
-                            <Wallet class="h-4 w-4" />
+            <!-- Urgent Alerts (Stock) -->
+            <div v-if="low_stock_alerts.length > 0" class="animate-in fade-in slide-in-from-top-4 duration-500">
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <AlertTriangle class="h-6 w-6 text-red-600" />
                         </div>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="text-2xl font-bold leading-tight text-gray-900">
-                            <span>{{ formatRupiah(stats.today_revenue) }}</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-red-800">PERHATIAN: STOK KRITIS!</h3>
+                            <p class="text-xs text-red-600 font-medium">Ada {{ low_stock_alerts.length }} item yang hampir habis.</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <p class="text-xs text-muted-foreground">
-                                <span class="text-green-600 font-medium">{{ stats.today_transactions }}</span> transaksi berhasil
-                            </p>
-                            <Badge :class="revenueGrowthColor" class="gap-1 border text-[11px] font-semibold">
-                                <component :is="revenueGrowthIcon" class="h-3 w-3" />
-                                {{ revenueGrowthLabel }} vs kemarin
-                            </Badge>
+                    </div>
+                    <div class="flex gap-2">
+                        <div v-for="stock in low_stock_alerts.slice(0, 3)" :key="stock.id" class="hidden md:block px-3 py-1 bg-white border border-red-100 rounded-full text-[10px] font-bold text-gray-700">
+                            {{ stock.name }}: {{ stock.current_qty }}
                         </div>
-                    </CardContent>
-                </Card>
-
-                <Card class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Pesanan Pending</CardTitle>
-                        <div class="h-8 w-8 bg-yellow-50 flex items-center justify-center rounded-lg text-yellow-600">
-                            <Clock class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ stats.pending_orders }} <span class="text-base font-normal text-gray-500">pesanan</span></div>
-                        <p class="text-xs text-muted-foreground mt-1">
-                            Segera proses untuk hari ini
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <!-- Card: Total Sudah Bayar (Lunas) -->
-                <Card class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Uang Diterima</CardTitle>
-                        <div class="h-8 w-8 bg-emerald-50 flex items-center justify-center rounded-lg text-emerald-600">
-                            <CheckCircle2 class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="break-words text-2xl font-bold leading-tight text-emerald-700">{{ formatRupiah(stats.today_paid) }}</div>
-                        <p class="text-xs text-muted-foreground mt-1 text-emerald-600 font-medium">
-                            Total uang masuk (Cash/DP)
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <!-- Card: Total Belum/Kurang Bayar -->
-                <Card class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Sisa Piutang</CardTitle>
-                        <div class="h-8 w-8 bg-orange-50 flex items-center justify-center rounded-lg text-orange-500">
-                            <AlertCircle class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="break-words text-2xl font-bold leading-tight text-orange-600">{{ formatRupiah(stats.today_unpaid) }}</div>
-                        <p class="text-xs text-muted-foreground mt-1 text-orange-500 font-medium">
-                            Sisa piutang hari ini
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Omset Bulan Ini</CardTitle>
-                        <div class="h-8 w-8 bg-green-50 flex items-center justify-center rounded-lg text-green-600">
-                            <TrendingUp class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.monthly_revenue) }}</div>
-                        <p class="text-xs text-muted-foreground mt-1 text-green-600">
-                            Pemasukan kotor berjalan
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium text-gray-500">Pengeluaran Bulan Ini</CardTitle>
-                        <div class="h-8 w-8 bg-red-50 flex items-center justify-center rounded-lg text-red-600">
-                            <CreditCard class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="break-words text-2xl font-bold leading-tight text-gray-900">{{ formatRupiah(stats.monthly_expenses) }}</div>
-                        <p class="text-xs text-muted-foreground mt-1 text-red-500 font-medium">
-                            Beban operasional berjalan
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="$page.props.auth.role === 'admin'" class="hover:shadow-md transition-shadow border" :class="netProfitTone">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Laba Bersih</CardTitle>
-                        <div class="h-8 w-8 rounded-lg flex items-center justify-center bg-white/70">
-                            <component :is="netProfitIcon" class="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="break-words text-2xl font-bold leading-tight" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
-                            {{ formatRupiah(stats.net_profit) }}
-                        </div>
-                        <p class="text-xs font-medium" :class="netProfitPositive ? 'text-emerald-700' : 'text-red-700'">
-                            {{ netProfitPositive ? 'Profit bulan ini masih aman.' : 'Laba bersih negatif, perlu perhatian.' }}
-                        </p>
-                    </CardContent>
-                </Card>
+                        <Button as-child size="sm" variant="ghost" class="text-red-700 font-bold hover:bg-red-100">
+                            <Link :href="route('stocks.index')">Detail <ArrowRight class="ml-1 h-3 w-3" /></Link>
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Daftar Transaksi Hari Ini: Lunas & Piutang -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Kolom Lunas -->
-                <Card class="border-emerald-100 shadow-sm bg-emerald-50/10">
-                    <CardHeader class="pb-3 border-b border-emerald-100/50">
-                        <CardTitle class="text-base font-bold text-emerald-800 flex items-center gap-2">
-                            <div class="p-1 bg-emerald-100 rounded-md">
-                                <CheckCircle2 class="w-4 h-4 text-emerald-600" />
-                            </div>
-                            Daftar Lunas Hari Ini
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent class="p-0">
-                        <div v-if="!paid_transactions || paid_transactions.length === 0" class="p-10 text-center">
-                            <div class="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                                <CheckCircle2 class="w-6 h-6 text-gray-300" />
-                            </div>
-                            <p class="text-sm text-gray-400">Belum ada transaksi lunas hari ini.</p>
+            <!-- SECTION 1: MONITOR HARI INI (OPERASIONAL & WORKFLOW) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-1">
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
+                            <Activity class="w-4 h-4 text-white" />
                         </div>
-                        <div v-else class="divide-y divide-emerald-100/30 max-h-[400px] overflow-y-auto">
-                            <div v-for="t in paid_transactions" :key="t.id" class="p-4 hover:bg-emerald-50/50 transition-colors group">
-                                <div class="flex justify-between items-center">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <p class="font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
-                                            <Badge variant="outline" class="text-[9px] h-4 px-1 bg-emerald-50 text-emerald-600 border-emerald-200">LUNAS</Badge>
-                                        </div>
-                                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">
-                                            {{ t.invoice_number }} • {{ new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
-                                        </p>
-                                    </div>
-                                    <div class="text-right ml-4">
-                                        <p class="font-bold text-emerald-700 text-sm">{{ formatRupiah(t.total) }}</p>
-                                        <p class="text-[9px] text-emerald-500/70 font-medium uppercase tracking-tighter">{{ t.payment_method || 'CASH' }}</p>
-                                    </div>
+                        <h3 class="text-xl font-bold text-gray-900 tracking-tight">Monitor Hari Ini</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <Badge variant="outline" class="bg-white border-orange-100 text-orange-600 text-[10px] font-bold px-3 py-1">
+                            {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }) }}
+                        </Badge>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <!-- Today Revenue -->
+                    <Card class="border-0 shadow-sm bg-white hover:shadow-md transition-all group overflow-hidden relative">
+                        <div class="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 group-hover:scale-110 transition-transform"></div>
+                        <CardContent class="p-4 flex items-center justify-between relative z-10">
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Omset (Selesai)</p>
+                                <h4 class="text-xl font-black text-gray-900">{{ formatRupiah(stats.today_revenue) }}</h4>
+                            </div>
+                            <div class="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shadow-inner group-hover:rotate-12 transition-transform">
+                                <Wallet class="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Today Paid -->
+                    <Card class="border-0 shadow-sm bg-white hover:shadow-md transition-all group overflow-hidden relative">
+                         <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full -mr-4 -mt-4 group-hover:scale-110 transition-transform"></div>
+                        <CardContent class="p-4 flex items-center justify-between relative z-10">
+                            <div>
+                                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sudah Lunas</p>
+                                <h4 class="text-xl font-black text-emerald-600">{{ formatRupiah(stats.today_paid) }}</h4>
+                            </div>
+                            <div class="h-10 w-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shadow-inner group-hover:scale-110 transition-transform">
+                                <CheckCircle2 class="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Today Unpaid -->
+                    <Card class="border-0 shadow-sm bg-white hover:shadow-md transition-all group overflow-hidden relative">
+                         <div class="absolute top-0 right-0 w-16 h-16 bg-orange-500/5 rounded-bl-full -mr-4 -mt-4 group-hover:scale-110 transition-transform"></div>
+                        <CardContent class="p-4 flex items-center justify-between relative z-10">
+                            <div>
+                                <p class="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Belum Lunas</p>
+                                <h4 class="text-xl font-black text-orange-600">{{ formatRupiah(stats.today_unpaid) }}</h4>
+                            </div>
+                            <div class="h-10 w-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 shadow-inner group-hover:-rotate-12 transition-transform">
+                                <AlertCircle class="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Today Transactions -->
+                    <Card class="border-0 shadow-sm bg-white hover:shadow-md transition-all group">
+                        <CardContent class="p-4 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Order</p>
+                                <h4 class="text-xl font-black text-gray-900">{{ stats.today_transactions }} <span class="text-xs font-normal text-gray-400">trx</span></h4>
+                            </div>
+                            <div class="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shadow-inner">
+                                <ShoppingBag class="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Pending Orders -->
+                    <Card class="border-0 shadow-sm bg-white hover:shadow-md transition-all">
+                        <CardContent class="p-4 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Antrian Pending</p>
+                                <h4 class="text-xl font-black text-gray-900">{{ stats.pending_orders }} <span class="text-xs font-normal text-gray-400">antrian</span></h4>
+                            </div>
+                            <div class="h-10 w-10 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 shadow-inner animate-pulse">
+                                <Clock class="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">
+                    <!-- Active Production Queue -->
+                    <Card class="lg:col-span-5 border-0 shadow-sm flex flex-col group/queue h-[520px] bg-white">
+                        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-blue-50 rounded-lg"><Activity class="w-5 h-5 text-blue-600" /></div>
+                                <CardTitle class="text-base font-bold text-gray-900">Antrian Aktif</CardTitle>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="flex p-1 bg-gray-100 rounded-lg">
+                                    <button v-for="tab in ['semua', 'pending', 'diproses', 'selesai']" :key="tab" @click="activeQueueTab = tab as any" 
+                                        :class="activeQueueTab === tab ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-700'"
+                                        class="px-3 py-1 text-[10px] rounded-md transition-all capitalize"
+                                    >
+                                        {{ tab }}
+                                    </button>
                                 </div>
+                                <Button as-child variant="ghost" size="icon" class="h-8 w-8"><Link :href="route('transactions.index')"><ArrowUpRight class="h-4 w-4" /></Link></Button>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <!-- Kolom Belum Lunas (Piutang) -->
-                <Card class="border-orange-100 shadow-sm bg-orange-50/10">
-                    <CardHeader class="pb-3 border-b border-orange-100/50">
-                        <CardTitle class="text-base font-bold text-orange-800 flex items-center gap-2">
-                            <div class="p-1 bg-orange-100 rounded-md">
-                                <AlertCircle class="w-4 h-4 text-orange-600" />
-                            </div>
-                            Daftar Piutang Hari Ini
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent class="p-0">
-                        <div v-if="!unpaid_transactions || unpaid_transactions.length === 0" class="p-10 text-center">
-                            <div class="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                                <AlertCircle class="w-6 h-6 text-gray-300" />
-                            </div>
-                            <p class="text-sm text-gray-400">Semua tagihan hari ini sudah lunas!</p>
-                        </div>
-                        <div v-else class="divide-y divide-orange-100/30 max-h-[400px] overflow-y-auto">
-                            <div v-for="t in unpaid_transactions" :key="t.id" class="p-4 hover:bg-orange-50/50 transition-colors group">
-                                <div class="flex justify-between items-center">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <p class="font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
-                                            <Badge variant="outline" class="text-[9px] h-4 px-1 bg-orange-50 text-orange-600 border-orange-200">{{ t.payment_status }}</Badge>
-                                        </div>
-                                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">
-                                            {{ t.invoice_number }} • {{ new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
-                                        </p>
-                                    </div>
-                                    <div class="text-right ml-4">
-                                        <p class="font-bold text-red-600 text-sm">{{ formatRupiah(t.remaining_amount) }}</p>
-                                        <p class="text-[9px] text-orange-500 font-medium">Sisa dari {{ formatRupiah(t.total) }}</p>
-                                    </div>
+                        </CardHeader>
+                        <CardContent class="p-0 overflow-hidden flex-1 flex flex-col">
+                            <div class="overflow-y-auto px-6 pb-6 flex-1 custom-scrollbar">
+                                <div v-if="displayedQueue.length === 0" class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
+                                    <ReceiptText class="h-12 w-12 opacity-10 mb-2" />
+                                    <p class="text-sm italic text-center">Belum ada kerjaan di kategori ini.<br>Waktunya cari orderan baru!</p>
                                 </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div class="grid gap-6 items-stretch" :class="$page.props.auth.role === 'admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-2'">
-                <!-- Chart Section -->
-                <Card v-if="$page.props.auth.role === 'admin'" class="lg:col-span-4 hover:shadow-md transition-shadow border">
-                    <CardHeader>
-                        <CardTitle class="text-lg text-gray-800">Grafik Penjualan 7 Hari Terakhir</CardTitle>
-                    </CardHeader>
-                    <CardContent class="pl-2">
-                        <div v-if="sales_chart.length > 0">
-                            <div class="w-full h-[300px]">
-                                <VueApexCharts :options="chartOptions" :series="chartSeries" type="area" height="300" />
-                            </div>
-                        </div>
-                        <div v-else class="h-[300px] flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg text-gray-500 text-sm">
-                            Belum ada data penjualan.
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="$page.props.auth.role === 'admin'" class="lg:col-span-3 hover:shadow-md transition-shadow border">
-                    <CardHeader class="flex flex-row items-center justify-between pb-2">
-                        <CardTitle class="text-lg text-gray-800">Distribusi Omzet</CardTitle>
-                        <PieChart class="h-4 w-4 text-gray-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div v-if="category_sales.length > 0">
-                            <div class="w-full h-[300px]">
-                                <VueApexCharts :options="categoryChartOptions" :series="categoryChartSeries" type="pie" height="300" />
-                            </div>
-                        </div>
-                        <div v-else class="h-[300px] flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg text-gray-500 text-sm gap-2">
-                            <PieChart class="h-8 w-8 text-gray-300" />
-                            <span>Belum ada data kategori untuk ditampilkan.</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <!-- Antrian & Pesanan Aktif -->
-                <Card class="hover:shadow-md transition-shadow border h-full" :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'">
-                    <CardHeader class="flex flex-col space-y-2 pb-2">
-                        <div class="flex items-center justify-between w-full">
-                            <CardTitle class="text-lg text-gray-800">Antrian Aktif</CardTitle>
-                            <Button as-child variant="outline" size="sm" class="h-8 text-xs">
-                                <Link :href="route('transactions.index')">Kelola</Link>
-                            </Button>
-                        </div>
-                        
-                        <!-- Tabs -->
-                        <div class="flex gap-2 border-b mt-2 overflow-x-auto pb-1 no-scrollbar">
-                            <button @click="activeQueueTab = 'semua'" :class="activeQueueTab === 'semua' ? 'border-primary text-primary font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Semua</button>
-                            <button @click="activeQueueTab = 'pending'" :class="activeQueueTab === 'pending' ? 'border-yellow-500 text-yellow-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Pending</button>
-                            <button @click="activeQueueTab = 'diproses'" :class="activeQueueTab === 'diproses' ? 'border-blue-500 text-blue-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Diproses</button>
-                            <button @click="activeQueueTab = 'selesai'" :class="activeQueueTab === 'selesai' ? 'border-green-500 text-green-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-2 py-1 border-b-2 text-sm transition-colors whitespace-nowrap">Selesai</button>
-                        </div>
-                    </CardHeader>
-                    <CardContent class="p-0">
-                        <div class="overflow-y-auto max-h-[480px] px-6 pb-6">
-                            <div class="space-y-3 mt-2">
-                            <div v-if="displayedQueue.length === 0" class="text-center py-8 text-gray-500 text-sm">
-                                Tidak ada antrian berjalan saat ini.
-                            </div>
-
-                            <div v-for="(trx, index) in displayedQueue" :key="trx.id" class="flex flex-col sm:flex-row sm:items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border" :class="{ 'border-l-4 border-l-yellow-400': trx.status === 'pending', 'border-gray-100': trx.status !== 'pending' }">
-                                <div class="flex justify-between items-start sm:items-center w-full">
-                                    <div class="flex items-center gap-3 flex-1">
-                                        <div class="h-8 w-8 text-xs font-bold bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm text-gray-600 shrink-0">
-                                            #{{ index + 1 }}
+                                <div class="space-y-3 mt-4">
+                                    <div v-for="(trx, index) in displayedQueue" :key="trx.id" class="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group/item shadow-sm bg-white">
+                                        <div class="flex items-center gap-4 flex-1">
+                                            <div class="h-8 w-8 text-[10px] font-bold bg-gray-50 border rounded-lg flex items-center justify-center text-gray-400 shrink-0">#{{ index + 1 }}</div>
+                                            <div class="space-y-0.5">
+                                                <p class="text-sm font-bold text-gray-900">{{ trx.customer_name }}</p>
+                                                <p class="text-[10px] text-gray-400 font-mono">{{ trx.transaction_number }} • <span class="font-bold text-blue-500 uppercase">{{ trx.created_at }}</span></p>
+                                            </div>
                                         </div>
-                                        <div class="space-y-0.5">
-                                            <p class="text-sm font-bold leading-none text-gray-900">{{ trx.customer_name }}</p>
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-[10px] text-gray-400 font-mono">{{ trx.transaction_number }}</span>
-                                                <span class="text-[10px] text-gray-400">• {{ trx.created_at }}</span>
+                                        <div class="flex items-center gap-3">
+                                            <Badge variant="outline" class="text-[10px] font-bold py-0.5 px-2 rounded-full uppercase" :class="getStatusColor(trx.status)">{{ trx.status_label }}</Badge>
+                                            <div class="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                                <Button v-if="trx.status === 'pending'" @click="updateOrderStatus(trx.id, 'diproses')" size="sm" class="h-7 text-[9px] bg-blue-600">Proses</Button>
+                                                <Button v-if="trx.status === 'diproses'" @click="updateOrderStatus(trx.id, 'selesai')" size="sm" class="h-7 text-[9px] bg-emerald-600 font-bold">Selesai</Button>
+                                                <Button v-if="trx.status === 'selesai'" @click="updateOrderStatus(trx.id, 'diambil')" size="sm" class="h-7 text-[9px] bg-gray-600">Ambil</Button>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Badges & Action -->
-                                    <div class="flex items-center justify-end gap-2 sm:gap-3 mt-2 sm:mt-0 shrink-0">
-                                        <span class="inline-flex justify-center text-[10px] items-center px-1 py-0.5 rounded-full border border-gray-200 font-medium w-[72px] shrink-0"
-                                            :class="getStatusColor(trx.status)">
-                                            {{ trx.status_label }}
-                                        </span>
-                                        
-                                        <!-- Actions -->
-                                        <template v-if="trx.status === 'pending'">
-                                            <Button @click="updateOrderStatus(trx.id, 'diproses')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-blue-600 border-blue-200 hover:bg-blue-50">Proses</Button>
-                                        </template>
-                                        <template v-else-if="trx.status === 'diproses'">
-                                            <Button @click="updateOrderStatus(trx.id, 'selesai')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-green-600 border-green-200 hover:bg-green-50">Selesai</Button>
-                                        </template>
-                                        <template v-else-if="trx.status === 'selesai'">
-                                            <Button @click="updateOrderStatus(trx.id, 'diambil')" size="sm" variant="outline" class="w-[72px] shrink-0 h-7 text-xs bg-white text-gray-600 border-gray-200 hover:bg-gray-50">Diambil</Button>
-                                        </template>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Sidebar Stats (Top Pelanggan + Low Stock) -->
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <Card class="border-0 shadow-sm bg-white overflow-hidden group">
+                            <CardHeader class="pb-2 border-b flex flex-row items-center justify-between bg-blue-50/30">
+                                <CardTitle class="text-xs font-bold text-gray-600 uppercase flex items-center gap-2">
+                                    <Users class="h-4 w-4 text-blue-500" />
+                                    Loyal Customers
+                                </CardTitle>
+                                <ArrowUpRight class="h-3 w-3 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                            </CardHeader>
+                            <CardContent class="p-4">
+                                <div class="space-y-4">
+                                    <div v-for="(cust, idx) in top_customers" :key="idx" class="flex items-center justify-between group/cust">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0 group-hover/cust:bg-blue-600 group-hover/cust:text-white transition-all shadow-sm">{{ idx + 1 }}</div>
+                                            <p class="text-xs font-bold text-gray-700 truncate">{{ cust.name }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-[10px] font-bold text-blue-600">{{ cust.transaction_count }}x Order</p>
+                                            <p class="text-[8px] text-gray-400 italic">{{ formatRupiah(cust.total_spent) }}</p>
+                                        </div>
+                                    </div>
+                                    <div v-if="!top_customers.length" class="text-center py-4 text-[10px] text-gray-400 italic">Belum ada data pelanggan.</div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card v-if="low_stock_alerts.length" class="border-0 shadow-sm bg-red-50/50 relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 opacity-10">
+                                <AlertTriangle class="h-20 w-20 text-red-600" />
+                            </div>
+                            <CardHeader class="pb-2 border-b border-red-100 flex flex-row items-center justify-between relative z-10">
+                                <CardTitle class="text-xs font-bold text-red-700 uppercase flex items-center gap-2">
+                                    <AlertTriangle class="h-4 w-4 animate-bounce" />
+                                    Stok Kritis
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent class="p-4 relative z-10">
+                                <div class="space-y-3">
+                                    <div v-for="stock in low_stock_alerts" :key="stock.id" class="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-red-100">
+                                        <p class="text-xs font-bold text-gray-700 truncate flex-1">{{ stock.name }}</p>
+                                        <Badge variant="destructive" class="text-[9px] py-0 px-2 h-4 shadow-sm">{{ stock.current_qty }} {{ stock.unit }}</Badge>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div v-if="remainingQueueCount > 0" class="text-center pt-2">
-                                <Link :href="route('transactions.index', { status: activeQueueTab !== 'semua' ? activeQueueTab : '' })" class="text-xs text-gray-500 hover:text-primary transition-colors">
-                                    + {{ remainingQueueCount }} antrian lainnya. Lihat semua.
-                                </Link>
-                            </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <!-- Recent Transactions Table -->
-                <Card :class="$page.props.auth.role === 'admin' ? 'lg:col-span-7' : 'lg:col-span-1'" class="hover:shadow-md transition-shadow border h-full">
-                    <CardHeader class="flex flex-row justify-between items-center pb-2 w-full">
-                        <CardTitle class="text-lg text-gray-800">Transaksi Terbaru</CardTitle>
-                        <Button as-child variant="outline" size="sm" class="h-8 text-xs">
-                            <Link :href="route('transactions.index')">Lihat Semua</Link>
-                        </Button>
-                    </CardHeader>
-                    <CardContent class="p-0">
-                        <div class="overflow-y-auto max-h-[480px] px-6 pb-6">
-                            <div class="space-y-4">
-                            <div v-if="recent_transactions.length === 0" class="text-center py-8 text-gray-500 text-sm">
-                                Belum ada transaksi hari ini.
-                            </div>
-
-                            <div v-for="trx in recent_transactions" :key="trx.id" class="flex items-center px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
-                                <div class="mr-4 h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm">
-                                    <Activity class="h-4 w-4 text-primary" />
-                                </div>
-                                <div class="space-y-1 flex-1">
-                                    <p class="text-sm font-semibold leading-none text-gray-900">{{ trx.customer_name }}</p>
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <p class="text-xs text-gray-500 font-mono">
-                                            {{ trx.transaction_number }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="ml-auto flex flex-col items-end gap-1.5 shrink-0">
-                                    <div class="font-bold text-sm text-gray-900">
-                                        {{ formatRupiah(trx.total) }}
-                                    </div>
-                                    <span class="inline-flex justify-center text-[10px] items-center px-1 py-0.5 rounded-full border border-gray-200 font-medium w-[72px]"
-                                        :class="getStatusColor(trx.status)">
-                                        {{ trx.status_label }}
-                                    </span>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </div>
+
+            <!-- SECTION 2: RINGKASAN STRATEGIS (BULANAN) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-1">
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                            <TrendingUp class="w-4 h-4 text-white" />
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 tracking-tight">Performa Bisnis Bulan Ini</h3>
+                    </div>
+                    <Badge variant="secondary" class="bg-blue-50 border-blue-100 text-blue-700 text-[10px] font-bold px-3 py-1 uppercase tracking-widest">{{ new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) }}</Badge>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <!-- Grand Total Monthly -->
+                    <Card class="border-0 shadow-md bg-white border-l-4 border-l-indigo-600 group hover:shadow-lg transition-all duration-300">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Total Tagihan (Nett)</CardTitle>
+                            <TrendingUp class="h-4 w-4 text-indigo-400" />
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-2xl font-black text-gray-900">{{ formatRupiah(monthlyGrandTotal) }}</div>
+                            <p class="mt-2 text-[10px] font-medium text-gray-400 italic">Total Lunas + Piutang</p>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Net Profit -->
+                    <Card v-if="$page.props.auth.role === 'admin'" class="border-0 shadow-md bg-gradient-to-br from-emerald-500 to-teal-600 text-white group hover:scale-[1.02] transition-all duration-300">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle class="text-[10px] font-bold uppercase tracking-widest opacity-80">Estimasi Laba Bersih</CardTitle>
+                            <Activity class="h-4 w-4 opacity-50" />
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-2xl font-black">{{ formatRupiah(stats.net_profit) }}</div>
+                            <p class="mt-2 text-[10px] font-bold opacity-90 bg-white/20 px-2 py-0.5 rounded-full w-fit backdrop-blur-md">
+                                {{ netProfitPositive ? '📈 Profit Stabil' : '⚠️ Cek Pengeluaran' }}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Monthly Paid -->
+                    <Card class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Uang Masuk (Lunas)</CardTitle>
+                            <div class="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shadow-sm"><CheckCircle2 class="h-3 w-3" /></div>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-xl font-black text-gray-900">{{ formatRupiah(stats.monthly_paid) }}</div>
+                            <p class="mt-1 text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+                                <span class="h-1 w-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                                Cash Flow Aman
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Monthly Unpaid -->
+                    <Card class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Piutang Berjalan</CardTitle>
+                            <div class="p-1.5 bg-orange-50 rounded-lg text-orange-600 shadow-sm"><AlertCircle class="h-3 w-3" /></div>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-xl font-black text-orange-600">{{ formatRupiah(stats.monthly_unpaid) }}</div>
+                            <p class="mt-1 text-[9px] text-orange-500 font-bold flex items-center gap-1">
+                                Tagihan Belum Cair
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Expenses -->
+                    <Card v-if="$page.props.auth.role === 'admin'" class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Operasional</CardTitle>
+                            <div class="p-1.5 bg-red-50 rounded-lg text-red-600 shadow-sm"><CreditCard class="h-3 w-3" /></div>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-xl font-black text-red-600">{{ formatRupiah(stats.monthly_expenses) }}</div>
+                            <p class="mt-1 text-[9px] text-red-500 font-bold italic">Total Pengeluaran</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+
+            <!-- SECTION 3: DETAIL TRANSAKSI & KEUANGAN (BULANAN) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-1">
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
+                            <Wallet class="w-4 h-4 text-white" />
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 tracking-tight">Audit Keuangan Bulanan</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Monthly Paid Transactions List -->
+                    <Card class="border-0 shadow-sm h-[500px] flex flex-col bg-white overflow-hidden">
+                        <CardHeader class="pb-3 border-b flex flex-row items-center justify-between bg-emerald-50/50">
+                            <CardTitle class="text-sm font-bold text-emerald-700 flex items-center gap-2">
+                                <div class="p-1.5 bg-emerald-100 rounded-lg shadow-sm"><CheckCircle2 class="w-3 h-3" /></div>
+                                Transaksi Lunas (Bulan Ini)
+                            </CardTitle>
+                            <Badge class="bg-emerald-600 text-white border-0">{{ formatRupiah(stats.monthly_paid) }}</Badge>
+                        </CardHeader>
+                        <CardContent class="p-0 flex-1 overflow-hidden flex flex-col">
+                            <div class="divide-y overflow-y-auto h-full custom-scrollbar">
+                                <div v-for="t in monthly_paid_transactions" :key="t.id" class="p-4 hover:bg-emerald-50/30 transition-colors border-l-4 border-l-transparent hover:border-l-emerald-500">
+                                    <div class="flex justify-between items-center">
+                                        <div class="min-w-0 flex-1 pr-2">
+                                            <p class="text-sm font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <p class="text-[10px] text-gray-500 font-mono">{{ t.transaction_number }}</p>
+                                                <span class="text-[8px] text-gray-300">•</span>
+                                                <p class="text-[10px] text-gray-400">{{ new Date(t.created_at).toLocaleDateString('id-ID') }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-black text-emerald-700">{{ formatRupiah(t.total) }}</p>
+                                            <Badge variant="outline" class="text-[8px] h-3.5 bg-emerald-50 text-emerald-600 border-emerald-100 px-1 font-bold uppercase">{{ t.payment_method || 'CASH' }}</Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="!monthly_paid_transactions.length" class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
+                                    <ReceiptText class="h-10 w-10 opacity-10 mb-2" />
+                                    <p class="text-xs italic">Belum ada transaksi lunas bulan ini.</p>
+                                </div>
+                            </div>
+                            <div class="p-3 border-t bg-gray-50/50 text-center">
+                                <Button as-child variant="link" size="sm" class="text-[10px] font-bold text-blue-600 uppercase">
+                                    <Link :href="route('transactions.index', { status: 'lunas', period: 'month' })">Lihat Semua Transaksi Lunas →</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Monthly Unpaid Transactions List (Piutang) -->
+                    <Card class="border-0 shadow-sm h-[500px] flex flex-col bg-white overflow-hidden">
+                        <CardHeader class="pb-3 border-b flex flex-row items-center justify-between bg-orange-50/50">
+                            <CardTitle class="text-sm font-bold text-orange-700 flex items-center gap-2">
+                                <div class="p-1.5 bg-orange-100 rounded-lg shadow-sm"><AlertCircle class="w-3 h-3" /></div>
+                                Piutang Aktif (Bulan Ini)
+                            </CardTitle>
+                            <Badge variant="destructive" class="bg-orange-600 text-white border-0">{{ formatRupiah(stats.monthly_unpaid) }}</Badge>
+                        </CardHeader>
+                        <CardContent class="p-0 flex-1 overflow-hidden flex flex-col">
+                            <div class="divide-y overflow-y-auto h-full custom-scrollbar">
+                                <div v-for="t in monthly_unpaid_transactions" :key="t.id" class="p-4 hover:bg-orange-50/30 transition-colors border-l-4 border-l-transparent hover:border-l-orange-500">
+                                    <div class="flex justify-between items-center">
+                                        <div class="min-w-0 flex-1 pr-2">
+                                            <p class="text-sm font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <p class="text-[10px] text-gray-500 font-mono">{{ t.transaction_number }}</p>
+                                                <span class="text-[8px] text-gray-300">•</span>
+                                                <p class="text-[10px] text-gray-400">{{ new Date(t.created_at).toLocaleDateString('id-ID') }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-black text-red-600">{{ formatRupiah(t.remaining_amount) }}</p>
+                                            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Sisa Bayar</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="!monthly_unpaid_transactions.length" class="flex flex-col items-center justify-center h-full py-20 text-emerald-600">
+                                    <CheckCircle2 class="h-10 w-10 opacity-20 mb-2" />
+                                    <p class="text-xs font-bold italic">Luar biasa! Tidak ada piutang bulan ini. ✅</p>
+                                </div>
+                            </div>
+                            <div class="p-3 border-t bg-gray-50/50 text-center">
+                                <Button as-child variant="link" size="sm" class="text-[10px] font-bold text-orange-600 uppercase">
+                                    <Link :href="route('transactions.index', { payment_status: 'belum_bayar', period: 'month' })">Kelola Semua Piutang →</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <!-- SECTION 4: ANALITIK & INSIGHTS (ADMIN ONLY) -->
+            <div v-if="$page.props.auth.role === 'admin'" class="space-y-4">
+                <div class="flex items-center gap-2 px-1">
+                    <div class="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                        <PieChart class="w-4 h-4 text-white" />
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 tracking-tight">Analisa & Insight</h3>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">
+                    <!-- Sales Trend Chart -->
+                    <Card class="lg:col-span-5 border-0 shadow-sm overflow-hidden bg-white">
+                        <CardHeader class="pb-2 flex flex-row items-center justify-between border-b">
+                            <div>
+                                <CardTitle class="text-base font-bold text-gray-800">Tren Pendapatan (7 Hari Terakhir)</CardTitle>
+                                <p class="text-[10px] text-gray-500">Visualisasi performa omset harian</p>
+                            </div>
+                            <Badge variant="outline" class="bg-blue-50 text-blue-600 border-blue-100 text-[10px] font-bold uppercase">Live Statistics</Badge>
+                        </CardHeader>
+                        <CardContent class="pt-6 pl-2">
+                            <div class="w-full h-[320px]">
+                                <VueApexCharts :options="chartOptions" :series="chartSeries" type="area" height="320" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Top Products Summary -->
+                    <Card class="lg:col-span-2 border-0 shadow-sm flex flex-col bg-white">
+                        <CardHeader class="pb-2 border-b">
+                            <CardTitle class="text-base font-bold text-gray-800">Layanan Favorit</CardTitle>
+                            <p class="text-[10px] text-gray-500">Berdasarkan volume pesanan bulan ini</p>
+                        </CardHeader>
+                        <CardContent class="p-4 flex-1">
+                            <div class="space-y-4">
+                                <div v-for="(service, idx) in top_services.slice(0, 5)" :key="idx" class="space-y-1">
+                                    <div class="flex justify-between text-xs font-bold">
+                                        <span class="text-gray-700 truncate w-2/3">{{ service.name }}</span>
+                                        <span class="text-blue-600">{{ service.total_qty }}x</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-600 h-full rounded-full transition-all duration-1000" :style="{ width: (service.total_qty / top_services[0].total_qty * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Metode Pembayaran</p>
+                                </div>
+                                <div class="h-[140px] flex items-center justify-center">
+                                    <VueApexCharts :options="paymentChartOptions" :series="paymentChartSeries" type="donut" height="180" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <!-- Financial Audit Detail Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Recent Expenses -->
+                    <Card class="border-0 shadow-sm h-[400px] flex flex-col bg-white">
+                        <CardHeader class="pb-3 border-b flex flex-row items-center justify-between">
+                            <CardTitle class="text-sm font-bold text-red-700 flex items-center gap-2">
+                                <div class="p-1.5 bg-red-100 rounded-lg shadow-sm"><ArrowDownRight class="w-3 h-3" /></div>
+                                Pengeluaran Terbaru
+                            </CardTitle>
+                            <Button as-child variant="link" size="sm" class="text-[10px] font-bold text-gray-400 p-0 h-auto uppercase tracking-tighter">
+                                <Link :href="route('expenses.index')">Detail Pengeluaran →</Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent class="p-0 flex-1 overflow-hidden">
+                            <div class="divide-y overflow-y-auto h-full custom-scrollbar">
+                                <div v-for="expense in recent_expenses" :key="expense.id" class="p-4 hover:bg-red-50/30 transition-colors">
+                                    <div class="flex justify-between items-start">
+                                        <div class="min-w-0 flex-1 pr-2">
+                                            <p class="text-xs font-bold text-gray-900 truncate">{{ expense.description }}</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">{{ expense.category }} • {{ expense.expense_date }}</p>
+                                        </div>
+                                        <p class="text-xs font-black text-red-600">{{ formatRupiah(expense.amount) }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="!recent_expenses.length" class="flex items-center justify-center h-full py-10 text-gray-400 text-[10px] italic">Belum ada data pengeluaran.</div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Today's Paid Verification (Optional small list) -->
+                    <Card class="border-0 shadow-sm h-[400px] flex flex-col bg-white">
+                        <CardHeader class="pb-3 border-b flex flex-row items-center justify-between">
+                            <CardTitle class="text-sm font-bold text-blue-700 flex items-center gap-2">
+                                <div class="p-1.5 bg-blue-100 rounded-lg shadow-sm"><CheckCircle2 class="w-3 h-3" /></div>
+                                Verifikasi Bayar (Hari Ini)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent class="p-0 flex-1 overflow-hidden">
+                            <div class="divide-y overflow-y-auto h-full custom-scrollbar">
+                                <div v-for="t in paid_transactions" :key="t.id" class="p-4 hover:bg-blue-50/30 transition-colors">
+                                    <div class="flex justify-between items-center">
+                                        <div class="min-w-0 flex-1 pr-2">
+                                            <p class="text-xs font-bold text-gray-900 truncate">{{ t.customer?.name || 'Pelanggan Umum' }}</p>
+                                            <p class="text-[10px] text-gray-500 mt-0.5 font-mono">{{ t.transaction_number }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs font-bold text-blue-700">{{ formatRupiah(t.total) }}</p>
+                                            <Badge variant="outline" class="text-[8px] h-3.5 bg-blue-50 text-blue-600 border-blue-100 px-1 font-bold">{{ t.payment_method || 'CASH' }}</Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="!paid_transactions.length" class="flex items-center justify-center h-full py-10 text-gray-400 text-[10px] italic font-medium">Belum ada pembayaran hari ini.</div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <!-- Activity History (Footer) -->
+            <Card class="border-0 shadow-sm overflow-hidden mt-8 opacity-80 hover:opacity-100 transition-opacity">
+                <CardHeader class="p-4 bg-gray-100 flex flex-row justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <ReceiptText class="h-4 w-4 text-gray-500" />
+                        <CardTitle class="text-xs font-bold text-gray-600 uppercase tracking-widest">History 5 Transaksi Terakhir</CardTitle>
+                    </div>
+                    <Button as-child variant="link" size="sm" class="h-auto p-0 text-[10px] font-bold text-blue-600"><Link :href="route('transactions.index')">History Lengkap →</Link></Button>
+                </CardHeader>
+                <CardContent class="p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div v-for="trx in recent_transactions" :key="trx.id" class="flex flex-col gap-1 p-3 bg-white rounded-xl border border-gray-100 shadow-xs">
+                            <p class="text-[10px] font-black text-gray-900 truncate">{{ trx.customer_name }}</p>
+                            <p class="text-[9px] text-gray-400 font-mono">{{ trx.transaction_number }}</p>
+                            <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed">
+                                <span class="text-[10px] font-bold">{{ formatRupiah(trx.total) }}</span>
+                                <Badge variant="outline" class="text-[8px] h-3.5 px-1 font-bold" :class="getStatusColor(trx.status)">{{ trx.status_label }}</Badge>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+</style>

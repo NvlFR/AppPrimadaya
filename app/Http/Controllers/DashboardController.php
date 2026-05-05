@@ -68,6 +68,29 @@ class DashboardController extends Controller
         $todayUnpaid = (float) Transaction::whereDate('created_at', $today)
             ->sum('remaining_amount');
 
+        // Recent Expenses (Last 5)
+        $recentExpenses = Expense::latest('expense_date')
+            ->take(5)
+            ->get();
+
+        // Top Customers This Month
+        $topCustomers = DB::table('transactions')
+            ->join('customers', 'transactions.customer_id', '=', 'customers.id')
+            ->where('transactions.created_at', '>=', $thisMonth)
+            ->select('customers.name', DB::raw('SUM(transactions.total) as total_spent'), DB::raw('COUNT(transactions.id) as transaction_count'))
+            ->groupBy('customers.id', 'customers.name')
+            ->orderBy('total_spent', 'desc')
+            ->take(5)
+            ->get();
+
+        // Total uang diterima bulan ini
+        $monthlyPaid = (float) Transaction::where('created_at', '>=', $thisMonth)
+            ->sum('amount_paid');
+
+        // Total piutang bulan ini
+        $monthlyUnpaid = (float) Transaction::where('created_at', '>=', $thisMonth)
+            ->sum('remaining_amount');
+
         $stats = [
             'today_revenue' => $todayRevenue,
             'yesterday_revenue' => $yesterdayRevenue,
@@ -75,6 +98,8 @@ class DashboardController extends Controller
             'today_transactions' => $todayTransactions,
             'today_paid' => $todayPaid,
             'today_unpaid' => $todayUnpaid,
+            'monthly_paid' => $monthlyPaid,
+            'monthly_unpaid' => $monthlyUnpaid,
             'monthly_revenue' => 0,
             'monthly_expenses' => 0,
             'pending_orders' => $pendingOrders,
@@ -105,16 +130,39 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Daftar transaksi lunas bulan ini
+        $monthlyPaidTransactions = Transaction::with('customer')
+            ->where('created_at', '>=', $thisMonth)
+            ->where('payment_status', 'lunas')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        // Daftar piutang bulan ini
+        $monthlyUnpaidTransactions = Transaction::with('customer')
+            ->where('created_at', '>=', $thisMonth)
+            ->whereIn('payment_status', ['belum_bayar', 'dp'])
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
         return Inertia::render('Dashboard/Index', [
             'stats' => $stats,
             'paid_transactions' => $paidTransactions,
             'unpaid_transactions' => $unpaidTransactions,
+            'monthly_paid_transactions' => $monthlyPaidTransactions,
+            'monthly_unpaid_transactions' => $monthlyUnpaidTransactions,
             'sales_chart' => $salesChart,
             'recent_transactions' => $recentTransactions,
             'active_orders' => $activeOrders,
             'category_sales' => $categorySales,
             'payment_methods' => $this->getPaymentMethodStats($thisMonth),
             'top_services' => $this->getTopServices($thisMonth),
+            'recent_expenses' => $recentExpenses,
+            'top_customers' => $topCustomers,
+            'low_stock_alerts' => \App\Models\Stock::whereColumn('current_qty', '<=', 'min_qty')
+                ->take(5)
+                ->get(),
         ]);
     }
 
