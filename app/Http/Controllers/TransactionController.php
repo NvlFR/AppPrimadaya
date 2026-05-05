@@ -118,6 +118,7 @@ class TransactionController extends Controller
             'items.*.print_type' => ['required', 'in:color,bw,na'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.price_per_meter' => ['nullable', 'numeric', 'min:0'],
             'items.*.width' => ['nullable', 'numeric', 'min:0.1'],
             'items.*.height' => ['nullable', 'numeric', 'min:0.1'],
             'items.*.item_notes' => ['nullable', 'string'],
@@ -142,7 +143,11 @@ class TransactionController extends Controller
                         if ($service?->is_per_meter) {
                             $width = max(0.1, (float) ($itemData['width'] ?? 0.1));
                             $height = max(0.1, (float) ($itemData['height'] ?? 0.1));
-                            $unitPrice = (float) $service->base_price * $width * $height;
+                            $rate = isset($itemData['price_per_meter'])
+                                ? max(0, (float) $itemData['price_per_meter'])
+                                : (float) $service->base_price;
+
+                            $unitPrice = $rate * $width * $height;
                         }
 
                         $itemData['qty'] = $qty;
@@ -214,6 +219,13 @@ class TransactionController extends Controller
                             $heightMeter = max(0.1, (float) ($itemData['height'] ?? 0.1));
                         }
 
+                        $pricePerMeter = null;
+                        if ($service?->is_per_meter) {
+                            $pricePerMeter = isset($itemData['price_per_meter'])
+                                ? max(0, (float) $itemData['price_per_meter'])
+                                : (float) $service->base_price;
+                        }
+
                         TransactionItem::create([
                             'transaction_id' => $transaction->id,
                             'service_id' => $service?->id,
@@ -229,6 +241,7 @@ class TransactionController extends Controller
                             'item_notes' => $itemData['item_notes'] ?? null,
                             'width_meter' => $widthMeter,
                             'height_meter' => $heightMeter,
+                            'price_per_meter' => $pricePerMeter,
                         ]);
                     }
 
@@ -295,6 +308,7 @@ class TransactionController extends Controller
                     'original_filename' => $item->original_filename,
                     'width_meter' => $item->width_meter,
                     'height_meter' => $item->height_meter,
+                    'price_per_meter' => $item->price_per_meter,
                     'service' => $item->service ? [
                         'id' => $item->service->id,
                         'name' => $item->service->name,

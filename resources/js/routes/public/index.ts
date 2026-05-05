@@ -2,7 +2,7 @@ import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFo
 import invoice18aa04 from './invoice'
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 export const invoice = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -17,7 +17,7 @@ invoice.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 invoice.url = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -44,7 +44,7 @@ invoice.url = (args: { uuid: string | number } | [uuid: string | number ] | stri
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 invoice.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -54,7 +54,7 @@ invoice.get = (args: { uuid: string | number } | [uuid: string | number ] | stri
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 invoice.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -64,7 +64,7 @@ invoice.head = (args: { uuid: string | number } | [uuid: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 const invoiceForm = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -74,7 +74,7 @@ const invoiceForm = (args: { uuid: string | number } | [uuid: string | number ] 
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 invoiceForm.get = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -84,7 +84,7 @@ invoiceForm.get = (args: { uuid: string | number } | [uuid: string | number ] | 
 
 /**
 * @see \App\Http\Controllers\TransactionController::invoice
-* @see app/Http/Controllers/TransactionController.php:570
+* @see app/Http/Controllers/TransactionController.php:584
 * @route '/invoice/{uuid}'
 */
 invoiceForm.head = (args: { uuid: string | number } | [uuid: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

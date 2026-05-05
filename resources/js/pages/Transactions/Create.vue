@@ -184,6 +184,7 @@ const form = useForm({
         print_type: string;
         qty: number;
         unit_price: number;
+        price_per_meter: number;
         item_notes: string;
         file: File | null;
         // Dimensi untuk layanan per-meter (contoh: Spanduk)
@@ -307,6 +308,24 @@ const normalizeQty = (item: { qty: number }) => {
     item.qty = Math.max(1, Number(item.qty) || 1);
 };
 
+const parseDimensionValue = (value: string | number) => {
+    const normalizedValue = String(value)
+        .replace(',', '.')
+        .replace(/[^\d.]/g, '');
+
+    if (!normalizedValue) return undefined;
+
+    const parsedValue = Number.parseFloat(normalizedValue);
+
+    return Number.isFinite(parsedValue) ? parsedValue : undefined;
+};
+
+const updateDimensionValue = (index: number, field: 'width' | 'height', value: string | number) => {
+    const item = form.items[index];
+    item[field] = parseDimensionValue(value);
+    updateDimensions(index);
+};
+
 const getItemArea = (item: { width: number | undefined; height: number | undefined }) => {
     const width = Number(item.width) || 0;
     const height = Number(item.height) || 0;
@@ -391,6 +410,14 @@ const updateItemPrice = (index: number) => {
 const updateFormattedItemPrice = (index: number, value: string | number) => {
     const normalizedValue = String(value).replace(/[^\d]/g, '');
     form.items[index].unit_price = normalizedValue ? Number(normalizedValue) : 0;
+};
+
+const updateFormattedPricePerMeter = (index: number, value: string | number) => {
+    const normalizedValue = String(value).replace(/[^\d]/g, '');
+    const item = form.items[index];
+
+    item.price_per_meter = normalizedValue ? Number(normalizedValue) : 0;
+    updateDimensions(index);
 };
 
 // ============================================================
@@ -974,24 +1001,22 @@ const shouldShowCartError = computed(() =>
                                             <div class="space-y-1">
                                                 <Label class="text-[10px] font-bold uppercase text-gray-400">Lebar (m)</Label>
                                                 <Input
-                                                    v-model.number="item.width"
-                                                    type="number"
-                                                    step="0.1"
-                                                    min="0.5"
+                                                    :model-value="item.width ?? ''"
+                                                    type="text"
+                                                    inputmode="decimal"
                                                     class="h-9 w-[80px] bg-white text-center font-medium"
-                                                    @input="updateDimensions(index)"
+                                                    @update:model-value="value => updateDimensionValue(index, 'width', value)"
                                                 />
                                             </div>
                                             <span class="mb-2 text-lg font-bold text-gray-300">×</span>
                                             <div class="space-y-1">
                                                 <Label class="text-[10px] font-bold uppercase text-gray-400">Tinggi (m)</Label>
                                                 <Input
-                                                    v-model.number="item.height"
-                                                    type="number"
-                                                    step="0.1"
-                                                    min="0.5"
+                                                    :model-value="item.height ?? ''"
+                                                    type="text"
+                                                    inputmode="decimal"
                                                     class="h-9 w-[80px] bg-white text-center font-medium"
-                                                    @input="updateDimensions(index)"
+                                                    @update:model-value="value => updateDimensionValue(index, 'height', value)"
                                                 />
                                             </div>
                                             <span class="mb-2 text-lg font-bold text-gray-300">=</span>
