@@ -333,24 +333,26 @@ class TransactionController extends Controller
         $request->validate([
             'payment_type' => ['required', 'in:lunas,dp'],
             'payment_method' => ['required', 'in:cash,transfer,qris'],
-            'amount_paid' => ['required', 'numeric', 'min:1'],
+            'amount_paid' => ['nullable', 'numeric', 'min:1'],
         ]);
 
         $total = (float) $transaction->total;
         $existingDp = (float) ($transaction->dp_amount ?? 0);
-        $amountPaid = (float) $request->amount_paid;
         $paymentType = $request->payment_type;
+        $remaining = $total - $existingDp;
+        $amountPaid = $paymentType === 'lunas'
+            ? $remaining
+            : (float) $request->amount_paid;
+
+        if ($paymentType === 'dp' && $amountPaid <= 0) {
+            throw ValidationException::withMessages([
+                'amount_paid' => 'Nominal DP wajib diisi.',
+            ]);
+        }
 
         DB::transaction(function () use ($transaction, $request, $total, $existingDp, $amountPaid, $paymentType) {
             if ($paymentType === 'lunas') {
                 // Bayar lunas — validasi nominal minimal cukup untuk sisa tagihan
-                $remaining = $total - $existingDp;
-                if ($amountPaid < $remaining) {
-                    throw ValidationException::withMessages([
-                        'amount_paid' => 'Nominal kurang. Sisa tagihan adalah Rp '.number_format($remaining, 0, ',', '.'),
-                    ]);
-                }
-
                 $totalPaid = $existingDp + $amountPaid;
                 $changeAmount = max(0, $totalPaid - $total);
 

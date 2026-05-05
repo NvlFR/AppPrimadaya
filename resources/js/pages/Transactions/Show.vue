@@ -87,6 +87,7 @@ const formPayment = useForm({
 const isWhatsAppDialogOpen = ref(false);
 const whatsappMessageDraft = ref('');
 const isCopyingWhatsAppMessage = ref(false);
+const isPaymentConfirmDialogOpen = ref(false);
 
 const { formatRupiah } = useFormatRupiah();
 const customerMissing = computed(() => !props.transaction.customer);
@@ -215,8 +216,18 @@ const submitPayment = () => {
         preserveScroll: true,
         onSuccess: () => {
             formPayment.reset('amount_paid');
+            isPaymentConfirmDialogOpen.value = false;
         },
     });
+};
+
+const requestPaymentSubmission = () => {
+    if (formPayment.payment_type === 'lunas') {
+        isPaymentConfirmDialogOpen.value = true;
+        return;
+    }
+
+    submitPayment();
 };
 
 const downloadPdf = () => {
@@ -528,7 +539,7 @@ const printThermal = () => {
                             Proses Pembayaran
                         </h3>
 
-                        <form @submit.prevent="submitPayment" class="space-y-4">
+                        <form @submit.prevent="requestPaymentSubmission" class="space-y-4">
                             <!-- Tipe Pembayaran -->
                             <div class="space-y-2">
                                 <Label>Tipe Pembayaran</Label>
@@ -578,9 +589,9 @@ const printThermal = () => {
                             </div>
 
                             <!-- Nominal -->
-                            <div class="space-y-2">
+                            <div v-if="formPayment.payment_type === 'dp'" class="space-y-2">
                                 <Label for="amount_paid">
-                                    {{ formPayment.payment_type === 'lunas' ? 'Nominal Diterima' : 'Nominal DP' }}
+                                    Nominal DP
                                 </Label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">Rp</span>
@@ -594,11 +605,10 @@ const printThermal = () => {
                                     />
                                 </div>
                                 <p v-if="formPayment.errors.amount_paid" class="text-xs text-red-500">{{ formPayment.errors.amount_paid }}</p>
+                            </div>
 
-                                <!-- Info sisa untuk mode lunas -->
-                                <!-- <p v-if="formPayment.payment_type === 'lunas'" class="text-xs text-blue-600">
-                                    Sisa tagihan: {{ formatRupiah(sisaTagihan) }}
-                                </p> -->
+                            <div v-else class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                                Pelunasan akan langsung mencatat pembayaran penuh sebesar <span class="font-bold">{{ formatRupiah(sisaTagihan) }}</span>.
                             </div>
 
                             <Button
@@ -708,6 +718,31 @@ const printThermal = () => {
                             Buka WhatsApp
                         </Button>
                     </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="isPaymentConfirmDialogOpen">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Konfirmasi Pelunasan</DialogTitle>
+                    <DialogDescription>
+                        Yakin ingin menandai transaksi ini sebagai lunas?
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                    <p>Metode pembayaran: <span class="font-bold uppercase">{{ formPayment.payment_method }}</span></p>
+                    <p class="mt-1">Total pelunasan: <span class="font-bold">{{ formatRupiah(sisaTagihan) }}</span></p>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <Button type="button" variant="outline" @click="isPaymentConfirmDialogOpen = false">
+                        Tidak
+                    </Button>
+                    <Button type="button" class="bg-blue-600 text-white hover:bg-blue-700" @click="submitPayment">
+                        Ya, Lanjutkan
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

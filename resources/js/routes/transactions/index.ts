@@ -324,7 +324,7 @@ show.form = showForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::status
-* @see app/Http/Controllers/TransactionController.php:398
+* @see app/Http/Controllers/TransactionController.php:400
 * @route '/transactions/{transaction}/status'
 */
 export const status = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -339,7 +339,7 @@ status.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::status
-* @see app/Http/Controllers/TransactionController.php:398
+* @see app/Http/Controllers/TransactionController.php:400
 * @route '/transactions/{transaction}/status'
 */
 status.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -372,7 +372,7 @@ status.url = (args: { transaction: number | { id: number } } | [transaction: num
 
 /**
 * @see \App\Http\Controllers\TransactionController::status
-* @see app/Http/Controllers/TransactionController.php:398
+* @see app/Http/Controllers/TransactionController.php:400
 * @route '/transactions/{transaction}/status'
 */
 status.patch = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -382,7 +382,7 @@ status.patch = (args: { transaction: number | { id: number } } | [transaction: n
 
 /**
 * @see \App\Http\Controllers\TransactionController::status
-* @see app/Http/Controllers/TransactionController.php:398
+* @see app/Http/Controllers/TransactionController.php:400
 * @route '/transactions/{transaction}/status'
 */
 const statusForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -397,7 +397,7 @@ const statusForm = (args: { transaction: number | { id: number } } | [transactio
 
 /**
 * @see \App\Http\Controllers\TransactionController::status
-* @see app/Http/Controllers/TransactionController.php:398
+* @see app/Http/Controllers/TransactionController.php:400
 * @route '/transactions/{transaction}/status'
 */
 statusForm.patch = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -494,7 +494,7 @@ payment.form = paymentForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 export const pdf = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -509,7 +509,7 @@ pdf.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 pdf.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -542,7 +542,7 @@ pdf.url = (args: { transaction: number | { id: number } } | [transaction: number
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 pdf.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -552,7 +552,7 @@ pdf.get = (args: { transaction: number | { id: number } } | [transaction: number
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 pdf.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -562,7 +562,7 @@ pdf.head = (args: { transaction: number | { id: number } } | [transaction: numbe
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 const pdfForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -572,7 +572,7 @@ const pdfForm = (args: { transaction: number | { id: number } } | [transaction: 
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 pdfForm.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -582,7 +582,7 @@ pdfForm.get = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::pdf
-* @see app/Http/Controllers/TransactionController.php:508
+* @see app/Http/Controllers/TransactionController.php:510
 * @route '/transactions/{transaction}/pdf'
 */
 pdfForm.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -599,7 +599,7 @@ pdf.form = pdfForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 export const thermal = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -614,7 +614,7 @@ thermal.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -647,7 +647,7 @@ thermal.url = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -657,7 +657,7 @@ thermal.get = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 thermal.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -667,7 +667,7 @@ thermal.head = (args: { transaction: number | { id: number } } | [transaction: n
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 const thermalForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -677,7 +677,7 @@ const thermalForm = (args: { transaction: number | { id: number } } | [transacti
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 thermalForm.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -687,7 +687,7 @@ thermalForm.get = (args: { transaction: number | { id: number } } | [transaction
 
 /**
 * @see \App\Http\Controllers\TransactionController::thermal
-* @see app/Http/Controllers/TransactionController.php:526
+* @see app/Http/Controllers/TransactionController.php:528
 * @route '/transactions/{transaction}/thermal'
 */
 thermalForm.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -704,7 +704,7 @@ thermal.form = thermalForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::bulkDestroy
-* @see app/Http/Controllers/TransactionController.php:479
+* @see app/Http/Controllers/TransactionController.php:481
 * @route '/transactions/bulk-destroy'
 */
 export const bulkDestroy = (options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -719,7 +719,7 @@ bulkDestroy.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::bulkDestroy
-* @see app/Http/Controllers/TransactionController.php:479
+* @see app/Http/Controllers/TransactionController.php:481
 * @route '/transactions/bulk-destroy'
 */
 bulkDestroy.url = (options?: RouteQueryOptions) => {
@@ -728,7 +728,7 @@ bulkDestroy.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\TransactionController::bulkDestroy
-* @see app/Http/Controllers/TransactionController.php:479
+* @see app/Http/Controllers/TransactionController.php:481
 * @route '/transactions/bulk-destroy'
 */
 bulkDestroy.delete = (options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -738,7 +738,7 @@ bulkDestroy.delete = (options?: RouteQueryOptions): RouteDefinition<'delete'> =>
 
 /**
 * @see \App\Http\Controllers\TransactionController::bulkDestroy
-* @see app/Http/Controllers/TransactionController.php:479
+* @see app/Http/Controllers/TransactionController.php:481
 * @route '/transactions/bulk-destroy'
 */
 const bulkDestroyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -753,7 +753,7 @@ const bulkDestroyForm = (options?: RouteQueryOptions): RouteFormDefinition<'post
 
 /**
 * @see \App\Http\Controllers\TransactionController::bulkDestroy
-* @see app/Http/Controllers/TransactionController.php:479
+* @see app/Http/Controllers/TransactionController.php:481
 * @route '/transactions/bulk-destroy'
 */
 bulkDestroyForm.delete = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -770,7 +770,7 @@ bulkDestroy.form = bulkDestroyForm
 
 /**
 * @see \App\Http\Controllers\TransactionController::destroy
-* @see app/Http/Controllers/TransactionController.php:498
+* @see app/Http/Controllers/TransactionController.php:500
 * @route '/transactions/{transaction}'
 */
 export const destroy = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -785,7 +785,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionController::destroy
-* @see app/Http/Controllers/TransactionController.php:498
+* @see app/Http/Controllers/TransactionController.php:500
 * @route '/transactions/{transaction}'
 */
 destroy.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -818,7 +818,7 @@ destroy.url = (args: { transaction: number | { id: number } } | [transaction: nu
 
 /**
 * @see \App\Http\Controllers\TransactionController::destroy
-* @see app/Http/Controllers/TransactionController.php:498
+* @see app/Http/Controllers/TransactionController.php:500
 * @route '/transactions/{transaction}'
 */
 destroy.delete = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -828,7 +828,7 @@ destroy.delete = (args: { transaction: number | { id: number } } | [transaction:
 
 /**
 * @see \App\Http\Controllers\TransactionController::destroy
-* @see app/Http/Controllers/TransactionController.php:498
+* @see app/Http/Controllers/TransactionController.php:500
 * @route '/transactions/{transaction}'
 */
 const destroyForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -843,7 +843,7 @@ const destroyForm = (args: { transaction: number | { id: number } } | [transacti
 
 /**
 * @see \App\Http\Controllers\TransactionController::destroy
-* @see app/Http/Controllers/TransactionController.php:498
+* @see app/Http/Controllers/TransactionController.php:500
 * @route '/transactions/{transaction}'
 */
 destroyForm.delete = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
