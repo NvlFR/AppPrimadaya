@@ -239,7 +239,7 @@ const serviceChartSeries = computed(() => [{
 const transactionPeriod = ref<'today' | 'month'>('today');
 
 const todayGrandTotal = computed(() => props.stats.today_paid + props.stats.today_unpaid);
-const monthlyGrandTotal = computed(() => props.stats.monthly_paid + props.stats.monthly_unpaid);
+const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
 </script>
 
 <template>
@@ -504,12 +504,12 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_paid + props.stats.
                     <!-- Grand Total Monthly -->
                     <Card class="border-0 shadow-md bg-white border-l-4 border-l-indigo-600 group hover:shadow-lg transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Total Tagihan (Nett)</CardTitle>
+                            <CardTitle class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Omzet Bulanan</CardTitle>
                             <TrendingUp class="h-4 w-4 text-indigo-400" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-black text-gray-900">{{ formatRupiah(monthlyGrandTotal) }}</div>
-                            <p class="mt-2 text-[10px] font-medium text-gray-400 italic">Total Lunas + Piutang</p>
+                            <p class="mt-2 text-[10px] font-medium text-gray-400 italic">Akumulasi transaksi non-pending bulan ini</p>
                         </CardContent>
                     </Card>
 
@@ -530,14 +530,14 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_paid + props.stats.
                     <!-- Monthly Paid -->
                     <Card class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Uang Masuk (Lunas)</CardTitle>
+                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Uang Masuk</CardTitle>
                             <div class="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shadow-sm"><CheckCircle2 class="h-3 w-3" /></div>
                         </CardHeader>
                         <CardContent>
                             <div class="text-xl font-black text-gray-900">{{ formatRupiah(stats.monthly_paid) }}</div>
                             <p class="mt-1 text-[9px] text-emerald-600 font-bold flex items-center gap-1">
                                 <span class="h-1 w-1 bg-emerald-500 rounded-full animate-pulse"></span>
-                                Cash Flow Aman
+                                Termasuk DP & pelunasan
                             </p>
                         </CardContent>
                     </Card>

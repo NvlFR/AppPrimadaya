@@ -20,6 +20,8 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
         $isAdmin = $request->user()?->role?->name === 'admin';
+        $monthlyTransactionQuery = Transaction::where('created_at', '>=', $thisMonth)
+            ->whereNotIn('status', ['pending']);
 
         // Jumlah transaksi hari ini
         $todayTransactions = Transaction::whereDate('created_at', $today)->count();
@@ -77,19 +79,24 @@ class DashboardController extends Controller
         $topCustomers = DB::table('transactions')
             ->join('customers', 'transactions.customer_id', '=', 'customers.id')
             ->where('transactions.created_at', '>=', $thisMonth)
+            ->whereNotIn('transactions.status', ['pending'])
             ->select('customers.name', DB::raw('SUM(transactions.total) as total_spent'), DB::raw('COUNT(transactions.id) as transaction_count'))
             ->groupBy('customers.id', 'customers.name')
             ->orderBy('total_spent', 'desc')
             ->take(5)
             ->get();
 
-        // Total uang diterima bulan ini
-        $monthlyPaid = (float) Transaction::where('created_at', '>=', $thisMonth)
+        // Total uang diterima bulan ini dari transaksi non-pending
+        $monthlyPaid = (float) (clone $monthlyTransactionQuery)
             ->sum('amount_paid');
 
-        // Total piutang bulan ini
-        $monthlyUnpaid = (float) Transaction::where('created_at', '>=', $thisMonth)
+        // Total piutang bulan ini dari transaksi non-pending
+        $monthlyUnpaid = (float) (clone $monthlyTransactionQuery)
             ->sum('remaining_amount');
+
+        // Total omzet bulan ini dari transaksi non-pending
+        $monthlyRevenue = (float) (clone $monthlyTransactionQuery)
+            ->sum('total');
 
         $stats = [
             'today_revenue' => $todayRevenue,
@@ -100,7 +107,7 @@ class DashboardController extends Controller
             'today_unpaid' => $todayUnpaid,
             'monthly_paid' => $monthlyPaid,
             'monthly_unpaid' => $monthlyUnpaid,
-            'monthly_revenue' => 0,
+            'monthly_revenue' => $monthlyRevenue,
             'monthly_expenses' => 0,
             'pending_orders' => $pendingOrders,
             'net_profit' => 0,
@@ -133,6 +140,7 @@ class DashboardController extends Controller
         // Daftar transaksi lunas bulan ini
         $monthlyPaidTransactions = Transaction::with('customer')
             ->where('created_at', '>=', $thisMonth)
+            ->whereNotIn('status', ['pending'])
             ->where('payment_status', 'lunas')
             ->orderBy('created_at', 'desc')
             ->take(10)
@@ -141,6 +149,7 @@ class DashboardController extends Controller
         // Daftar piutang bulan ini
         $monthlyUnpaidTransactions = Transaction::with('customer')
             ->where('created_at', '>=', $thisMonth)
+            ->whereNotIn('status', ['pending'])
             ->whereIn('payment_status', ['belum_bayar', 'dp'])
             ->orderBy('created_at', 'desc')
             ->take(10)
