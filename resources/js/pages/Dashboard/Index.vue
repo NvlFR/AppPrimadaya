@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
     Wallet, CreditCard, Clock, Activity, TrendingUp, TrendingDown, 
     PieChart, AlertTriangle, PlusIcon, CheckCircle, CheckCircle2, 
@@ -240,6 +241,14 @@ const transactionPeriod = ref<'today' | 'month'>('today');
 
 const todayGrandTotal = computed(() => props.stats.today_paid + props.stats.today_unpaid);
 const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
+
+const monthlyMetricHints = {
+    revenue: 'Total semua transaksi bulan ini yang sudah masuk proses bisnis. Order dengan status pending tidak ikut dihitung.',
+    profit: 'Omzet bulanan dikurangi total pengeluaran operasional yang dicatat pada bulan yang sama.',
+    paid: 'Akumulasi uang yang sudah diterima bulan ini, termasuk DP dan pelunasan transaksi.',
+    unpaid: 'Total sisa tagihan dari transaksi bulan ini yang belum lunas atau masih berstatus DP.',
+    expenses: 'Semua pengeluaran yang dicatat pada menu Pengeluaran dengan tanggal di bulan berjalan.',
+};
 </script>
 
 <template>
@@ -504,7 +513,21 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
                     <!-- Grand Total Monthly -->
                     <Card class="border-0 shadow-md bg-white border-l-4 border-l-indigo-600 group hover:shadow-lg transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Omzet Bulanan</CardTitle>
+                            <CardTitle class="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+                                Omzet Bulanan
+                                <TooltipProvider :delay-duration="100">
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <button type="button" class="rounded-full text-indigo-300 transition-colors hover:text-indigo-600 focus:outline-none">
+                                                <AlertCircle class="h-3.5 w-3.5" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" class="max-w-[260px] border border-indigo-100 bg-white text-xs text-gray-700 shadow-xl">
+                                            {{ monthlyMetricHints.revenue }}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardTitle>
                             <TrendingUp class="h-4 w-4 text-indigo-400" />
                         </CardHeader>
                         <CardContent>
@@ -516,7 +539,21 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
                     <!-- Net Profit -->
                     <Card v-if="$page.props.auth.role === 'admin'" class="border-0 shadow-md bg-gradient-to-br from-emerald-500 to-teal-600 text-white group hover:scale-[1.02] transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold uppercase tracking-widest opacity-80">Estimasi Laba Bersih</CardTitle>
+                            <CardTitle class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest opacity-80">
+                                Estimasi Laba Bersih
+                                <TooltipProvider :delay-duration="100">
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <button type="button" class="rounded-full text-white/60 transition-colors hover:text-white focus:outline-none">
+                                                <AlertCircle class="h-3.5 w-3.5" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" class="max-w-[260px] border border-emerald-100 bg-white text-xs text-gray-700 shadow-xl">
+                                            {{ monthlyMetricHints.profit }}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardTitle>
                             <Activity class="h-4 w-4 opacity-50" />
                         </CardHeader>
                         <CardContent>
@@ -530,7 +567,21 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
                     <!-- Monthly Paid -->
                     <Card class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Uang Masuk</CardTitle>
+                            <CardTitle class="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                Uang Masuk
+                                <TooltipProvider :delay-duration="100">
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <button type="button" class="rounded-full text-gray-300 transition-colors hover:text-emerald-600 focus:outline-none">
+                                                <AlertCircle class="h-3.5 w-3.5" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" class="max-w-[260px] border border-emerald-100 bg-white text-xs text-gray-700 shadow-xl">
+                                            {{ monthlyMetricHints.paid }}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardTitle>
                             <div class="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shadow-sm"><CheckCircle2 class="h-3 w-3" /></div>
                         </CardHeader>
                         <CardContent>
@@ -545,7 +596,21 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
                     <!-- Monthly Unpaid -->
                     <Card class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Piutang Berjalan</CardTitle>
+                            <CardTitle class="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                Piutang Berjalan
+                                <TooltipProvider :delay-duration="100">
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <button type="button" class="rounded-full text-gray-300 transition-colors hover:text-orange-600 focus:outline-none">
+                                                <AlertCircle class="h-3.5 w-3.5" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" class="max-w-[260px] border border-orange-100 bg-white text-xs text-gray-700 shadow-xl">
+                                            {{ monthlyMetricHints.unpaid }}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardTitle>
                             <div class="p-1.5 bg-orange-50 rounded-lg text-orange-600 shadow-sm"><AlertCircle class="h-3 w-3" /></div>
                         </CardHeader>
                         <CardContent>
@@ -559,7 +624,21 @@ const monthlyGrandTotal = computed(() => props.stats.monthly_revenue);
                     <!-- Expenses -->
                     <Card v-if="$page.props.auth.role === 'admin'" class="bg-white border border-gray-100 shadow-sm group hover:shadow-md hover:scale-[1.02] transition-all duration-300">
                         <CardHeader class="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Operasional</CardTitle>
+                            <CardTitle class="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                Operasional
+                                <TooltipProvider :delay-duration="100">
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <button type="button" class="rounded-full text-gray-300 transition-colors hover:text-red-600 focus:outline-none">
+                                                <AlertCircle class="h-3.5 w-3.5" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" class="max-w-[260px] border border-red-100 bg-white text-xs text-gray-700 shadow-xl">
+                                            {{ monthlyMetricHints.expenses }}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardTitle>
                             <div class="p-1.5 bg-red-50 rounded-lg text-red-600 shadow-sm"><CreditCard class="h-3 w-3" /></div>
                         </CardHeader>
                         <CardContent>

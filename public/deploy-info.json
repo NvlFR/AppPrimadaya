@@ -1,7 +1,7 @@
 {
   "app_name": "AppPrimadaya",
-  "deploy_count": 6,
-  "version": "v006",
-  "built_at": "2026-05-05 20:13:52 WIB",
-  "git_commit": "6ccb60d"
+  "deploy_count": 7,
+  "version": "v007",
+  "built_at": "2026-05-06 09:48:20 WIB",
+  "git_commit": "81eb411"
 }
