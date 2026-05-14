@@ -523,15 +523,42 @@ class TransactionController extends Controller
     }
 
     /**
-     * Menampilkan struk thermal 80mm untuk dicetak langsung dari browser.
+     * Menampilkan struk thermal untuk dicetak langsung dari browser.
      */
-    public function printThermal(Transaction $transaction)
+    public function printThermal(Request $request, Transaction $transaction)
     {
         $transaction->load(['customer', 'user', 'items']);
 
+        $paperWidth = (int) $request->integer('paper', 58);
+        if (! in_array($paperWidth, [58, 80], true)) {
+            $paperWidth = 58;
+        }
+
+        $pageHeight = $this->estimateThermalPageHeight($transaction, $paperWidth);
+
         return view('invoices.thermal', [
             'transaction' => $transaction,
+            'paperWidth' => $paperWidth,
+            'pageHeight' => $pageHeight,
         ]);
+    }
+
+    /**
+     * Mengestimasi tinggi halaman struk agar browser tidak fallback ke A4 penuh.
+     */
+    private function estimateThermalPageHeight(Transaction $transaction, int $paperWidth): int
+    {
+        $baseHeight = 120;
+
+        $itemHeight = $paperWidth === 58
+            ? 18
+            : 16;
+
+        $itemsCount = $transaction->items->count();
+
+        $estimated = $baseHeight + ($itemsCount * $itemHeight);
+
+        return max($estimated, 150);
     }
 
     /**
