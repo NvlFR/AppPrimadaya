@@ -234,9 +234,29 @@ const downloadPdf = () => {
     window.open(route('transactions.pdf', props.transaction.id), '_blank');
 };
 
+const isMobileBrowser = () => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(window.navigator.userAgent);
+};
+
 const printThermal = (paperWidth: 58 | 80 = 58) => {
     const url = new URL(route('transactions.thermal', props.transaction.id), window.location.origin);
     url.searchParams.set('paper', String(paperWidth));
+
+    if (isMobileBrowser()) {
+        url.searchParams.set('autoprint', '1');
+
+        const popup = window.open(url.toString(), '_blank', 'noopener,noreferrer');
+        if (!popup) {
+            window.location.href = url.toString();
+        }
+
+        return;
+    }
+
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.src = url.toString();

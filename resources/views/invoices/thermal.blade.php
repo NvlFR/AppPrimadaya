@@ -12,7 +12,7 @@
         $baseFontSize = $paperWidth === 58 ? 11 : 12;
         $headerFontSize = $paperWidth === 58 ? 14 : 16;
         $taglineFontSize = $paperWidth === 58 ? 10 : 11;
-        $logoMaxWidth = $paperWidth === 58 ? 110 : 138;
+        $logoMaxWidth = $paperWidth === 58 ? 126 : 152;
     @endphp
     <style>
         /* ===================================================
@@ -80,7 +80,7 @@
             max-width: {{ $logoMaxWidth }}px;
             height: auto;
             display: block;
-            margin: 0 auto 4px;
+            margin: 0 auto 5px;
             filter: grayscale(100%) contrast(220%) brightness(0.7);
         }
 
@@ -575,6 +575,11 @@
 
 </body>
 <script>
+    function shouldAutoPrint() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('autoprint') === '1';
+    }
+
     function applyThermalPageSize() {
         const receipt = document.getElementById('thermal-receipt');
         if (!receipt) {
@@ -601,6 +606,12 @@
     window.addEventListener('load', () => {
         applyThermalPageSize();
         setTimeout(applyThermalPageSize, 150);
+
+        if (shouldAutoPrint()) {
+            setTimeout(() => {
+                window.print();
+            }, 350);
+        }
     });
 </script>
 
