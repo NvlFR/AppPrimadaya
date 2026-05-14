@@ -8,11 +8,11 @@
     @php
         $paperWidth = $paperWidth ?? 58;
         $pageHeight = $pageHeight ?? 180;
-        $bodyPaddingX = $paperWidth === 58 ? 2.5 : 3;
-        $baseFontSize = $paperWidth === 58 ? 10 : 11;
-        $headerFontSize = $paperWidth === 58 ? 12 : 14;
-        $taglineFontSize = $paperWidth === 58 ? 8 : 9;
-        $logoMaxWidth = $paperWidth === 58 ? 92 : 120;
+        $bodyPaddingX = $paperWidth === 58 ? 2.8 : 3.4;
+        $baseFontSize = $paperWidth === 58 ? 11 : 12;
+        $headerFontSize = $paperWidth === 58 ? 14 : 16;
+        $taglineFontSize = $paperWidth === 58 ? 10 : 11;
+        $logoMaxWidth = $paperWidth === 58 ? 110 : 138;
     @endphp
     <style>
         /* ===================================================
@@ -49,12 +49,17 @@
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: var(--font-size-base);
+            font-weight: 600;
+            line-height: 1.28;
+            letter-spacing: 0.15px;
             color: #000000;
             background: #ffffff;
             width: var(--paper-width);
             height: auto;
             margin: 0;
             padding: 4mm var(--body-padding-x);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .receipt {
@@ -67,19 +72,28 @@
         .header {
             text-align: center;
             border-bottom: 1px dashed #000;
-            padding-bottom: 6px;
-            margin-bottom: 6px;
+            padding-bottom: 7px;
+            margin-bottom: 7px;
+        }
+
+        .shop-logo {
+            max-width: {{ $logoMaxWidth }}px;
+            height: auto;
+            display: block;
+            margin: 0 auto 4px;
+            filter: grayscale(100%) contrast(220%) brightness(0.7);
         }
 
         .shop-name {
             font-size: var(--font-size-header);
-            font-weight: bold;
-            letter-spacing: 1px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
         }
 
         .shop-tagline {
             font-size: var(--font-size-tagline);
+            font-weight: 600;
             margin-top: 2px;
         }
 
@@ -88,23 +102,25 @@
          * =================================================== */
         .info-section {
             border-bottom: 1px dashed #000;
-            padding-bottom: 6px;
-            margin-bottom: 6px;
-            font-size: 10px;
+            padding-bottom: 7px;
+            margin-bottom: 7px;
+            font-size: 11px;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2px;
+            gap: 8px;
+            margin-bottom: 3px;
         }
 
         .info-label {
             color: #000000ff;
+            font-weight: 700;
         }
 
         .info-value {
-            font-weight: bold;
+            font-weight: 700;
             text-align: right;
         }
 
@@ -114,50 +130,57 @@
         .items-header {
             display: flex;
             justify-content: space-between;
-            font-size: 9px;
-            font-weight: bold;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
             border-bottom: 1px solid #000;
-            padding-bottom: 3px;
-            margin-bottom: 4px;
+            padding-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .item-row {
-            margin-bottom: 5px;
-            font-size: 10px;
+            margin-bottom: 7px;
+            font-size: 11px;
         }
 
         .item-name {
-            font-weight: bold;
+            font-weight: 700;
             word-break: break-word;
         }
 
         .item-detail {
-            font-size: 9px;
+            font-size: 10px;
+            font-weight: 600;
             color: #000000ff;
             margin-left: 2px;
+            margin-top: 1px;
         }
 
         .item-note {
-            font-size: 9px;
-            font-style: italic;
+            font-size: 10px;
+            font-weight: 600;
             color: #000;
             margin-left: 2px;
+            margin-top: 1px;
         }
 
         .item-pricing {
             display: flex;
             justify-content: space-between;
-            margin-top: 2px;
-            font-size: 10px;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 3px;
+            font-size: 11px;
         }
 
         .item-qty-price {
             color: #000000ff;
+            font-weight: 600;
         }
 
         .item-subtotal {
-            font-weight: bold;
+            font-weight: 700;
+            text-align: right;
         }
 
         /* ===================================================
@@ -166,22 +189,24 @@
         .summary-section {
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
-            padding: 6px 0;
-            margin: 6px 0;
+            padding: 7px 0;
+            margin: 7px 0;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
-            margin-bottom: 3px;
+            gap: 8px;
+            font-size: 11px;
+            margin-bottom: 4px;
         }
 
         .summary-total {
             display: flex;
             justify-content: space-between;
-            font-size: 13px;
-            font-weight: bold;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 700;
             margin-top: 4px;
             padding-top: 4px;
             border-top: 1px solid #000;
@@ -191,28 +216,29 @@
          * Info Pembayaran
          * =================================================== */
         .payment-section {
-            font-size: 10px;
-            margin-bottom: 6px;
+            font-size: 11px;
+            margin-bottom: 7px;
         }
 
         .payment-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2px;
+            gap: 8px;
+            margin-bottom: 3px;
         }
 
         .kembalian-value {
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 700;
         }
 
         /* Badge Status Bayar */
         .payment-status-badge {
             display: inline-block;
-            font-weight: bold;
-            font-size: 10px;
-            padding: 2px 6px;
-            border: 1px solid #000;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 3px 7px;
+            border: 1.5px solid #000;
             border-radius: 3px;
             text-transform: uppercase;
         }
@@ -230,12 +256,12 @@
         }
 
         .sisa-tagihan-label {
-            font-weight: bold;
+            font-weight: 700;
         }
 
         .sisa-tagihan-value {
-            font-weight: bold;
-            font-size: 12px;
+            font-weight: 700;
+            font-size: 13px;
         }
 
         /* ===================================================
@@ -243,16 +269,17 @@
          * =================================================== */
         .footer {
             border-top: 1px dashed #000;
-            padding-top: 6px;
-            margin-top: 6px;
+            padding-top: 7px;
+            margin-top: 7px;
             text-align: center;
-            font-size: 9px;
-            color: #333;
+            font-size: 10px;
+            font-weight: 600;
+            color: #000;
         }
 
         .footer-thanks {
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: 700;
             margin-bottom: 3px;
         }
 
@@ -277,7 +304,7 @@
             }
 
             body {
-                padding: 2mm var(--body-padding-x);
+                padding: 2.5mm var(--body-padding-x);
             }
 
             .receipt,
@@ -335,9 +362,9 @@
          HEADER TOKO
          ======================== -->
         <div class="header">
-            <img src="{{ asset('logo.png') }}" alt="Primadaya Print"
-                style="max-width: {{ $logoMaxWidth }}px; height: auto; display: block; margin: 0 auto 4px;">
-            <div class="shop-tagline">Percetakan Digital</div>
+            <img src="{{ asset('logo.png') }}" alt="Primadaya Print" class="shop-logo">
+            {{-- <div class="shop-name">Primadaya Print</div> --}}
+            {{-- <div class="shop-tagline">Percetakan Digital</div> --}}
         </div>
 
         <!-- ========================
@@ -513,8 +540,8 @@
                     <span class="sisa-tagihan-label">TOTAL TAGIHAN</span>
                     <span class="sisa-tagihan-value">Rp {{ number_format($transaction->total, 0, ',', '.') }}</span>
                 </div>
-                <div style="font-size: 9px; font-style: italic; margin-top: 3px; text-align: center;">
-                    * Pembayaran belum diterima
+                <div style="font-size: 10px; font-weight: 600; margin-top: 4px; text-align: center;">
+                    Pembayaran belum diterima
                 </div>
             @endif
         </div>
@@ -523,7 +550,8 @@
          CATATAN KASIR (jika ada)
          ======================== -->
         @if ($transaction->notes)
-            <div style="font-size: 9px; border: 1px dashed #666; padding: 4px; margin-bottom: 6px; border-radius: 2px;">
+            <div
+                style="font-size: 10px; font-weight: 600; border: 1px dashed #000; padding: 5px; margin-bottom: 7px; border-radius: 2px;">
                 <strong>Catatan:</strong> {{ $transaction->notes }}
             </div>
         @endif
@@ -539,7 +567,7 @@
                 <div>Harap selesaikan pembayaran sebelum mengambil pesanan.</div>
             @endif
             {{-- <div style="margin-top: 3px;">Primadaya </div> --}}
-            <div style="margin-top: 3px; font-size: 8px; color: #999;">
+            <div style="margin-top: 4px; font-size: 9px; font-weight: 600; color: #000;">
                 Dicetak: {{ now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB
             </div>
         </div>
